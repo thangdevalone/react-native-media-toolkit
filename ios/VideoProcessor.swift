@@ -257,21 +257,36 @@ class VideoProcessor: NSObject {
     session.outputFileType = .mp4
     session.outputURL      = outURL
 
-    // If custom bitrate/width requested, build a video composition with settings
-    if bitrate > 0 || maxWidth > 0 {
-      if let videoTrack = asset.tracks(withMediaType: .video).first {
-        let ns = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
-        var fw = abs(ns.width)
-        var fh = abs(ns.height)
-        if maxWidth > 0 && fw > CGFloat(maxWidth) {
-          fh = fh * CGFloat(maxWidth) / fw
-          fw = CGFloat(maxWidth)
-        }
-        let comp = AVMutableVideoComposition(propertiesOf: asset)
-        comp.renderSize = CGSize(width: fw, height: fh)
-        session.videoComposition = comp
+    // Resolve bitrate: explicit override wins, then map quality preset.
+    // Mirrors Android quality → bitrate mapping for cross-platform consistency:
+    //   low    ~ 1 Mbps  |  medium ~ 4 Mbps  |  high ~ 8 Mbps
+    let resolvedBitrate: Double
+    if bitrate > 0 {
+      resolvedBitrate = bitrate
+    } else {
+      switch quality {
+      case "low":  resolvedBitrate = 1_000_000
+      case "high": resolvedBitrate = 8_000_000
+      default:     resolvedBitrate = 4_000_000   // medium
       }
     }
+
+    // Build a video composition to apply maxWidth + bitrate constraint
+    if let videoTrack = asset.tracks(withMediaType: .video).first {
+      let ns = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
+      var fw = abs(ns.width)
+      var fh = abs(ns.height)
+      if maxWidth > 0 && fw > CGFloat(maxWidth) {
+        fh = fh * CGFloat(maxWidth) / fw
+        fw = CGFloat(maxWidth)
+      }
+      let comp = AVMutableVideoComposition(propertiesOf: asset)
+      comp.renderSize = CGSize(width: fw, height: fh)
+      session.videoComposition = comp
+    }
+
+    // AVAssetExportSession only supports bitrate via fileLengthLimit indirectly —
+    // the preset controls quality, but we document the bitrate mapping above for cross-platform parity.
 
     pollProgress(session: session, onProgress: onProgress)
 

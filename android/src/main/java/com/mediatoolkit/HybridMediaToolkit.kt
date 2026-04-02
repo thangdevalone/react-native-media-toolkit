@@ -97,6 +97,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         ctx,
         uri,
         options.quality ?: "medium",
+        (options.bitrate ?: 0.0).toInt(),    // 0 = use quality preset (mirrors iOS behaviour)
         (options.width ?: 0.0).toInt(),
         options.outputPath
       ) { /* progress ignored */ }

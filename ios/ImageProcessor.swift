@@ -78,9 +78,12 @@ class ImageProcessor: NSObject {
       ext = "png"; mime = "image/png"
       data = resized.pngData()
     case "webp":
-      // iOS doesn't have native WebP encode — fall back to JPEG
-      ext = "jpg"; mime = "image/jpeg"
-      data = resized.jpegData(compressionQuality: q)
+      // iOS does not have a native WebP encoder.
+      // Throw an explicit error so callers can handle it (e.g. fall back to "jpeg" themselves).
+      // This matches the principle of least surprise — same behaviour on both platforms.
+      throw MediaToolkitError.processingFailed(
+        "WebP encoding is not supported on iOS. Use \"jpeg\" or \"png\" instead."
+      )
     default:
       ext = "jpg"; mime = "image/jpeg"
       data = resized.jpegData(compressionQuality: q)

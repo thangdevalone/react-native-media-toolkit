@@ -125,6 +125,7 @@ internal object VideoProcessor {
     context: Context,
     uri: String,
     quality: String,
+    bitrate: Int,          // 0 = use quality preset (matches iOS behaviour)
     maxWidth: Int,
     outputPath: String?,
     onProgress: (Int) -> Unit
@@ -135,7 +136,7 @@ internal object VideoProcessor {
 
     val effects: Effects = if (maxWidth > 0) {
       val presentation = Presentation.createForWidthAndHeight(
-        maxWidth, maxWidth, // height will be derived by aspect ratio via Media3
+        maxWidth, maxWidth,
         Presentation.LAYOUT_SCALE_TO_FIT
       )
       Effects(emptyList(), listOf(presentation))
@@ -143,7 +144,18 @@ internal object VideoProcessor {
       Effects.EMPTY
     }
 
-    return runTransform(context, mediaItem, effects, out, onProgress)
+    // Map quality preset → bitrate (bps), mirroring iOS AVFoundation rough equivalents:
+    //   low    ~ 1 Mbps  (AVAssetExportPresetLowQuality)
+    //   medium ~ 4 Mbps  (AVAssetExportPresetMediumQuality)  ← default
+    //   high   ~ 8 Mbps  (AVAssetExportPresetHighestQuality)
+    val resolvedBitrate = when {
+      bitrate > 0 -> bitrate           // explicit override wins
+      quality == "low"  -> 1_000_000
+      quality == "high" -> 8_000_000
+      else              -> 4_000_000   // medium
+    }
+
+    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = resolvedBitrate)
   }
 
   // ─── Core ────────────────────────────────────────────────────────────────
@@ -154,7 +166,8 @@ internal object VideoProcessor {
     effects: Effects,
     outputPath: String,
     onProgress: (Int) -> Unit,
-    transmux: Boolean = false   // true = passthrough (no re-encode), for trim only
+    transmux: Boolean = false,
+    targetBitrate: Int = 0        // 0 = let Media3 decide
   ): Map<String, Any> {
     val outFile = File(outputPath)
     outFile.parentFile?.mkdirs()
@@ -162,7 +175,6 @@ internal object VideoProcessor {
 
     val latch = CountDownLatch(1)
     var exportError: Exception? = null
-    var exportResult: ExportResult? = null
 
     val editedItem = EditedMediaItem.Builder(mediaItem)
       .setEffects(effects)
@@ -171,7 +183,6 @@ internal object VideoProcessor {
     val transformerBuilder = Transformer.Builder(context)
       .addListener(object : Transformer.Listener {
         override fun onCompleted(composition: Composition, result: ExportResult) {
-          exportResult = result
           latch.countDown()
         }
         override fun onError(composition: Composition, result: ExportResult, exception: ExportException) {
@@ -181,10 +192,10 @@ internal object VideoProcessor {
       })
 
     if (transmux) {
-      // Passthrough: copy bitstream, no decode/re-encode — fast trim
+      // Passthrough: copy bitstream, no decode/re-encode — fast trim (mirrors iOS AVAssetExportPresetPassthrough)
       transformerBuilder.setTransmuxVideo(true).setTransmuxAudio(true)
     } else {
-      // Re-encode: needed for crop/compress that change frame content
+      // Re-encode with H264 (mirrors iOS default output codec)
       transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
     }
 

@@ -75,10 +75,13 @@ android {
     externalNativeBuild {
       cmake {
         cppFlags "-std=c++20 -frtti -fexceptions"
-        // arm64-v8a: physical Android devices (primary development target)
-        // x86_64: Android emulators — excluded here as Nitro has a known linker issue on x86_64
-        // For emulator support, re-add "x86_64" once resolved.
-        abiFilters "arm64-v8a"
+        // Support both ABIs:
+        //   arm64-v8a → physical Android devices
+        //   x86_64    → Android emulators
+        // Note: in the monorepo example (composite build), x86_64 may fail to link
+        // Nitro symbols. This is a dev-only limitation of the includeBuild setup,
+        // NOT a limitation of the published library.
+        abiFilters "arm64-v8a", "x86_64"
         arguments "-DANDROID_STL=c++_shared"
       }
     }

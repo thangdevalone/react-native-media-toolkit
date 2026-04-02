@@ -1,18 +1,25 @@
-const { withMainApplication, withGradleProperties, withAppBuildGradle } = require('@expo/config-plugins');
+const {
+  withMainApplication,
+  withGradleProperties,
+  withAppBuildGradle,
+} = require('@expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
 
 /**
- * Expo Config Plugin for react-native-media-toolkit on Android.
+ * Expo Config Plugin for react-native-media-toolkit Android example.
  *
- * Does three things:
- * 1. Loads the MediaToolkit C++ shared library at app startup (required by Nitro Modules).
- * 2. Disables Kotlin DSL workspace metadata caching to fix Gradle 8.13+ metadata.bin
- *    corruption bug in composite/monorepo builds.
- * 3. Adds `android.packaging.resources.pickFirsts` and `android.packaging.jniLibs.pickFirsts`
- *    to resolve duplicate DEX class errors when react-native-safe-area-context is used alongside
- *    this library in a monorepo composite build (includeBuild) setup.
+ * Applied automatically by Expo prebuild via app.json "plugins" entry.
+ * Handles 3 things required for the monorepo composite build to work:
+ *
+ * 1. MainApplication: load MediaToolkit C++ shared library at startup.
+ * 2. gradle.properties: disable Kotlin DSL accessor cache to prevent
+ *    Gradle 8.13+ metadata.bin corruption bug in composite builds.
+ * 3. gradle-wrapper.properties: pin Gradle to 8.13 (minimum required by
+ *    AGP 8.7.2, maximum without metadata.bin regression from 8.14.x).
  */
 const withMediaToolkitAndroid = (config) => {
-  // Step 1: Load native library in MainApplication
+  // ─── Step 1: Load native .so in MainApplication ───────────────────────────
   config = withMainApplication(config, (mod) => {
     let contents = mod.modResults.contents;
     const initCall = 'System.loadLibrary("MediaToolkit")';
@@ -26,11 +33,11 @@ const withMediaToolkitAndroid = (config) => {
     return mod;
   });
 
-  // Step 2: Disable Kotlin DSL workspace metadata cache.
-  // Gradle 8.13+ has a bug where the kotlin-dsl accessor metadata.bin file becomes
-  // unreadable when a build fails mid-generation in composite/monorepo setups.
-  // Setting this to false forces Gradle to regenerate accessors on every build
-  // (slightly slower first build, but eliminates the corruption bug).
+  // ─── Step 2: Disable Kotlin DSL accessor cache ────────────────────────────
+  // Gradle 8.13+ bug: kotlin-dsl metadata.bin gets corrupted when a build
+  // fails mid-generation in composite/monorepo setups (includeBuild).
+  // Setting cache=false forces regeneration every time — slightly slower
+  // first build, no corruption.
   config = withGradleProperties(config, (mod) => {
     const props = mod.modResults;
     const key = 'org.gradle.kotlin.dsl.cache';
@@ -41,42 +48,32 @@ const withMediaToolkitAndroid = (config) => {
     return mod;
   });
 
-  // Step 3: Resolve duplicate DEX class errors in composite build monorepo.
-  // Background: react-native-media-toolkit uses includeBuild in the example/android/settings.gradle.
-  // The library has `compileOnly "com.facebook.react:react-android"`, but in composite build mode,
-  // Gradle may include react-android's codegen classes (e.g. RNCSafeAreaProviderManagerDelegate)
-  // in the library's bundleLibRuntimeToDir DEX. react-native-safe-area-context ALSO ships these
-  // same classes. AGP 8.x `android.packaging.resources.pickFirsts` resolves class file conflicts.
+  // ─── Step 3: Pin Gradle wrapper to 8.13 ───────────────────────────────────
+  // expo prebuild resets the Gradle wrapper to 8.14.x which has a breaking
+  // Kotlin DSL workspace metadata regression. AGP 8.7.2 requires >= 8.13.
+  // We pin to 8.13 which is stable with this project's RN 0.81 + Expo 54 setup.
   config = withAppBuildGradle(config, (mod) => {
-    let contents = mod.modResults.contents;
-    const marker = '// MediaToolkit: resolve safe-area DEX conflict';
+    // withAppBuildGradle runs after prebuild writes files — hook to also patch wrapper
+    const wrapperPath = path.join(
+      mod.modRequest.projectRoot,
+      'android/gradle/wrapper/gradle-wrapper.properties'
+    );
 
-    if (!contents.includes(marker)) {
-      // Insert inside the android {} block, after the existing packagingOptions/androidResources
-      const pickFirstsBlock = `
-    ${marker}
-    // When react-native-safe-area-context is installed alongside this library in a
-    // monorepo (composite build / includeBuild), react-android's bundled codegen stubs
-    // conflict with safe-area-context's own codegen stubs. pickFirsts tells AGP to
-    // keep only one copy of these classes instead of failing the build.
-    packaging {
-        resources {
-            pickFirsts += [
-                '**/com/facebook/react/viewmanagers/RNCSafeAreaProviderManagerDelegate.class',
-                '**/com/facebook/react/viewmanagers/RNCSafeAreaViewManagerDelegate.class',
-                '**/com/facebook/react/viewmanagers/RNCSafeAreaProviderManager.class',
-                '**/com/facebook/react/viewmanagers/RNCSafeAreaViewManager.class',
-            ]
+    try {
+      if (fs.existsSync(wrapperPath)) {
+        let wrapper = fs.readFileSync(wrapperPath, 'utf8');
+        // Replace any gradle-8.x.x-bin with gradle-8.13-bin
+        const patched = wrapper.replace(
+          /gradle-8\.\d+(\.\d+)?-bin/,
+          'gradle-8.13-bin'
+        );
+        if (patched !== wrapper) {
+          fs.writeFileSync(wrapperPath, patched, 'utf8');
+          console.log('[withMediaToolkitAndroid] Pinned Gradle wrapper to 8.13');
         }
-    }`;
-
-      // Insert before the closing of android { } block
-      contents = contents.replace(
-        /(\n    androidResources \{[^}]*\})\n(\})/,
-        `$1${pickFirstsBlock}\n$2`
-      );
-
-      mod.modResults.contents = contents;
+      }
+    } catch (e) {
+      console.warn('[withMediaToolkitAndroid] Could not patch gradle-wrapper.properties:', e.message);
     }
 
     return mod;

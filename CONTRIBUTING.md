@@ -61,7 +61,17 @@ yarn
 
 This installs dependencies for both the library and the example app.
 
-**3. Install iOS pods**
+**3. Generate native project files**
+
+The `example/android` and `example/ios` directories are not committed. Run prebuild to create them:
+
+```sh
+cd example && npx expo prebuild && cd ..
+```
+
+> **Android:** The Expo plugin automatically pins Gradle to 8.13 and applies all required build config. No manual changes needed.
+
+**4. Install iOS pods**
 
 ```sh
 cd example/ios && pod install && cd ../..
@@ -91,7 +101,10 @@ yarn example ios
 yarn example android
 ```
 
-To verify New Architecture is active, check the Metro logs for:
+> **First Android build** takes 3–5 minutes. Subsequent builds are ~15s (incremental).
+> If you hit build errors, run `cd example && npx expo prebuild` first to reset native files.
+
+To verify New Architecture is active, check Metro logs for:
 
 ```
 Running "MediaToolkitExample" with {"fabric":true,"initialProps":{"concurrentRoot":true},"rootTag":1}

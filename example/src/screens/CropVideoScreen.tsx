@@ -36,7 +36,7 @@ export default function CropVideoScreen({
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={{ flex: 1 }}>
         <View style={s.header}>
           <TouchableOpacity style={s.backBtn} onPress={onBack}>
             <Ionicons name="chevron-back" size={24} color={T.text} />

@@ -233,8 +233,8 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-    <SafeAreaView style={h.safe} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor={T.bg} translucent={false} />
+      <SafeAreaView style={h.safe} edges={['top', 'left', 'right']}>
+        <StatusBar barStyle="light-content" backgroundColor={T.bg} translucent={false} />
 
       <View style={h.header}>
         <View>
@@ -411,7 +411,7 @@ export default function App() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

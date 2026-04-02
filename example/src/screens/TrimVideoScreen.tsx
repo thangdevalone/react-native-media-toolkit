@@ -47,7 +47,7 @@ export default function TrimVideoScreen({ srcUri, durationMs, loading, opLabel, 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
-      <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={s.safe}>
         <View style={s.header}>
           <TouchableOpacity style={s.backBtn} onPress={onBack}>
             <Ionicons name="chevron-back" size={24} color={T.text} />

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["mediatoolkit"],
+  "ios": {
+    "iosModuleName": "MediaToolkit"
+  },
+  "android": {
+    "androidNamespace": ["com", "mediatoolkit"],
+    "androidCxxLibName": "MediaToolkit"
+  },
+  "autolinking": {
+    "MediaToolkit": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMediaToolkit"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMediaToolkit"
+      }
+    }
+  }
+}

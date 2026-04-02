@@ -6,7 +6,7 @@
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.tsx",
+      "source": "./src/index.ts",
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
@@ -35,6 +35,7 @@
     "example": "yarn workspace react-native-media-toolkit-example",
     "clean": "del-cli lib",
     "prepare": "bob build",
+    "codegen": "nitrogen --config nitro.json",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\""
   },
@@ -68,6 +69,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-ft-flow": "^3.0.11",
     "eslint-plugin-prettier": "^5.5.5",
+    "nitrogen": "^0.35.2",
     "prettier": "^3.8.1",
     "react": "19.1.0",
     "react-native": "0.81.5",
@@ -77,7 +79,8 @@
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
   },
   "workspaces": [
     "example"
@@ -101,13 +104,8 @@
       ]
     ]
   },
-  "codegenConfig": {
-    "name": "MediaToolkitSpec",
-    "type": "modules",
-    "jsSrcsDir": "src",
-    "android": {
-      "javaPackageName": "com.mediatoolkit"
-    }
+  "nitro": {
+    "config": "nitro.json"
   },
   "prettier": {
     "quoteProps": "consistent",
@@ -117,11 +115,14 @@
     "useTabs": false
   },
   "create-react-native-library": {
-    "type": "turbo-module",
-    "languages": "kotlin-objc",
+    "type": "nitro-module",
+    "languages": "swift-kotlin",
     "tools": [
       "eslint"
     ],
     "version": "0.58.2"
+  },
+  "dependencies": {
+    "react-native-nitro-modules": "^0.35.2"
   }
 }

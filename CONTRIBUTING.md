@@ -1,109 +1,206 @@
-# Contributing
+# Contributing to react-native-media-toolkit
 
-Contributions are always welcome, no matter how large or small!
+Read this in: [Tiếng Việt](./CONTRIBUTING.vi.md)
 
-We want this community to be friendly and respectful to each other. Please follow it in all your interactions with the project. Before contributing, please read the [code of conduct](./CODE_OF_CONDUCT.md).
+---
 
-## Development workflow
+Thank you for your interest in contributing. All contributions are welcome, whether it's a bug fix, new feature, documentation improvement, or question.
 
-This project is a monorepo managed using [Yarn workspaces](https://yarnpkg.com/features/workspaces). It contains the following packages:
+Please read this guide before submitting anything.
 
-- The library package in the root directory.
-- An example app in the `example/` directory.
+---
 
-To get started with the project, make sure you have the correct version of [Node.js](https://nodejs.org/) installed. See the [`.nvmrc`](./.nvmrc) file for the version used in this project.
+## Code of Conduct
 
-Run `yarn` in the root directory to install the required dependencies for each package:
+This project follows a standard code of conduct. Please be respectful and constructive in all interactions.  
+See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for details.
+
+---
+
+## Project Structure
+
+This repository is a **Yarn monorepo** with two packages:
+
+- Root directory: the library (`react-native-media-toolkit`)
+- `example/`: the demo app (Expo Dev Client)
+
+```
+react-native-media-toolkit/        Library source
+├── src/                           TypeScript API and Nitro spec
+├── ios/                           Swift native implementation
+├── android/                       Kotlin native implementation
+├── nitrogen/                      Generated Nitro bridge files (do not edit manually)
+└── example/                       Demo app for testing changes
+```
+
+---
+
+## Prerequisites
+
+- Node.js: see `.nvmrc` for the exact version
+- Yarn 4+: `corepack enable && corepack prepare yarn@stable --activate`
+- iOS development: Xcode 16.1+, CocoaPods
+- Android development: Android Studio, JDK 17+
+
+---
+
+## Setup
+
+**1. Clone the repo**
+
+```sh
+git clone https://github.com/thangdevalone/react-native-media-toolkit.git
+cd react-native-media-toolkit
+```
+
+**2. Install dependencies**
 
 ```sh
 yarn
 ```
 
-> Since the project relies on Yarn workspaces, you cannot use [`npm`](https://github.com/npm/cli) for development without manually migrating.
+This installs dependencies for both the library and the example app.
 
-The [example app](/example/) demonstrates usage of the library. You need to run it to test any changes you make.
+**3. Install iOS pods**
 
-It is configured to use the local version of the library, so any changes you make to the library's source code will be reflected in the example app. Changes to the library's JavaScript code will be reflected in the example app without a rebuild, but native code changes will require a rebuild of the example app.
+```sh
+cd example/ios && pod install && cd ../..
+```
 
-If you want to use Android Studio or Xcode to edit the native code, you can open the `example/android` or `example/ios` directories respectively in those editors. To edit the Objective-C or Swift files, open `example/ios/MediaToolkitExample.xcworkspace` in Xcode and find the source files at `Pods > Development Pods > react-native-media-toolkit`.
+---
 
-To edit the Java or Kotlin files, open `example/android` in Android studio and find the source files at `react-native-media-toolkit` under `Android`.
+## Running the Example App
 
-You can use various commands from the root directory to work with the project.
+The example app uses **Expo Dev Client**, so you need to build it natively first.
 
-To start the packager:
+**Start Metro**
 
 ```sh
 yarn example start
 ```
 
-To run the example app on Android:
-
-```sh
-yarn example android
-```
-
-To run the example app on iOS:
+**Run on iOS**
 
 ```sh
 yarn example ios
 ```
 
-To confirm that the app is running with the new architecture, you can check the Metro logs for a message like this:
+**Run on Android**
 
 ```sh
+yarn example android
+```
+
+To verify New Architecture is active, check the Metro logs for:
+
+```
 Running "MediaToolkitExample" with {"fabric":true,"initialProps":{"concurrentRoot":true},"rootTag":1}
 ```
 
-Note the `"fabric":true` and `"concurrentRoot":true` properties.
+---
 
-To run the example app on Web:
+## Editing Native Code
+
+**iOS (Swift):**  
+Open `example/ios/MediaToolkitExample.xcworkspace` in Xcode.  
+Library source files: `Pods > Development Pods > react-native-media-toolkit`.
+
+**Android (Kotlin):**  
+Open `example/android` in Android Studio.  
+Library source files appear under `react-native-media-toolkit` in the project tree.
+
+After modifying native code, you must rebuild the app — a Metro reload is not enough.
+
+---
+
+## Running Codegen
+
+If you change the Nitro spec file (`src/MediaToolkit.nitro.ts`), regenerate the bridge files:
 
 ```sh
-yarn example web
+yarn codegen
 ```
 
-Make sure your code passes TypeScript:
+This runs `nitrogen --config nitro.json` and updates the `nitrogen/` directory.  
+After regeneration, rebuild the native app to apply the changes.
+
+---
+
+## Code Quality
+
+**TypeScript check**
 
 ```sh
 yarn typecheck
 ```
 
-To check for linting errors, run the following:
+**Lint**
 
 ```sh
 yarn lint
 ```
 
-To fix formatting errors, run the following:
+**Auto-fix lint errors**
 
 ```sh
 yarn lint --fix
 ```
 
+All checks must pass before submitting a pull request.
 
+---
 
-### Scripts
+## Scripts Reference
 
-The `package.json` file contains various scripts for common tasks:
+| Script | Description |
+|---|---|
+| `yarn` | Install all dependencies |
+| `yarn typecheck` | Type-check with TypeScript |
+| `yarn lint` | Lint with ESLint |
+| `yarn lint --fix` | Auto-fix lint errors |
+| `yarn codegen` | Regenerate Nitro bridge files |
+| `yarn example start` | Start Metro server |
+| `yarn example ios` | Run example on iOS |
+| `yarn example android` | Run example on Android |
+| `yarn example build:ios` | Build iOS binary |
+| `yarn example build:android` | Build Android APK |
 
-- `yarn`: setup project by installing dependencies.
-- `yarn typecheck`: type-check files with TypeScript.
-  - `yarn lint`: lint files with [ESLint](https://eslint.org/).
-    - `yarn example start`: start the Metro server for the example app.
-- `yarn example android`: run the example app on Android.
-- `yarn example ios`: run the example app on iOS.
-  - `yarn example web`: run the example app on Web.
-- `yarn example build:web`: build the example app for Web.
-  
-### Sending a pull request
+---
 
-> **Working on your first pull request?** You can learn how from this _free_ series: [How to Contribute to an Open Source Project on GitHub](https://app.egghead.io/playlists/how-to-contribute-to-an-open-source-project-on-github).
+## Submitting a Pull Request
 
-When you're sending a pull request:
+Before opening a pull request:
 
-- Prefer small pull requests focused on one change.
-- Verify that linters and tests are passing.
-- Review the documentation to make sure it looks good.
-- Follow the pull request template when opening a pull request.
-- For pull requests that change the API or implementation, discuss with maintainers first by opening an issue.
+1. Open an issue first if the change is significant (new feature, breaking change, or API change).
+2. Keep pull requests small and focused on a single concern.
+3. Make sure `yarn typecheck` and `yarn lint` both pass.
+4. Test your changes on both iOS and Android using the example app.
+5. Update `README.md` if you change or add any public API.
+
+**PR title format:**
+
+```
+fix: correct crop coordinates for letterboxed video
+feat: add getThumbnail API
+docs: update installation guide
+```
+
+---
+
+## Reporting Bugs
+
+When reporting a bug, please include:
+
+- Library version (`react-native-media-toolkit@x.x.x`)
+- React Native version
+- Platform (iOS version / Android API level)
+- A minimal code snippet to reproduce the issue
+- The full error message or stack trace
+
+Submit bugs at: [https://github.com/thangdevalone/react-native-media-toolkit/issues](https://github.com/thangdevalone/react-native-media-toolkit/issues)
+
+---
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the [MIT License](./LICENSE).

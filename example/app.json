@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "mediatoolkit.example"
+      "bundleIdentifier": "com.mediatoolkit.example",
+      "appleTeamId": "39D3CZD74P"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +27,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "ndkVersion": "26.1.10909125"
+          }
+        }
+      ],
+      "./plugins/withMediaToolkitAndroid"
+    ]
   }
 }

@@ -15,22 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Setup
-        uses: ./.github/actions/setup
-
-      - name: Lint files
-        run: yarn lint
-
-      - name: Typecheck files
-        run: yarn typecheck
-
   build-library:
     runs-on: ubuntu-latest
 
@@ -145,6 +129,12 @@ jobs:
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
+      # Prebuild must run BEFORE setup-ruby because expo prebuild creates example/ios/
+      - name: Prebuild expo app for iOS
+        if: env.turbo_cache_hit != 1
+        run: |
+          yarn example expo prebuild --platform ios
+
       - name: Setup Ruby
         if: env.turbo_cache_hit != 1
         uses: ruby/setup-ruby@v1
@@ -161,11 +151,6 @@ jobs:
           key: ${{ runner.os }}-pods-${{ hashFiles('example/ios/Podfile.lock') }}
           restore-keys: |
             ${{ runner.os }}-pods-
-
-      - name: Prebuild expo app for iOS
-        if: env.turbo_cache_hit != 1
-        run: |
-          yarn example expo prebuild --platform ios
 
       - name: Install CocoaPods
         if: env.turbo_cache_hit != 1

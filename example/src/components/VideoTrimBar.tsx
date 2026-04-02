@@ -4,11 +4,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { fmtSec } from '../theme';
 
-const HW = 18;
+const HW = 22;
 const BAR_H = 60;
 const BORD = 3;
 const FC = 16;
 const MIN_SEL_PX = 30;
+const TRIM_H_MARGIN = Platform.OS === 'android' ? 20 : 8;
 
 interface Props {
   videoUri: string;
@@ -183,7 +184,7 @@ const VideoTrimBar = ({ videoUri, durationMs, trimBarRef, onSeek, playheadPos }:
     <View style={s.container}>
       <Text style={s.hint}>{fmtSec(selectedDurMs)}</Text>
       <View
-        style={[s.trackOuter, { overflow: 'hidden' }]}
+        style={s.trackOuter}
         onLayout={(e) => onTrackLayout(e.nativeEvent.layout.width)}
         onStartShouldSetResponder={() => true}
         onStartShouldSetResponderCapture={() => true}
@@ -238,9 +239,11 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   trackOuter: {
-    marginHorizontal: 0,
+    marginHorizontal: TRIM_H_MARGIN,
     height: BAR_H,
     position: 'relative',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   framesRow: {
     flexDirection: 'row',

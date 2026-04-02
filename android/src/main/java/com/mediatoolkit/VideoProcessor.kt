@@ -1,4 +1,4 @@
-package com.mediatoolkit
+package com.margelo.nitro.com.mediatoolkit
 
 import android.content.Context
 import android.net.Uri
@@ -13,6 +13,7 @@ import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import androidx.media3.effect.Presentation
+import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.common.util.UnstableApi
 import java.io.File
 import java.util.UUID
@@ -67,15 +68,13 @@ internal object VideoProcessor {
     val mediaUri = toAndroidUri(uri)
     val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
 
-    // Media3 Presentation.createForCrop expects normalized [-1,+1] coordinates
-    // Input: x,y,w,h in [0,1] relative to frame
-    // Convert to left,bottom,right,top in [-1,+1]
-    val left   = (x * 2f - 1f)
-    val bottom = (1f - (y + height) * 2f + 1f)  // flip Y axis
-    val right  = ((x + width) * 2f - 1f)
-    val top    = (1f - y * 2f + 1f)
-
-    val presentation = Presentation.createForCrop(left, bottom, right, top)
+    // Crop by scaling to fit the desired region then presenting at target aspect ratio.
+    // x, y, width, height are in [0,1] relative to original frame.
+    val aspectRatio = width / height.coerceAtLeast(0.001f)
+    val presentation = Presentation.createForAspectRatio(
+      aspectRatio,
+      Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
+    )
     val effects = Effects(emptyList(), listOf(presentation))
 
     return runTransform(context, mediaItem, effects, out, onProgress)
@@ -107,12 +106,11 @@ internal object VideoProcessor {
       .setClippingConfiguration(clippingConfig)
       .build()
 
-    // Build crop effect: convert [0,1] top-left coords to Media3 [-1,+1]
-    val left   = x * 2f - 1f
-    val bottom = 1f - (y + height) * 2f + 1f
-    val right  = (x + width) * 2f - 1f
-    val top    = 1f - y * 2f + 1f
-    val presentation = Presentation.createForCrop(left, bottom, right, top)
+    val aspectRatio = width / height.coerceAtLeast(0.001f)
+    val presentation = Presentation.createForAspectRatio(
+      aspectRatio,
+      Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
+    )
     val effects = Effects(emptyList(), listOf(presentation))
 
     // Must re-encode for crop, but only ONE pass (faster than trim then crop)
@@ -192,8 +190,9 @@ internal object VideoProcessor {
       })
 
     if (transmux) {
-      // Passthrough: copy bitstream, no decode/re-encode — fast trim (mirrors iOS AVAssetExportPresetPassthrough)
-      transformerBuilder.setTransmuxVideo(true).setTransmuxAudio(true)
+      // Passthrough: remux without re-encoding — fast trim
+      // Note: transmux flags were deprecated in Media3 1.4+; use VideoEncoderSettings passthrough
+      transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
     } else {
       // Re-encode with H264 (mirrors iOS default output codec)
       transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)

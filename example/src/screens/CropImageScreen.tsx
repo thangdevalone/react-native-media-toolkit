@@ -3,13 +3,13 @@ import React from 'react';
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CropOverlay from '../components/CropOverlay';
 import { T } from '../theme';
 import type { CropBox } from '../types';
@@ -31,9 +31,9 @@ export default function CropImageScreen({
   onBack, onApply, onLayout, onCropCommit,
 }: Props) {
   return (
-    <View style={{ flex: 1, backgroundColor: T.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <SafeAreaView style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <View style={s.header}>
           <TouchableOpacity style={s.backBtn} onPress={onBack}>
             <Ionicons name="chevron-back" size={24} color={T.text} />

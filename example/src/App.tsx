@@ -8,13 +8,13 @@ import {
   Dimensions,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { MediaToolkit } from 'react-native-media-toolkit';
 import type { MediaResult } from 'react-native-media-toolkit';
 
@@ -232,8 +232,9 @@ export default function App() {
   const dispUri = result?.mime?.startsWith('image') ? result.uri : srcUri;
 
   return (
-    <SafeAreaView style={h.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={T.bg} />
+    <SafeAreaProvider>
+    <SafeAreaView style={h.safe} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="light-content" backgroundColor={T.bg} translucent={false} />
 
       <View style={h.header}>
         <View>
@@ -411,6 +412,7 @@ export default function App() {
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

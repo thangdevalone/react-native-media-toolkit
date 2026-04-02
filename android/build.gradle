@@ -37,6 +37,10 @@ android {
 
   compileSdkVersion getExtOrDefault("compileSdkVersion")
 
+  // Must match the NDK version used by react-native-nitro-modules (gradle.properties: ndkVersion=27.1.12297006)
+  // Mismatched NDK versions cause undefined HybridObject symbols at link time.
+  ndkVersion "27.1.12297006"
+
   defaultConfig {
     minSdkVersion    getExtOrDefault("minSdkVersion")
     targetSdkVersion getExtOrDefault("targetSdkVersion")
@@ -44,6 +48,7 @@ android {
       cmake {
         cppFlags "-std=c++20 -frtti -fexceptions"
         abiFilters "arm64-v8a", "x86_64"
+        arguments "-DANDROID_STL=c++_shared"
       }
     }
   }
@@ -64,12 +69,12 @@ android {
   }
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
   }
 
   kotlinOptions {
-    jvmTarget = "1.8"
+    jvmTarget = "17"
   }
 
   externalNativeBuild {
@@ -84,13 +89,14 @@ android {
 dependencies {
   implementation "com.facebook.react:react-android"
 
-  // NitroModules — core JSI binding layer
-  implementation "com.margelo.nitro:react-native-nitro-modules:+"
+  // NitroModules — local node_modules project (not on Maven Central)
+  implementation project(":react-native-nitro-modules")
 
   // Jetpack Media3 Transformer — for video trim, crop, compress
-  implementation "androidx.media3:media3-transformer:1.3.1"
-  implementation "androidx.media3:media3-effect:1.3.1"
-  implementation "androidx.media3:media3-common:1.3.1"
+  // 1.4.0+ required for Presentation.createForCrop API
+  implementation "androidx.media3:media3-transformer:1.5.1"
+  implementation "androidx.media3:media3-effect:1.5.1"
+  implementation "androidx.media3:media3-common:1.5.1"
 
   // ExifInterface — for EXIF rotation on images
   implementation "androidx.exifinterface:exifinterface:1.3.7"

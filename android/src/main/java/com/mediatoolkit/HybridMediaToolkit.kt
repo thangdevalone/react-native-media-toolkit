@@ -1,4 +1,4 @@
-package com.mediatoolkit
+package com.margelo.nitro.com.mediatoolkit
 
 import androidx.media3.common.util.UnstableApi
 import com.margelo.nitro.NitroModules

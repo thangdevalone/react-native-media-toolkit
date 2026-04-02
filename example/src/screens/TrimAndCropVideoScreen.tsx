@@ -3,13 +3,13 @@ import { ResizeMode, Video } from 'expo-av';
 import React, { useRef } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CropOverlay from '../components/CropOverlay';
 import VideoTrimBar from '../components/VideoTrimBar';
 import { T } from '../theme';
@@ -38,9 +38,9 @@ export default function TrimAndCropVideoScreen({
   const trimBarRef = useRef<{ getRange: () => { startMs: number; endMs: number } } | null>(null);
 
   return (
-    <View style={{ flex: 1, backgroundColor: T.bg }}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <SafeAreaView style={{ flex: 1 }}>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
+      <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
         <View style={s.header}>
           <TouchableOpacity style={s.backBtn} onPress={onBack}>
             <Ionicons name="chevron-back" size={24} color={T.text} />
@@ -119,6 +119,8 @@ export default function TrimAndCropVideoScreen({
 }
 
 const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#000' },
+  safe: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8 },
   backBtn: { padding: 8 },
   title: { color: '#EBEBF5CC', fontSize: 14, fontWeight: '600', letterSpacing: 1 },

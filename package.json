@@ -1,6 +1,6 @@
 {
   "name": "react-native-media-toolkit",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Native image/video crop, trim, and compress for React Native (New Architecture)",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",

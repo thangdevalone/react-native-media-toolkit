@@ -53,9 +53,9 @@ All crop coordinates use a **relative (0.0–1.0) system** — independent of sc
 ## Installation
 
 ```sh
-npm install react-native-media-toolkit
+npm install react-native-media-toolkit react-native-nitro-modules
 # or
-yarn add react-native-media-toolkit
+yarn add react-native-media-toolkit react-native-nitro-modules
 ```
 
 **iOS:**

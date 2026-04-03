@@ -38,12 +38,15 @@ namespace margelo::nitro::mediatoolkit {
       jni::local_ref<jni::JDouble> bitrate = this->getFieldValue(fieldBitrate);
       static const auto fieldWidth = clazz->getField<jni::JDouble>("width");
       jni::local_ref<jni::JDouble> width = this->getFieldValue(fieldWidth);
+      static const auto fieldMuteAudio = clazz->getField<jni::JBoolean>("muteAudio");
+      jni::local_ref<jni::JBoolean> muteAudio = this->getFieldValue(fieldMuteAudio);
       static const auto fieldOutputPath = clazz->getField<jni::JString>("outputPath");
       jni::local_ref<jni::JString> outputPath = this->getFieldValue(fieldOutputPath);
       return CompressVideoOptions(
         quality != nullptr ? std::make_optional(quality->toStdString()) : std::nullopt,
         bitrate != nullptr ? std::make_optional(bitrate->value()) : std::nullopt,
         width != nullptr ? std::make_optional(width->value()) : std::nullopt,
+        muteAudio != nullptr ? std::make_optional(static_cast<bool>(muteAudio->value())) : std::nullopt,
         outputPath != nullptr ? std::make_optional(outputPath->toStdString()) : std::nullopt
       );
     }
@@ -54,7 +57,7 @@ namespace margelo::nitro::mediatoolkit {
      */
     [[maybe_unused]]
     static jni::local_ref<JCompressVideoOptions::javaobject> fromCpp(const CompressVideoOptions& value) {
-      using JSignature = JCompressVideoOptions(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>);
+      using JSignature = JCompressVideoOptions(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -62,6 +65,7 @@ namespace margelo::nitro::mediatoolkit {
         value.quality.has_value() ? jni::make_jstring(value.quality.value()) : nullptr,
         value.bitrate.has_value() ? jni::JDouble::valueOf(value.bitrate.value()) : nullptr,
         value.width.has_value() ? jni::JDouble::valueOf(value.width.value()) : nullptr,
+        value.muteAudio.has_value() ? jni::JBoolean::valueOf(value.muteAudio.value()) : nullptr,
         value.outputPath.has_value() ? jni::make_jstring(value.outputPath.value()) : nullptr
       );
     }

@@ -229,6 +229,7 @@ class VideoProcessor: NSObject {
     quality: String,
     bitrate: Double,
     maxWidth: Double,
+    muteAudio: Bool,
     outputPath: String?,
     onProgress: @escaping ProgressHandler,
     completion: @escaping Completion
@@ -249,7 +250,30 @@ class VideoProcessor: NSObject {
     default:       preset = AVAssetExportPresetMediumQuality
     }
 
-    guard let session = AVAssetExportSession(asset: asset, presetName: preset) else {
+    // When muteAudio is requested, build a composition that only contains the video track.
+    // AVAssetExportSession will then produce a file with no audio stream.
+    let exportAsset: AVAsset
+    if muteAudio && !asset.tracks(withMediaType: .audio).isEmpty {
+      let composition = AVMutableComposition()
+      if let videoTrack = asset.tracks(withMediaType: .video).first,
+         let compVideoTrack = composition.addMutableTrack(
+           withMediaType: .video,
+           preferredTrackID: kCMPersistentTrackID_Invalid
+         ) {
+        try? compVideoTrack.insertTimeRange(
+          CMTimeRange(start: .zero, duration: asset.duration),
+          of: videoTrack,
+          at: .zero
+        )
+        compVideoTrack.preferredTransform = videoTrack.preferredTransform
+      }
+      // Deliberately NOT adding audio track → silent output
+      exportAsset = composition
+    } else {
+      exportAsset = asset
+    }
+
+    guard let session = AVAssetExportSession(asset: exportAsset, presetName: preset) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session"))
       return
     }
@@ -272,7 +296,7 @@ class VideoProcessor: NSObject {
     }
 
     // Build a video composition to apply maxWidth + bitrate constraint
-    if let videoTrack = asset.tracks(withMediaType: .video).first {
+    if let videoTrack = exportAsset.tracks(withMediaType: .video).first {
       let ns = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
       var fw = abs(ns.width)
       var fh = abs(ns.height)
@@ -280,7 +304,7 @@ class VideoProcessor: NSObject {
         fh = fh * CGFloat(maxWidth) / fw
         fw = CGFloat(maxWidth)
       }
-      let comp = AVMutableVideoComposition(propertiesOf: asset)
+      let comp = AVMutableVideoComposition(propertiesOf: exportAsset)
       comp.renderSize = CGSize(width: fw, height: fh)
       session.videoComposition = comp
     }

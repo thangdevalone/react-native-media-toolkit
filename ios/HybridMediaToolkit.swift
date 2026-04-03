@@ -100,6 +100,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
           quality: options.quality ?? "medium",
           bitrate: options.bitrate ?? 0,
           maxWidth: options.width ?? 0,
+          muteAudio: options.muteAudio ?? false,
           outputPath: options.outputPath,
           onProgress: { _ in },
           completion: { result, error in

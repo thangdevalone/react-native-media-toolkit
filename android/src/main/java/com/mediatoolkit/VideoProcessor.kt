@@ -125,6 +125,7 @@ internal object VideoProcessor {
     quality: String,
     bitrate: Int,          // 0 = use quality preset (matches iOS behaviour)
     maxWidth: Int,
+    muteAudio: Boolean,
     outputPath: String?,
     onProgress: (Int) -> Unit
   ): Map<String, Any> {
@@ -153,7 +154,7 @@ internal object VideoProcessor {
       else              -> 4_000_000   // medium
     }
 
-    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = resolvedBitrate)
+    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = resolvedBitrate, removeAudio = muteAudio)
   }
 
   // ─── Core ────────────────────────────────────────────────────────────────
@@ -165,7 +166,8 @@ internal object VideoProcessor {
     outputPath: String,
     onProgress: (Int) -> Unit,
     transmux: Boolean = false,
-    targetBitrate: Int = 0        // 0 = let Media3 decide
+    targetBitrate: Int = 0,        // 0 = let Media3 decide
+    removeAudio: Boolean = false   // true = strip audio track (Locket upload)
   ): Map<String, Any> {
     val outFile = File(outputPath)
     outFile.parentFile?.mkdirs()
@@ -174,9 +176,12 @@ internal object VideoProcessor {
     val latch = CountDownLatch(1)
     var exportError: Exception? = null
 
-    val editedItem = EditedMediaItem.Builder(mediaItem)
+    val editedItemBuilder = EditedMediaItem.Builder(mediaItem)
       .setEffects(effects)
-      .build()
+    if (removeAudio) {
+      editedItemBuilder.setRemoveAudio(true)
+    }
+    val editedItem = editedItemBuilder.build()
 
     val transformerBuilder = Transformer.Builder(context)
       .addListener(object : Transformer.Listener {

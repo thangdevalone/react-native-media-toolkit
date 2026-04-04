@@ -18,7 +18,7 @@ public extension CompressVideoOptions {
   /**
    * Create a new instance of `CompressVideoOptions`.
    */
-  init(quality: String?, bitrate: Double?, width: Double?, outputPath: String?) {
+  init(quality: String?, bitrate: Double?, width: Double?, muteAudio: Bool?, outputPath: String?) {
     self.init({ () -> bridge.std__optional_std__string_ in
       if let __unwrappedValue = quality {
         return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
@@ -34,6 +34,12 @@ public extension CompressVideoOptions {
     }(), { () -> bridge.std__optional_double_ in
       if let __unwrappedValue = width {
         return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_bool_ in
+      if let __unwrappedValue = muteAudio {
+        return bridge.create_std__optional_bool_(__unwrappedValue)
       } else {
         return .init()
       }
@@ -75,6 +81,18 @@ public extension CompressVideoOptions {
     return { () -> Double? in
       if bridge.has_value_std__optional_double_(self.__width) {
         let __unwrapped = bridge.get_std__optional_double_(self.__width)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var muteAudio: Bool? {
+    return { () -> Bool? in
+      if bridge.has_value_std__optional_bool_(self.__muteAudio) {
+        let __unwrapped = bridge.get_std__optional_bool_(self.__muteAudio)
         return __unwrapped
       } else {
         return nil

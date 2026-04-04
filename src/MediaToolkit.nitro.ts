@@ -74,6 +74,8 @@ export interface CompressVideoOptions {
   bitrate?: number;
   /** Max output width in px (aspect ratio preserved) */
   width?: number;
+  /** Strip audio track from output (default false) */
+  muteAudio?: boolean;
   /** Absolute output file path (optional) */
   outputPath?: string;
 }

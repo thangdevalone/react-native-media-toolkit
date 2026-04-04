@@ -28,6 +28,9 @@ data class CompressVideoOptions(
   val width: Double?,
   @DoNotStrip
   @Keep
+  val muteAudio: Boolean?,
+  @DoNotStrip
+  @Keep
   val outputPath: String?
 ) {
   /* primary constructor */
@@ -40,8 +43,8 @@ data class CompressVideoOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(quality: String?, bitrate: Double?, width: Double?, outputPath: String?): CompressVideoOptions {
-      return CompressVideoOptions(quality, bitrate, width, outputPath)
+    private fun fromCpp(quality: String?, bitrate: Double?, width: Double?, muteAudio: Boolean?, outputPath: String?): CompressVideoOptions {
+      return CompressVideoOptions(quality, bitrate, width, muteAudio, outputPath)
     }
   }
 }

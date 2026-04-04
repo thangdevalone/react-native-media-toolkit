@@ -38,6 +38,7 @@ Xây dựng trên **Nitro Modules** (JSI), dùng `AVFoundation` trên iOS và **
 | Cắt vùng video (tương đối) | AVMutableVideoComposition | Media3 Presentation |
 | Cắt thời gian + cắt vùng trong 1 lần encode | AVMutableVideoComposition | Media3 Transformer |
 | Nén video | AVAssetExportSession presets | Media3 Transformer |
+| Tắt âm thanh video | AVMutableComposition | Media3 Transformer |
 | Lấy thumbnail từ video | AVAssetImageGenerator | MediaMetadataRetriever |
 
 Mọi tọa độ crop dùng **hệ tương đối (0.0–1.0)** — không phụ thuộc độ phân giải màn hình.
@@ -134,6 +135,16 @@ const result = await MediaToolkit.compressVideo(videoUri, {
 });
 ```
 
+### Tắt âm thanh video
+
+```typescript
+const result = await MediaToolkit.muteAudio(videoUri);
+// Trả về file video mới với track âm thanh đã bị xoá
+console.log(result.uri, result.duration);
+```
+
+> Hữu ích trong các luồng UGC cần strip audio trước khi upload.
+
 ### Lấy thumbnail từ video
 
 ```typescript
@@ -204,6 +215,14 @@ Kết hợp trim và crop trong một lần encode duy nhất.
 | `width` | number | gốc | Chiều rộng tối đa output |
 | `outputPath` | string | — | Đường dẫn tuyệt đối file output |
 
+### `muteAudio(uri, options?): Promise<MediaResult>`
+
+Xoá track âm thanh khỏi video mà không re-encode luồng video.
+
+| Option | Kiểu | Mặc định | Mô tả |
+|---|---|---|---|
+| `outputPath` | string | — | Đường dẫn tuyệt đối file output |
+
 ### `getThumbnail(uri, options?): Promise<ThumbnailResult>`
 
 | Option | Kiểu | Mặc định | Mô tả |
@@ -258,7 +277,17 @@ Mọi lệnh gọi API đều qua **JSI (JavaScript Interface)** thông qua Nitr
 
 ### Trim không cần re-encode
 
-`trimVideo` dùng `AVAssetExportPresetPassthrough` trên iOS và cắt theo keyframe trên Android. Bitstream được copy nguyên vẹn — không decode, không re-encode. Video 30 giây trim xong trong dưới 1 giây, bất kể độ phân giải.
+`trimVideo` dùng `AVAssetExportPresetPassthrough` trên iOS và cắt theo keyframe trên Android. Bitstream được **copy nguyên vẹn** — không decode, không re-encode.
+
+Tốc độ trim tỉ lệ thuận với **độ dài đoạn bạn cắt ra**, không phụ thuộc vào kích thước file gốc:
+
+| Video gốc | Đoạn cắt | Thời gian (trim) | Thời gian (FFmpeg re-encode) |
+|---|---|---|---|
+| 2 phút · 1080p | 10 giây | ~0.3 giây | ~8 giây |
+| 10 phút · 4K | 30 giây | ~0.8 giây | ~60 giây |
+| 60 phút · 1080p | 60 giây | ~1.2 giây | ~5 phút |
+
+Thậm chí cắt một đoạn từ video dài 60 phút cũng xong trong khoảng 1 giây — vì phần còn lại của file không bao giờ bị đụng vào.
 
 ### Trim + crop trong 1 lần encode
 

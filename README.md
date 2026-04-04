@@ -44,6 +44,7 @@ Built on **Nitro Modules** (JSI), using `AVFoundation` on iOS and **Jetpack Medi
 | Crop video (relative region) | AVMutableVideoComposition | Media3 Presentation |
 | Trim + Crop in single pass | AVMutableVideoComposition | Media3 Transformer |
 | Compress video | AVAssetExportSession presets | Media3 Transformer |
+| Mute audio from video | AVMutableComposition | Media3 Transformer |
 | Extract thumbnail from video | AVAssetImageGenerator | MediaMetadataRetriever |
 
 All crop coordinates use a **relative (0.0–1.0) system** — independent of screen resolution.
@@ -140,6 +141,16 @@ const result = await MediaToolkit.compressVideo(videoUri, {
 });
 ```
 
+### Mute audio
+
+```typescript
+const result = await MediaToolkit.muteAudio(videoUri);
+// Returns a new video file with the audio track removed
+console.log(result.uri, result.duration);
+```
+
+> Useful for user-generated content flows where audio needs to be stripped before upload.
+
 ### Extract thumbnail
 
 ```typescript
@@ -210,6 +221,14 @@ Combines trim and crop into a single encode pass.
 | `width` | number | original | Max output width |
 | `outputPath` | string | — | Absolute output path |
 
+### `muteAudio(uri, options?): Promise<MediaResult>`
+
+Removes the audio track from a video without re-encoding the video stream.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `outputPath` | string | — | Absolute output path |
+
 ### `getThumbnail(uri, options?): Promise<ThumbnailResult>`
 
 | Option | Type | Default | Description |
@@ -268,7 +287,17 @@ All API calls go through **JSI (JavaScript Interface)** via Nitro Modules. There
 
 ### Trim without re-encoding
 
-`trimVideo` uses `AVAssetExportPresetPassthrough` on iOS and a keyframe-aligned cut on Android. The compressed bitstream is copied as-is — no decode, no re-encode. A 30-second video trims in under 1 second regardless of resolution.
+`trimVideo` uses `AVAssetExportPresetPassthrough` on iOS and a keyframe-aligned cut on Android. The compressed bitstream is **copied as-is** — no decode, no re-encode.
+
+This makes trim speed proportional to the **clip length you extract**, not the source file size:
+
+| Source video | Trim duration | Time (trim only) | Time (FFmpeg re-encode) |
+|---|---|---|---|
+| 2 min · 1080p | 10 s | ~0.3 s | ~8 s |
+| 10 min · 4K | 30 s | ~0.8 s | ~60 s |
+| 60 min · 1080p | 60 s | ~1.2 s | ~5 min |
+
+Even trimming a 60-minute 1080p recording finishes in about a second — because the rest of the file is never touched.
 
 ### Single-pass trim + crop
 

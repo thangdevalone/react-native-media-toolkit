@@ -31,6 +31,9 @@ data class CompressImageOptions(
   val format: String?,
   @DoNotStrip
   @Keep
+  val targetSizeMB: Double?,
+  @DoNotStrip
+  @Keep
   val outputPath: String?
 ) {
   /* primary constructor */
@@ -43,8 +46,8 @@ data class CompressImageOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(quality: Double?, maxWidth: Double?, maxHeight: Double?, format: String?, outputPath: String?): CompressImageOptions {
-      return CompressImageOptions(quality, maxWidth, maxHeight, format, outputPath)
+    private fun fromCpp(quality: Double?, maxWidth: Double?, maxHeight: Double?, format: String?, targetSizeMB: Double?, outputPath: String?): CompressImageOptions {
+      return CompressImageOptions(quality, maxWidth, maxHeight, format, targetSizeMB, outputPath)
     }
   }
 }

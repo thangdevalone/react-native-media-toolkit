@@ -55,6 +55,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         (options.maxWidth ?: 0.0).toInt(),
         (options.maxHeight ?: 0.0).toInt(),
         options.format ?: "jpeg",
+        options.targetSizeMB ?: 0.0,
         options.outputPath
       )
       raw.toMediaResult()
@@ -97,9 +98,10 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         ctx,
         uri,
         options.quality ?: "medium",
-        (options.bitrate ?: 0.0).toInt(),    // 0 = use quality preset (mirrors iOS behaviour)
+        (options.bitrate ?: 0.0).toInt(),
         (options.width ?: 0.0).toInt(),
         options.muteAudio ?: false,
+        options.targetSizeMB ?: 0.0,
         options.outputPath
       ) { /* progress ignored */ }
       raw.toMediaResult()

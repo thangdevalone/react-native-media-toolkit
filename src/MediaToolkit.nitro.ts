@@ -41,6 +41,16 @@ export interface CompressImageOptions {
   maxHeight?: number;
   /** Output format: "jpeg" | "png" | "webp" (default "jpeg") */
   format?: string;
+  /**
+   * Target output file size in megabytes (MB).
+   * If the compressed image is larger than this value, the library will
+   * automatically reduce the JPEG quality and/or scale down the resolution
+   * (if no maxWidth/maxHeight given) to get as close to the target as possible
+   * while preserving the best achievable quality.
+   * `quality` and `maxWidth`/`maxHeight` still act as upper bounds —
+   * targetSizeMB can only reduce quality further, never increase it.
+   */
+  targetSizeMB?: number;
   /** Absolute output file path (optional) */
   outputPath?: string;
 }
@@ -76,6 +86,17 @@ export interface CompressVideoOptions {
   width?: number;
   /** Strip audio track from output (default false) */
   muteAudio?: boolean;
+  /**
+   * Target output file size in megabytes (MB).
+   * If the source video is larger than this value, the library will
+   * automatically calculate the optimal bitrate and, if necessary, scale down
+   * the resolution to produce a file as close to the target as possible —
+   * while retaining the best achievable quality.
+   * `bitrate` and `width` still act as upper bounds when provided;
+   * `targetSizeMB` can only reduce quality/bitrate further, never increase it.
+   * Audio is encoded at ~128 kbps and factored into the budget automatically.
+   */
+  targetSizeMB?: number;
   /** Absolute output file path (optional) */
   outputPath?: string;
 }

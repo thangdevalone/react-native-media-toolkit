@@ -18,7 +18,7 @@ public extension CompressImageOptions {
   /**
    * Create a new instance of `CompressImageOptions`.
    */
-  init(quality: Double?, maxWidth: Double?, maxHeight: Double?, format: String?, outputPath: String?) {
+  init(quality: Double?, maxWidth: Double?, maxHeight: Double?, format: String?, targetSizeMB: Double?, outputPath: String?) {
     self.init({ () -> bridge.std__optional_double_ in
       if let __unwrappedValue = quality {
         return bridge.create_std__optional_double_(__unwrappedValue)
@@ -40,6 +40,12 @@ public extension CompressImageOptions {
     }(), { () -> bridge.std__optional_std__string_ in
       if let __unwrappedValue = format {
         return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = targetSizeMB {
+        return bridge.create_std__optional_double_(__unwrappedValue)
       } else {
         return .init()
       }
@@ -94,6 +100,18 @@ public extension CompressImageOptions {
       if bridge.has_value_std__optional_std__string_(self.__format) {
         let __unwrapped = bridge.get_std__optional_std__string_(self.__format)
         return String(__unwrapped)
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var targetSizeMB: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__targetSizeMB) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__targetSizeMB)
+        return __unwrapped
       } else {
         return nil
       }

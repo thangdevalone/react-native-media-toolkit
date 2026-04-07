@@ -44,11 +44,12 @@ namespace margelo::nitro::mediatoolkit {
     std::optional<double> maxWidth     SWIFT_PRIVATE;
     std::optional<double> maxHeight     SWIFT_PRIVATE;
     std::optional<std::string> format     SWIFT_PRIVATE;
+    std::optional<double> targetSizeMB     SWIFT_PRIVATE;
     std::optional<std::string> outputPath     SWIFT_PRIVATE;
 
   public:
     CompressImageOptions() = default;
-    explicit CompressImageOptions(std::optional<double> quality, std::optional<double> maxWidth, std::optional<double> maxHeight, std::optional<std::string> format, std::optional<std::string> outputPath): quality(quality), maxWidth(maxWidth), maxHeight(maxHeight), format(format), outputPath(outputPath) {}
+    explicit CompressImageOptions(std::optional<double> quality, std::optional<double> maxWidth, std::optional<double> maxHeight, std::optional<std::string> format, std::optional<double> targetSizeMB, std::optional<std::string> outputPath): quality(quality), maxWidth(maxWidth), maxHeight(maxHeight), format(format), targetSizeMB(targetSizeMB), outputPath(outputPath) {}
 
   public:
     friend bool operator==(const CompressImageOptions& lhs, const CompressImageOptions& rhs) = default;
@@ -68,6 +69,7 @@ namespace margelo::nitro {
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxWidth"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxHeight"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "format"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "targetSizeMB"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))
       );
     }
@@ -77,6 +79,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maxWidth"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.maxWidth));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maxHeight"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.maxHeight));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "format"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.format));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "targetSizeMB"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.targetSizeMB));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "outputPath"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.outputPath));
       return obj;
     }
@@ -92,6 +95,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxWidth")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxHeight")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "format")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "targetSizeMB")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))) return false;
       return true;
     }

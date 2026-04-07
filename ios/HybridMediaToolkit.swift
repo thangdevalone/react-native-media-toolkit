@@ -36,6 +36,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
         maxWidth: options.maxWidth ?? 0,
         maxHeight: options.maxHeight ?? 0,
         format: options.format ?? "jpeg",
+        targetSizeMB: options.targetSizeMB ?? 0,
         outputPath: options.outputPath
       )
       return makeMediaResult(raw)
@@ -101,6 +102,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
           bitrate: options.bitrate ?? 0,
           maxWidth: options.width ?? 0,
           muteAudio: options.muteAudio ?? false,
+          targetSizeMB: options.targetSizeMB ?? 0,
           outputPath: options.outputPath,
           onProgress: { _ in },
           completion: { result, error in

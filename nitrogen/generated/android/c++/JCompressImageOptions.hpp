@@ -40,6 +40,8 @@ namespace margelo::nitro::mediatoolkit {
       jni::local_ref<jni::JDouble> maxHeight = this->getFieldValue(fieldMaxHeight);
       static const auto fieldFormat = clazz->getField<jni::JString>("format");
       jni::local_ref<jni::JString> format = this->getFieldValue(fieldFormat);
+      static const auto fieldTargetSizeMB = clazz->getField<jni::JDouble>("targetSizeMB");
+      jni::local_ref<jni::JDouble> targetSizeMB = this->getFieldValue(fieldTargetSizeMB);
       static const auto fieldOutputPath = clazz->getField<jni::JString>("outputPath");
       jni::local_ref<jni::JString> outputPath = this->getFieldValue(fieldOutputPath);
       return CompressImageOptions(
@@ -47,6 +49,7 @@ namespace margelo::nitro::mediatoolkit {
         maxWidth != nullptr ? std::make_optional(maxWidth->value()) : std::nullopt,
         maxHeight != nullptr ? std::make_optional(maxHeight->value()) : std::nullopt,
         format != nullptr ? std::make_optional(format->toStdString()) : std::nullopt,
+        targetSizeMB != nullptr ? std::make_optional(targetSizeMB->value()) : std::nullopt,
         outputPath != nullptr ? std::make_optional(outputPath->toStdString()) : std::nullopt
       );
     }
@@ -57,7 +60,7 @@ namespace margelo::nitro::mediatoolkit {
      */
     [[maybe_unused]]
     static jni::local_ref<JCompressImageOptions::javaobject> fromCpp(const CompressImageOptions& value) {
-      using JSignature = JCompressImageOptions(jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
+      using JSignature = JCompressImageOptions(jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -66,6 +69,7 @@ namespace margelo::nitro::mediatoolkit {
         value.maxWidth.has_value() ? jni::JDouble::valueOf(value.maxWidth.value()) : nullptr,
         value.maxHeight.has_value() ? jni::JDouble::valueOf(value.maxHeight.value()) : nullptr,
         value.format.has_value() ? jni::make_jstring(value.format.value()) : nullptr,
+        value.targetSizeMB.has_value() ? jni::JDouble::valueOf(value.targetSizeMB.value()) : nullptr,
         value.outputPath.has_value() ? jni::make_jstring(value.outputPath.value()) : nullptr
       );
     }

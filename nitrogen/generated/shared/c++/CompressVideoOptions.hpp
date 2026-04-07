@@ -44,11 +44,12 @@ namespace margelo::nitro::mediatoolkit {
     std::optional<double> bitrate     SWIFT_PRIVATE;
     std::optional<double> width     SWIFT_PRIVATE;
     std::optional<bool> muteAudio     SWIFT_PRIVATE;
+    std::optional<double> targetSizeMB     SWIFT_PRIVATE;
     std::optional<std::string> outputPath     SWIFT_PRIVATE;
 
   public:
     CompressVideoOptions() = default;
-    explicit CompressVideoOptions(std::optional<std::string> quality, std::optional<double> bitrate, std::optional<double> width, std::optional<bool> muteAudio, std::optional<std::string> outputPath): quality(quality), bitrate(bitrate), width(width), muteAudio(muteAudio), outputPath(outputPath) {}
+    explicit CompressVideoOptions(std::optional<std::string> quality, std::optional<double> bitrate, std::optional<double> width, std::optional<bool> muteAudio, std::optional<double> targetSizeMB, std::optional<std::string> outputPath): quality(quality), bitrate(bitrate), width(width), muteAudio(muteAudio), targetSizeMB(targetSizeMB), outputPath(outputPath) {}
 
   public:
     friend bool operator==(const CompressVideoOptions& lhs, const CompressVideoOptions& rhs) = default;
@@ -68,6 +69,7 @@ namespace margelo::nitro {
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bitrate"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width"))),
         JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "muteAudio"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "targetSizeMB"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))
       );
     }
@@ -77,6 +79,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "bitrate"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.bitrate));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "width"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.width));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "muteAudio"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.muteAudio));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "targetSizeMB"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.targetSizeMB));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "outputPath"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.outputPath));
       return obj;
     }
@@ -92,6 +95,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bitrate")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width")))) return false;
       if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "muteAudio")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "targetSizeMB")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))) return false;
       return true;
     }

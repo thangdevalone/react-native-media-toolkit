@@ -116,13 +116,13 @@ class VideoProcessor: NSObject {
     let outURL = URL(fileURLWithPath: out)
     removeIfExists(outURL)
 
+    // Build crop composition
     let naturalSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
     let fw = abs(naturalSize.width), fh = abs(naturalSize.height)
     let cropX = CGFloat(x) * fw, cropY = CGFloat(y) * fh
     let cropW = CGFloat(width) * fw, cropH = CGFloat(height) * fh
 
-    let transform = CGAffineTransform(translationX: -cropX, y: -cropY)
-      .concatenating(videoTrack.preferredTransform)
+    let transform = videoTrack.preferredTransform.concatenating(CGAffineTransform(translationX: -cropX, y: -cropY))
 
     let composition = AVMutableVideoComposition()
     composition.renderSize = CGSize(width: cropW, height: cropH)
@@ -194,13 +194,13 @@ class VideoProcessor: NSObject {
     let fw = abs(naturalSize.width)
     let fh = abs(naturalSize.height)
 
-    let cropX = CGFloat(x) * fw
-    let cropY = CGFloat(y) * fh
-    let cropW = CGFloat(width) * fw
-    let cropH = CGFloat(height) * fh
+    let cropX  = CGFloat(x) * fw
+    let cropY  = CGFloat(y) * fh
+    let cropW  = CGFloat(width) * fw
+    let cropH  = CGFloat(height) * fh
 
-    let transform = CGAffineTransform(translationX: -cropX, y: -cropY)
-      .concatenating(videoTrack.preferredTransform)
+    // Translate so crop region starts at origin
+    let transform = videoTrack.preferredTransform.concatenating(CGAffineTransform(translationX: -cropX, y: -cropY))
 
     let composition = AVMutableVideoComposition()
     composition.renderSize = CGSize(width: cropW, height: cropH)

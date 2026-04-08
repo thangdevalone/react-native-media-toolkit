@@ -228,6 +228,8 @@ class VideoProcessor: NSObject {
     uri: String,
     quality: String,
     bitrate: Double,
+    targetSizeInMB: Double,
+    minResolution: Double,
     maxWidth: Double,
     muteAudio: Bool,
     outputPath: String?,
@@ -243,11 +245,16 @@ class VideoProcessor: NSObject {
     let outURL = URL(fileURLWithPath: out)
     removeIfExists(outURL)
 
-    let preset: String
-    switch quality {
-    case "low":    preset = AVAssetExportPresetLowQuality
-    case "high":   preset = AVAssetExportPresetHighestQuality
-    default:       preset = AVAssetExportPresetMediumQuality
+    var preset: String
+    if targetSizeInMB > 0 {
+      // Smart Compress always attempts HEVC for 50% better compression matching target size
+      preset = AVAssetExportPresetHEVCHighestQuality
+    } else {
+      switch quality {
+      case "low":    preset = AVAssetExportPresetLowQuality
+      case "high":   preset = AVAssetExportPresetHighestQuality
+      default:       preset = AVAssetExportPresetMediumQuality
+      }
     }
 
     // When muteAudio is requested, build a composition that only contains the video track.
@@ -281,36 +288,53 @@ class VideoProcessor: NSObject {
     session.outputFileType = .mp4
     session.outputURL      = outURL
 
-    // Resolve bitrate: explicit override wins, then map quality preset.
-    // Mirrors Android quality → bitrate mapping for cross-platform consistency:
-    //   low    ~ 1 Mbps  |  medium ~ 4 Mbps  |  high ~ 8 Mbps
-    let resolvedBitrate: Double
-    if bitrate > 0 {
-      resolvedBitrate = bitrate
-    } else {
-      switch quality {
-      case "low":  resolvedBitrate = 1_000_000
-      case "high": resolvedBitrate = 8_000_000
-      default:     resolvedBitrate = 4_000_000   // medium
-      }
-    }
+    // Bitrate strictly follows Export Preset.
+    // Quality mapping was handled in `preset` resolution above.
 
-    // Build a video composition to apply maxWidth + bitrate constraint
+    // Build a video composition to apply maxWidth + adaptive resolution constraints
     if let videoTrack = exportAsset.tracks(withMediaType: .video).first {
       let ns = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
       var fw = abs(ns.width)
       var fh = abs(ns.height)
+      
+      if targetSizeInMB > 0 {
+          let durationSecs = asset.duration.seconds
+          if durationSecs > 0 {
+              var targetBitrate = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
+              if muteAudio == false { targetBitrate -= 96_000 } // audio reserve
+
+              // Optimal resolution heuristic
+              let optimalRes: CGFloat
+              if targetBitrate > 3_000_000 { optimalRes = 1080 }
+              else if targetBitrate > 1_500_000 { optimalRes = 720 }
+              else if targetBitrate > 800_000 { optimalRes = 540 }
+              else { optimalRes = 480 }
+              
+              let finalResTarget = max(optimalRes, CGFloat(minResolution > 0 ? minResolution : 480))
+              let shortEdge = min(fw, fh)
+              
+              if shortEdge > finalResTarget {
+                  let scale = finalResTarget / shortEdge
+                  fw *= scale
+                  fh *= scale
+              }
+          }
+      }
+
       if maxWidth > 0 && fw > CGFloat(maxWidth) {
         fh = fh * CGFloat(maxWidth) / fw
         fw = CGFloat(maxWidth)
       }
+      
       let comp = AVMutableVideoComposition(propertiesOf: exportAsset)
       comp.renderSize = CGSize(width: fw, height: fh)
       session.videoComposition = comp
     }
 
-    // AVAssetExportSession only supports bitrate via fileLengthLimit indirectly —
-    // the preset controls quality, but we document the bitrate mapping above for cross-platform parity.
+    if targetSizeInMB > 0 {
+        // AVAssetExportSession accepts fileLengthLimit for multi-pass matching
+        session.fileLengthLimit = Int64(targetSizeInMB * 1024 * 1024)
+    }
 
     pollProgress(session: session, onProgress: onProgress)
 

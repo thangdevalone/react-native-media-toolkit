@@ -19,6 +19,12 @@ import com.facebook.proguard.annotations.DoNotStrip
 data class CompressVideoOptions(
   @DoNotStrip
   @Keep
+  val targetSizeInMB: Double?,
+  @DoNotStrip
+  @Keep
+  val minResolution: Double?,
+  @DoNotStrip
+  @Keep
   val quality: String?,
   @DoNotStrip
   @Keep
@@ -43,8 +49,8 @@ data class CompressVideoOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(quality: String?, bitrate: Double?, width: Double?, muteAudio: Boolean?, outputPath: String?): CompressVideoOptions {
-      return CompressVideoOptions(quality, bitrate, width, muteAudio, outputPath)
+    private fun fromCpp(targetSizeInMB: Double?, minResolution: Double?, quality: String?, bitrate: Double?, width: Double?, muteAudio: Boolean?, outputPath: String?): CompressVideoOptions {
+      return CompressVideoOptions(targetSizeInMB, minResolution, quality, bitrate, width, muteAudio, outputPath)
     }
   }
 }

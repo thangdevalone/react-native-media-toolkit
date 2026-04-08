@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { ResizeMode, Video } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useState } from 'react';
 import {
@@ -12,6 +12,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -50,6 +51,12 @@ export default function App() {
   const [log, setLog]         = useState<string[]>([]);
   const [opLabel, setOpLabel] = useState('');
 
+  const srcPlayer = useVideoPlayer(srcUri, player => { player.loop = true; });
+  const resPlayer = useVideoPlayer(result?.uri ?? null, player => { player.loop = true; });
+
+  React.useEffect(() => { if (srcUri && srcType === 'video') srcPlayer.play(); }, [srcUri, srcType, srcPlayer]);
+  React.useEffect(() => { if (result?.uri && result.mime?.startsWith('video')) resPlayer.play(); }, [result, resPlayer]);
+
   // ── Image crop state ─────────────────────────────────────────────────────
   const [crop,   setCrop]   = useState<CropBox>(DEF_CROP);
   const [prevSz, setPrevSz] = useState({ w: 0, h: 0 });
@@ -58,6 +65,10 @@ export default function App() {
   const [vcrop,   setVcrop]   = useState<CropBox>(DEF_CROP);
   const [vPrevSz, setVPrevSz] = useState({ w: 0, h: 0 });
   const [vidNat,  setVidNat]  = useState({ w: 0, h: 0 });
+
+  // ── Smart Compress state ──────────────────────────────────────────────────
+  const [targetSize, setTargetSize] = useState('8.0');
+  const [minRes, setMinRes] = useState('720');
 
   // ── Trim+Crop state ───────────────────────────────────────────────────────
   const [tcCrop,   setTcCrop]   = useState<CropBox>(DEF_CROP);
@@ -149,7 +160,9 @@ export default function App() {
 
   const compressVid = () => {
     setScreen('home');
-    doOp('Compress Video', () => MediaToolkit.compressVideo(srcUri!, { quality: 'medium', width: 720 }));
+    const size = parseFloat(targetSize) || 8.0;
+    const res = parseInt(minRes) || 720;
+    doOp('Smart Compress Video', () => MediaToolkit.compressVideo(srcUri!, { targetSizeInMB: size, minResolution: res }));
   };
 
   const extractThumb = () => {
@@ -270,7 +283,7 @@ export default function App() {
           )}
           {srcUri && srcType === 'video' && (
             <View style={h.prev}>
-              <Video source={{ uri: srcUri }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.CONTAIN} useNativeControls shouldPlay={false} />
+              <VideoView player={srcPlayer} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
             </View>
           )}
           {!srcUri && (
@@ -343,11 +356,42 @@ export default function App() {
               />
             </View>
             <View style={h.divider} />
-            <View style={h.opRow}>
-              <Ionicons name="layers-outline" size={20} color={T.teal} />
+            <View style={[h.opRow, { alignItems: 'flex-start' }]}>
+              <Ionicons name="layers-outline" size={20} color={T.teal} style={{ marginTop: 4 }} />
               <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={h.opTitle}>Compress</Text>
-                <Text style={h.opHint}>Medium quality · H.264 · 720p</Text>
+                <Text style={h.opTitle}>Smart Compress</Text>
+                <View style={{ marginTop: 8, marginBottom: 12 }}>
+                  <Text style={[h.opHint, { marginBottom: 6 }]}>Target Size</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 8, paddingHorizontal: 10 }}>
+                    <TextInput 
+                      style={[{ flex: 1, color: T.text, fontSize: 13, height: 36 }]} 
+                      value={targetSize} 
+                      onChangeText={setTargetSize} 
+                      keyboardType="decimal-pad" 
+                      placeholderTextColor={T.textMuted}
+                    />
+                    <Text style={{ fontSize: 11, color: T.textMuted, fontWeight: '700' }}>MB</Text>
+                  </View>
+                </View>
+                
+                <View style={{ marginBottom: 4 }}>
+                    <Text style={[h.opHint, { marginBottom: 6 }]}>Min Resolution Bounds</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {['480', '540', '720', '1080'].map(res => (
+                        <Pressable 
+                          key={res} 
+                          onPress={() => setMinRes(res)}
+                          style={{ 
+                            paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6,
+                            backgroundColor: minRes === res ? T.teal : T.bg,
+                            borderWidth: 1, borderColor: minRes === res ? T.teal : T.border
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: minRes === res ? '#000' : T.text }}>{res}p</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                </View>
               </View>
               <ActionBtn label="Compress" icon="archive" color={T.teal} onPress={compressVid} disabled={loading} />
             </View>
@@ -380,7 +424,7 @@ export default function App() {
             )}
             {result.mime?.startsWith('video') && (
               <View style={{ width: '100%', height: 160, borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-                <Video source={{ uri: result.uri }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.CONTAIN} useNativeControls shouldPlay={false} />
+                <VideoView player={resPlayer} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
               </View>
             )}
             <View style={{ gap: 6 }}>
@@ -440,4 +484,5 @@ const h = StyleSheet.create({
   metaK:     { color: T.textMuted, fontSize: 12 },
   metaV:     { color: T.text, fontSize: 12, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
   logLine:   { color: T.textSub, fontSize: 11, lineHeight: 20, fontFamily: 'monospace' },
+  input:     { backgroundColor: T.bg, color: T.text, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, fontSize: 12, borderWidth: 1, borderColor: T.border },
 });

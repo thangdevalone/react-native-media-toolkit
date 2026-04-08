@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
-import React, { useRef } from 'react';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
   StatusBar,
@@ -35,7 +35,19 @@ export default function TrimAndCropVideoScreen({
   srcUri, durationMs, tcCrop, tcPrevSz, tcVidNat, loading, opLabel,
   onBack, onApply, onLayout, onNatSize, onCropCommit, getContainRect,
 }: Props) {
-  const trimBarRef = useRef<{ getRange: () => { startMs: number; endMs: number } } | null>(null);
+  const trimBarRef = React.useRef<{ getRange: () => { startMs: number; endMs: number } } | null>(null);
+  const player = useVideoPlayer(srcUri, p => { p.loop = true; p.play(); });
+  
+  useEffect(() => {
+    // Polling for video dimensions as expo-video loads them async
+    const itv = setInterval(() => {
+      if (player.videoTrack?.size?.width && player.videoTrack.size.width > 0) {
+        onNatSize(player.videoTrack.size.width, player.videoTrack.size.height);
+        clearInterval(itv);
+      }
+    }, 100);
+    return () => clearInterval(itv);
+  }, [player, onNatSize]);
 
   return (
     <View style={s.root}>
@@ -59,19 +71,14 @@ export default function TrimAndCropVideoScreen({
 
         {/* Video preview with crop overlay */}
         <View
-          style={{ flex: 1, backgroundColor: '#000' }}
+          style={{ flex: 1 }}
           onLayout={(e) => onLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}
         >
-          <Video
-            source={{ uri: srcUri }}
+          <VideoView
+            player={player}
             style={StyleSheet.absoluteFill}
-            resizeMode={ResizeMode.CONTAIN}
-            shouldPlay={false}
-            useNativeControls
-            onReadyForDisplay={(e: any) => {
-              const nat = e.naturalSize ?? e;
-              if (nat.width > 0) onNatSize(nat.width, nat.height);
-            }}
+            contentFit="contain"
+            nativeControls
           />
           {tcPrevSz.w > 0 && tcVidNat.w > 0 && (() => {
             const vr = getContainRect(tcVidNat.w, tcVidNat.h, tcPrevSz.w, tcPrevSz.h);

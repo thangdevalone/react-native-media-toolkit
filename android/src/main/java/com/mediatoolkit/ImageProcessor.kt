@@ -62,10 +62,35 @@ internal object ImageProcessor {
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
-    var bmp = BitmapFactory.decodeFile(path)
+    val options = BitmapFactory.Options()
+    options.inJustDecodeBounds = true
+    BitmapFactory.decodeFile(path, options)
+
+    var rawW = options.outWidth
+    var rawH = options.outHeight
+
+    // Check EXIF to accurately base inSampleSize on visual dimensions
+    val exif = try { ExifInterface(path) } catch (e: Exception) { null }
+    val orientation = exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL) ?: ExifInterface.ORIENTATION_NORMAL
+    if (orientation == ExifInterface.ORIENTATION_ROTATE_90 || orientation == ExifInterface.ORIENTATION_ROTATE_270) {
+        rawW = options.outHeight
+        rawH = options.outWidth
+    }
+
+    // High performance memory downsampling: Load 1/4 or 1/8 of the image directly from storage
+    options.inJustDecodeBounds = false
+    var sampleSize = 1
+    if (maxWidth > 0 && maxHeight > 0) {
+        while (rawW / (sampleSize * 2) >= maxWidth || rawH / (sampleSize * 2) >= maxHeight) {
+            sampleSize *= 2
+        }
+    }
+    options.inSampleSize = sampleSize
+
+    var bmp = BitmapFactory.decodeFile(path, options)
       ?: throw MediaToolkitException("Cannot decode image: $uri")
 
-    bmp = fixExifOrientation(bmp, path)
+    bmp = fixExifOrientationDirect(bmp, orientation)
     bmp = resizeIfNeeded(bmp, maxWidth, maxHeight)
 
     val (compressFormat, ext, mime) = when (format) {
@@ -105,6 +130,13 @@ internal object ImageProcessor {
       val orientation = exif.getAttributeInt(
         ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
       )
+      fixExifOrientationDirect(bmp, orientation)
+    } catch (_: Exception) {
+      bmp
+    }
+  }
+
+  private fun fixExifOrientationDirect(bmp: Bitmap, orientation: Int): Bitmap {
       val matrix = Matrix()
       when (orientation) {
         ExifInterface.ORIENTATION_ROTATE_90  -> matrix.postRotate(90f)
@@ -116,10 +148,7 @@ internal object ImageProcessor {
       }
       val rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
       bmp.recycle()
-      rotated
-    } catch (_: Exception) {
-      bmp
-    }
+      return rotated
   }
 
   private fun resizeIfNeeded(bmp: Bitmap, maxWidth: Int, maxHeight: Int): Bitmap {

@@ -61,13 +61,27 @@ class ImageProcessor: NSObject {
     format: String,
     outputPath: String?
   ) throws -> [String: Any] {
-    guard let image = loadImage(from: uri) else {
-      throw MediaToolkitError.invalidInput("Cannot load image at: \(uri)")
+    let path = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
+    let url = URL(fileURLWithPath: path)
+    
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+      throw MediaToolkitError.invalidInput("Cannot load image source at: \(uri)")
     }
 
-    let normalised = normaliseOrientation(image)
-    let resized = resizeIfNeeded(normalised, maxWidth: maxWidth, maxHeight: maxHeight)
+    // Determine max pixel size for downsampling (memory optimization)
+    let maxPx = max(maxWidth, maxHeight)
+    let downsampleOptions: [CFString: Any] = [
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceCreateThumbnailWithTransform: true, // Auto-fixes EXIF rotation!
+        kCGImageSourceShouldCacheImmediately: true,
+        kCGImageSourceThumbnailMaxPixelSize: maxPx > 0 ? maxPx : 99999
+    ]
+    
+    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions as CFDictionary) else {
+      throw MediaToolkitError.processingFailed("Could not downsample or decode image.")
+    }
 
+    let resized = UIImage(cgImage: cgImage)
     let q = CGFloat(max(0, min(100, quality))) / 100.0
     let ext: String
     let data: Data?
@@ -78,9 +92,6 @@ class ImageProcessor: NSObject {
       ext = "png"; mime = "image/png"
       data = resized.pngData()
     case "webp":
-      // iOS does not have a native WebP encoder.
-      // Throw an explicit error so callers can handle it (e.g. fall back to "jpeg" themselves).
-      // This matches the principle of least surprise — same behaviour on both platforms.
       throw MediaToolkitError.processingFailed(
         "WebP encoding is not supported on iOS. Use \"jpeg\" or \"png\" instead."
       )

@@ -5008,21 +5008,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"expo-av@npm:~16.0.8":
-  version: 16.0.8
-  resolution: "expo-av@npm:16.0.8"
-  peerDependencies:
-    expo: "*"
-    react: "*"
-    react-native: "*"
-    react-native-web: "*"
-  peerDependenciesMeta:
-    react-native-web:
-      optional: true
-  checksum: 10c0/2f40b8fcc7824d4f3e0078e6dff25ccb5b12b21abfcf6de30f4ea831716c6be18f9b59ab085e7b88ece5b0d314f998798e864f4b4a3c0f493c66060f4fc94955
-  languageName: node
-  linkType: hard
-
 "expo-build-properties@npm:^55.0.10":
   version: 55.0.10
   resolution: "expo-build-properties@npm:55.0.10"
@@ -5154,6 +5139,17 @@ __metadata:
   peerDependencies:
     expo: "*"
   checksum: 10c0/3738a784a770891148135b079408c2475a880947e866a267b18721fac653ea02d907c0d4805bdf2fb676004a4c01fe86fc55f077fb9aaa733b6b1af155e2b5a9
+  languageName: node
+  linkType: hard
+
+"expo-video@npm:~3.0.0":
+  version: 3.0.16
+  resolution: "expo-video@npm:3.0.16"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+  checksum: 10c0/b0f9e7c2597f2c44515eb34c16fbd0e79f19bcc4227c99788f9a98833832418a0717fcf2d06f66d2aba3ceb8e08733b28c2b6d662da304eccd728e6aa12a7ef2
   languageName: node
   linkType: hard
 
@@ -8525,10 +8521,10 @@ __metadata:
     "@expo/metro-runtime": "npm:~6.1.2"
     "@expo/vector-icons": "npm:^15.1.1"
     expo: "npm:~54.0.33"
-    expo-av: "npm:~16.0.8"
     expo-build-properties: "npm:^55.0.10"
     expo-image-picker: "npm:~17.0.10"
     expo-status-bar: "npm:~3.0.9"
+    expo-video: "npm:~3.0.0"
     expo-video-thumbnails: "npm:~10.0.8"
     patch-package: "npm:^8.0.1"
     react: "npm:19.1.0"

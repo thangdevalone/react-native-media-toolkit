@@ -124,6 +124,8 @@ internal object VideoProcessor {
     uri: String,
     quality: String,
     bitrate: Int,          // 0 = use quality preset (matches iOS behaviour)
+    targetSizeInMB: Double,
+    minResolution: Double,
     maxWidth: Int,
     muteAudio: Boolean,
     outputPath: String?,
@@ -133,9 +135,65 @@ internal object VideoProcessor {
     val mediaUri = toAndroidUri(uri)
     val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
 
-    val effects: Effects = if (maxWidth > 0) {
+    // Get duration and dimensions using MediaMetadataRetriever
+    var durationMs = 0L
+    var videoW = 0
+    var videoH = 0
+    try {
+        val retriever = android.media.MediaMetadataRetriever()
+        val pathStr = if (mediaUri.scheme == "file") mediaUri.path else uri
+        retriever.setDataSource(pathStr)
+        durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+        videoW = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+        videoH = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+        retriever.release()
+    } catch (e: Exception) {}
+
+    var computedBitrate = 0
+    var finalWidth = videoW
+    var finalHeight = videoH
+
+    if (targetSizeInMB > 0 && durationMs > 0) {
+        val durationSecs = durationMs / 1000.0
+        var targetBits = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
+        if (!muteAudio) { targetBits -= 96_000 } // audio reserve
+
+        computedBitrate = targetBits.toInt()
+
+        // Adaptive resolution heuristic
+        val optimalRes = when {
+            computedBitrate > 3_000_000 -> 1080.0
+            computedBitrate > 1_500_000 -> 720.0
+            computedBitrate > 800_000 -> 540.0
+            else -> 480.0
+        }
+        
+        val finalResTarget = maxOf(optimalRes, if (minResolution > 0) minResolution else 480.0)
+        val shortEdge = minOf(videoW, videoH).toDouble()
+        
+        if (shortEdge > finalResTarget) {
+            val scale = finalResTarget / shortEdge
+            finalWidth = (videoW * scale).toInt()
+            finalHeight = (videoH * scale).toInt()
+        }
+    } else {
+        computedBitrate = when {
+          bitrate > 0 -> bitrate           // explicit override wins
+          quality == "low"  -> 1_000_000
+          quality == "high" -> 8_000_000
+          else              -> 4_000_000   // medium
+        }
+    }
+
+    if (maxWidth > 0 && finalWidth > maxWidth) {
+        val scale = maxWidth.toDouble() / finalWidth
+        finalWidth = maxWidth
+        finalHeight = (finalHeight * scale).toInt()
+    }
+
+    val effects: Effects = if (finalWidth != videoW || finalHeight != videoH) {
       val presentation = Presentation.createForWidthAndHeight(
-        maxWidth, maxWidth,
+        finalWidth, finalHeight,
         Presentation.LAYOUT_SCALE_TO_FIT
       )
       Effects(emptyList(), listOf(presentation))
@@ -143,18 +201,7 @@ internal object VideoProcessor {
       Effects.EMPTY
     }
 
-    // Map quality preset → bitrate (bps), mirroring iOS AVFoundation rough equivalents:
-    //   low    ~ 1 Mbps  (AVAssetExportPresetLowQuality)
-    //   medium ~ 4 Mbps  (AVAssetExportPresetMediumQuality)  ← default
-    //   high   ~ 8 Mbps  (AVAssetExportPresetHighestQuality)
-    val resolvedBitrate = when {
-      bitrate > 0 -> bitrate           // explicit override wins
-      quality == "low"  -> 1_000_000
-      quality == "high" -> 8_000_000
-      else              -> 4_000_000   // medium
-    }
-
-    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = resolvedBitrate, removeAudio = muteAudio)
+    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = computedBitrate, removeAudio = muteAudio)
   }
 
   // ─── Core ────────────────────────────────────────────────────────────────
@@ -196,11 +243,20 @@ internal object VideoProcessor {
 
     if (transmux) {
       // Passthrough: remux without re-encoding — fast trim
-      // Note: transmux flags were deprecated in Media3 1.4+; use VideoEncoderSettings passthrough
       transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
     } else {
-      // Re-encode with H264 (mirrors iOS default output codec)
-      transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
+      if (targetBitrate > 0) {
+        val videoSettings = androidx.media3.transformer.VideoEncoderSettings.Builder()
+            .setBitrate(targetBitrate)
+            .build()
+        val encoderFactory = androidx.media3.transformer.DefaultEncoderFactory.Builder(context)
+            .setRequestedVideoEncoderSettings(videoSettings)
+            .build()
+        transformerBuilder.setEncoderFactory(encoderFactory)
+        transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H265) // Use HEVC for high compression Smart Compress
+      } else {
+        transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
+      }
     }
 
     val transformer = transformerBuilder.build()

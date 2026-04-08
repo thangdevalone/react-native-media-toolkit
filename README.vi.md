@@ -10,6 +10,16 @@ Xây dựng trên **Nitro Modules** (JSI), dùng `AVFoundation` trên iOS và **
 [![npm](https://img.shields.io/npm/v/react-native-media-toolkit)](https://www.npmjs.com/package/react-native-media-toolkit)
 [![license](https://img.shields.io/npm/l/react-native-media-toolkit)](LICENSE)
 
+<p align="center">
+  <img src=".github/images/1.png" width="200" />
+  &nbsp;&nbsp;
+  <img src=".github/images/2.png" width="200" />
+  &nbsp;&nbsp;
+  <img src=".github/images/3.png" width="200" />
+  &nbsp;&nbsp;
+  <img src=".github/images/4.png" width="200" />
+</p>
+
 ---
 
 ## Tương thích
@@ -33,7 +43,7 @@ Xây dựng trên **Nitro Modules** (JSI), dùng `AVFoundation` trên iOS và **
 | Tính năng | iOS | Android |
 |---|---|---|
 | Cắt ảnh | AVFoundation / CGImage | Bitmap |
-| Nén ảnh | UIGraphicsImageRenderer | Bitmap |
+| Nén ảnh | CGImageSource (Chống OOM) | BitmapFactory / inSampleSize |
 | Cắt video theo thời gian (ms) | AVAssetExportSession | Media3 Transformer |
 | Cắt vùng video (tương đối) | AVMutableVideoComposition | Media3 Presentation |
 | Cắt thời gian + cắt vùng trong 1 lần encode | AVMutableVideoComposition | Media3 Transformer |
@@ -128,9 +138,11 @@ const result = await MediaToolkit.trimAndCropVideo(videoUri, {
 
 ```typescript
 const result = await MediaToolkit.compressVideo(videoUri, {
-  quality: 'medium',  // 'low' | 'medium' | 'high'
-  width: 1080,        // chiều rộng tối đa, giữ nguyên tỉ lệ
-  bitrate: 2_000_000, // tuỳ chọn: ghi đè bitrate (bps)
+  targetSizeInMB: 8,       // Smart compress: tính toán bitrate tối ưu cho ~8MB
+  minResolution: 720,      // Tuỳ chọn: độ phân giải tối thiểu cho smart compress
+  muteAudio: true,         // Tuỳ chọn: loại bỏ âm thanh
+  quality: 'medium',       // 'low' | 'medium' | 'high' (bỏ qua nếu có targetSizeInMB)
+  width: 1080,             // chiều rộng tối đa, giữ nguyên tỉ lệ
 });
 ```
 
@@ -199,6 +211,9 @@ Kết hợp trim và crop trong một lần encode duy nhất.
 
 | Option | Kiểu | Mặc định | Mô tả |
 |---|---|---|---|
+| `targetSizeInMB`| number | — | Smart compress đến kích thước mục tiêu (MB) |
+| `minResolution`| number | 720 | Độ phân giải tối thiểu cho Smart compress |
+| `muteAudio` | boolean| `false` | Loại bỏ track âm thanh khỏi output |
 | `quality` | string | `'medium'` | `'low'` / `'medium'` / `'high'` |
 | `bitrate` | number | preset | Bitrate mục tiêu (bps) |
 | `width` | number | gốc | Chiều rộng tối đa output |
@@ -263,6 +278,19 @@ Mọi lệnh gọi API đều qua **JSI (JavaScript Interface)** thông qua Nitr
 ### Trim + crop trong 1 lần encode
 
 Nếu gọi `trimVideo` rồi `cropVideo` riêng lẻ = 2 lần encode đầy đủ: decode → encode → decode → encode. `trimAndCropVideo` thực hiện cả hai trong 1 session: decode → encode 1 lần duy nhất. Giảm một nửa thời gian xử lý và tránh mất chất lượng do encode 2 lần.
+
+### Tối ưu bộ nhớ xử lý ảnh (Chống OOM)
+
+Việc xử lý ảnh độ phân giải cao (ví dụ gốc 40MP+) thường gây ra lỗi Out-Of-Memory (OOM) do nạp toàn bộ mảng pixel vào RAM. Thư viện này sử dụng kỹ thuật **Load-Time Downsampling**:
+- **Android:** Sử dụng `BitmapFactory.Options.inSampleSize` để subsample (giảm kích thước) ảnh trực tiếp ở vòng đời decoder trước khi khởi tạo `Bitmap` object lên RAM.
+- **iOS:** Sử dụng `CGImageSourceCreateThumbnailAtIndex` gọi trực tiếp xuống framework `ImageIO` để decode và downscale file, bỏ qua hoàn toàn bước cấp phát buffer ảnh gốc.
+
+### Nén Video theo dung lượng mục tiêu (Smart Compress)
+
+Hàm `compressVideo` hỗ trợ chiến lược encode động thông qua tham số `targetSizeInMB`. Khi được cài đặt, framework sẽ:
+- Tính toán `bitrate` đầu ra dựa trên thời lượng (`duration`) tiêu chuẩn của media.
+- Thay đổi động độ phân giải thu được, giới hạn chạm đáy bởi `minResolution` nhằm giữ lại mật độ chi tiết (pixel density) ở những dải bitrate thấp.
+- Hỗ trợ loại bỏ track âm thanh qua `muteAudio` nhằm dồn toàn bộ phần băng thông cho luồng video.
 
 ### So sánh với các thư viện phổ biến
 

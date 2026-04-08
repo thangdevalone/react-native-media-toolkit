@@ -14,6 +14,7 @@ import {
   Text,
   TextInput,
   View,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { MediaToolkit } from 'react-native-media-toolkit';
@@ -50,6 +51,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [log, setLog]         = useState<string[]>([]);
   const [opLabel, setOpLabel] = useState('');
+  
+  // ── Compress options states ─────────────────────────────────────────────
+  const [targetSize, setTargetSize] = useState('8.0');
+  const [minRes, setMinRes] = useState('720');
+  const [imgQuality, setImgQuality] = useState('80');
+  const [imgMaxWidth, setImgMaxWidth] = useState('1080');
 
   const srcPlayer = useVideoPlayer(srcUri, player => { player.loop = true; });
   const resPlayer = useVideoPlayer(result?.uri ?? null, player => { player.loop = true; });
@@ -66,9 +73,7 @@ export default function App() {
   const [vPrevSz, setVPrevSz] = useState({ w: 0, h: 0 });
   const [vidNat,  setVidNat]  = useState({ w: 0, h: 0 });
 
-  // ── Smart Compress state ──────────────────────────────────────────────────
-  const [targetSize, setTargetSize] = useState('8.0');
-  const [minRes, setMinRes] = useState('720');
+
 
   // ── Trim+Crop state ───────────────────────────────────────────────────────
   const [tcCrop,   setTcCrop]   = useState<CropBox>(DEF_CROP);
@@ -155,7 +160,9 @@ export default function App() {
 
   const compressImg = () => {
     setScreen('home');
-    doOp('Compress Image', () => MediaToolkit.compressImage(srcUri!, { quality: 60, maxWidth: 1024, format: 'jpeg' }));
+    const q = parseInt(imgQuality) || 80;
+    const w = parseInt(imgMaxWidth) || 1080;
+    doOp('Compress Image', () => MediaToolkit.compressImage(srcUri!, { quality: q, maxWidth: w, format: 'jpeg' }));
   };
 
   const compressVid = () => {
@@ -306,10 +313,42 @@ export default function App() {
               <ActionBtn label="Crop" icon="crop" color={T.teal} onPress={() => setScreen('cropImage')} disabled={loading} />
             </View>
             <View style={h.divider} />
-            <View style={h.opRow}>
-              <View style={{ flex: 1 }}>
+            <View style={[h.opRow, { alignItems: 'flex-start' }]}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={h.opTitle}>Compress</Text>
-                <Text style={h.opHint}>60% quality · JPEG · 1024px</Text>
+                
+                <View style={{ marginTop: 8, marginBottom: 12 }}>
+                  <Text style={[h.opHint, { marginBottom: 6 }]}>Quality (0-100)</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, borderRadius: 8, paddingHorizontal: 10 }}>
+                    <TextInput 
+                      style={[{ flex: 1, color: T.text, fontSize: 13, height: 36 }]} 
+                      value={imgQuality} 
+                      onChangeText={setImgQuality} 
+                      keyboardType="number-pad" 
+                      placeholderTextColor={T.textMuted}
+                    />
+                    <Text style={{ fontSize: 11, color: T.textMuted, fontWeight: '700' }}>%</Text>
+                  </View>
+                </View>
+                
+                <View style={{ marginBottom: 4 }}>
+                    <Text style={[h.opHint, { marginBottom: 6 }]}>Max Width (px)</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {['720', '1080', '1440', '2160'].map(res => (
+                        <TouchableOpacity 
+                          key={res}
+                          onPress={() => setImgMaxWidth(res)}
+                          style={{
+                            paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+                            backgroundColor: imgMaxWidth === res ? T.accent : T.bg,
+                            borderWidth: 1, borderColor: imgMaxWidth === res ? T.accent : T.border
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, color: imgMaxWidth === res ? '#fff' : T.textMuted, fontWeight: '600' }}>{res}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                </View>
               </View>
               <ActionBtn label="Compress" icon="archive" color={T.accent} onPress={compressImg} disabled={loading} />
             </View>

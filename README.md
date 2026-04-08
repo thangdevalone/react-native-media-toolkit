@@ -11,9 +11,13 @@ Built on **Nitro Modules** (JSI), using `AVFoundation` on iOS and **Jetpack Medi
 [![license](https://img.shields.io/npm/l/react-native-media-toolkit)](LICENSE)
 
 <p align="center">
-  <img src=".github/images/example.png" width="320" alt="MediaToolkit example app" />
+  <img src=".github/images/1.png" width="200" />
   &nbsp;&nbsp;
-  <img src=".github/images/example_trim_crop.png" width="320" alt="Trim and Crop screen" />
+  <img src=".github/images/2.png" width="200" />
+  &nbsp;&nbsp;
+  <img src=".github/images/3.png" width="200" />
+  &nbsp;&nbsp;
+  <img src=".github/images/4.png" width="200" />
 </p>
 
 ---
@@ -39,7 +43,7 @@ Built on **Nitro Modules** (JSI), using `AVFoundation` on iOS and **Jetpack Medi
 | Feature | iOS | Android |
 |---|---|---|
 | Crop image | AVFoundation / CGImage | Bitmap |
-| Compress image | UIGraphicsImageRenderer | Bitmap |
+| Compress image | CGImageSource (OOM-free) | BitmapFactory / inSampleSize |
 | Trim video (start/end in ms) | AVAssetExportSession | Media3 Transformer |
 | Crop video (relative region) | AVMutableVideoComposition | Media3 Presentation |
 | Trim + Crop in single pass | AVMutableVideoComposition | Media3 Transformer |
@@ -134,9 +138,11 @@ const result = await MediaToolkit.trimAndCropVideo(videoUri, {
 
 ```typescript
 const result = await MediaToolkit.compressVideo(videoUri, {
-  quality: 'medium',  // 'low' | 'medium' | 'high'
-  width: 1080,        // max output width, aspect ratio preserved
-  bitrate: 2_000_000, // optional: override bitrate in bps
+  targetSizeInMB: 8,       // Smart compress: calculate optimal bitrate for ~8MB
+  minResolution: 720,      // Optional: floor resolution for smart compress
+  muteAudio: true,         // Optional: strip audio track
+  quality: 'medium',       // 'low' | 'medium' | 'high' (ignored if targetSizeInMB exists)
+  width: 1080,             // max output width, aspect ratio preserved
 });
 ```
 
@@ -205,6 +211,9 @@ Combines trim and crop into a single encode pass.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
+| `targetSizeInMB`| number | — | Smart compress to target file size |
+| `minResolution`| number | 720 | Floor resolution for Smart compress |
+| `muteAudio` | boolean| `false` | Strip audio track from output |
 | `quality` | string | `'medium'` | `'low'` / `'medium'` / `'high'` |
 | `bitrate` | number | preset | Target bitrate in bps |
 | `width` | number | original | Max output width |
@@ -252,9 +261,7 @@ The example app (`example/src/App.tsx`) includes reference implementations of:
 
 You can copy these components directly into your project and adapt them as needed.
 
-| Home screen | Trim + Crop |
-|:---:|:---:|
-| <img src=".github/images/example.png" width="240" /> | <img src=".github/images/example_trim_crop.png" width="240" /> |
+
 
 ---
 
@@ -273,6 +280,19 @@ All API calls go through **JSI (JavaScript Interface)** via Nitro Modules. There
 ### Single-pass trim + crop
 
 Running `trimVideo` then `cropVideo` sequentially means two full encode passes: decode → encode → decode → encode. `trimAndCropVideo` does both in one session: decode → encode once. This halves the processing time and avoids quality loss from double encoding.
+
+### Memory-Efficient Image Processing (OOM-Free)
+
+Standard image processing operations can cause Out-Of-Memory (OOM) exceptions when decoding high-resolution images (e.g., 40MP+). To prevent this, the library handles decoding via **Load-Time Downsampling**:
+- **Android:** Utilizes `BitmapFactory.Options.inSampleSize` to subsample the image during the hardware decoding phase, bypassing full-resolution memory allocation entirely.
+- **iOS:** Uses `CGImageSourceCreateThumbnailAtIndex` to instruct `ImageIO` to decode and downscale directly from the file descriptor buffer.
+
+### Smart Video Compression
+
+The `compressVideo` API provides a dynamically balanced encoding strategy via the `targetSizeInMB` flag. When provided, the library will:
+- Calculate a bounded target `bitrate` mapped by the `duration` of the media track.
+- Adjust the output resolution dynamically, floor-bounded by `minResolution` to maintain pixel clarity at constrained bitrates.
+- Optionally strip the audio track (`muteAudio`) to allocate the entire output bandwidth to the visual presentation.
 
 ### Comparison with common alternatives
 

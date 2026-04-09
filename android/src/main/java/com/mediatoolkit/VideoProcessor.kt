@@ -200,6 +200,18 @@ internal object VideoProcessor {
         
         android.util.Log.d("VideoProcessor", "Resolution Check: optimal=\${optimalRes}, finalResTarget=\${finalResTarget}, shortEdge=\${shortEdge}")
         
+        // --- Impossible Compression Rejection Logic ---
+        val minRequiredBitrate = 400_000 + if (muteAudio) 0 else 96_000
+        val minRequiredMB = (durationSecs * minRequiredBitrate) / (8.0 * 1024 * 1024)
+        if (targetSizeInMB < minRequiredMB) {
+            val reqMBStr = String.format("%.1f", minRequiredMB)
+            throw MediaToolkitException("Target size (${targetSizeInMB}MB) is impossible for a ${durationSecs.toInt()}s video. Minimum required limit is ~${reqMBStr}MB to prevent corruption.")
+        }
+        if (origSizeMB > 0 && targetSizeInMB < (origSizeMB * 0.05)) {
+            throw MediaToolkitException("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it.")
+        }
+        // ----------------------------------------------
+        
         if (shortEdge > finalResTarget) {
             val scale = finalResTarget / shortEdge
             finalWidth = (videoW * scale).toInt()

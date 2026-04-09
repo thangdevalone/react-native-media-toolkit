@@ -210,7 +210,7 @@ Combines trim and crop into a single encode pass.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `targetSizeInMB`| number | — | Smart compress to target file size |
-| `minResolution`| number | 720 | Floor resolution for Smart compress |
+| `minResolution`| number | 720 | Forces Target Resolution Bound |
 | `muteAudio` | boolean| `false` | Strip audio track from output |
 | `quality` | string | `'medium'` | `'low'` / `'medium'` / `'high'` |
 | `bitrate` | number | preset | Target bitrate in bps |

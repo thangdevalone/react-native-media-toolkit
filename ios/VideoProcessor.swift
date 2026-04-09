@@ -245,10 +245,46 @@ class VideoProcessor: NSObject {
     let outURL = URL(fileURLWithPath: out)
     removeIfExists(outURL)
 
-    var preset: String
+    var preset: String = AVAssetExportPresetMediumQuality
     if targetSizeInMB > 0 {
-      // Smart Compress always attempts HEVC for 50% better compression matching target size
-      preset = AVAssetExportPresetHEVCHighestQuality
+      let durationSecs = asset.duration.seconds
+      if durationSecs > 0 {
+          // --- Impossible Compression Rejection Logic ---
+          let minRequiredBitrate: Double = 400_000 + (muteAudio ? 0 : 96_000)
+          let minRequiredMB = (durationSecs * minRequiredBitrate) / (8.0 * 1024 * 1024)
+          if targetSizeInMB < minRequiredMB {
+              let reqMBStr = String(format: "%.1f", minRequiredMB)
+              completion(nil, MediaToolkitError.invalidInput("Target size (\(targetSizeInMB)MB) is impossible for a \(Int(durationSecs))s video. Minimum required limit is ~\(reqMBStr)MB to prevent corruption."))
+              return
+          }
+          var origSizeMB: Double = 0
+          if let url = (asset as? AVURLAsset)?.url, url.isFileURL,
+             let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
+             let size = attr[.size] as? Int64 {
+              origSizeMB = Double(size) / (1024.0 * 1024.0)
+          }
+          if origSizeMB > 0 && targetSizeInMB < (origSizeMB * 0.05) {
+              completion(nil, MediaToolkitError.invalidInput("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it."))
+              return
+          }
+          // ----------------------------------------------
+
+          var targetBitrate = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
+          if !muteAudio { targetBitrate -= 128_000 }
+          
+          var optimalRes: CGFloat = 480
+          if targetBitrate > 3_000_000 { optimalRes = 1080 }
+          else if targetBitrate > 1_500_000 { optimalRes = 720 }
+          else if targetBitrate > 800_000 { optimalRes = 540 }
+          
+          let finalRes = minResolution > 0 ? CGFloat(minResolution) : optimalRes
+          if finalRes >= 1080 { preset = AVAssetExportPreset1920x1080 }
+          else if finalRes >= 720 { preset = AVAssetExportPreset1280x720 }
+          else if finalRes >= 540 { preset = AVAssetExportPreset960x540 }
+          else { preset = AVAssetExportPreset640x480 }
+      } else {
+          preset = AVAssetExportPresetHighestQuality
+      }
     } else {
       switch quality {
       case "low":    preset = AVAssetExportPresetLowQuality
@@ -288,52 +324,9 @@ class VideoProcessor: NSObject {
     session.outputFileType = .mp4
     session.outputURL      = outURL
 
-    // Bitrate strictly follows Export Preset.
-    // Quality mapping was handled in `preset` resolution above.
-
-    // Build a video composition to apply maxWidth + adaptive resolution constraints
-    if let videoTrack = exportAsset.tracks(withMediaType: .video).first {
-      let ns = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
-      var fw = abs(ns.width)
-      var fh = abs(ns.height)
-      
-      if targetSizeInMB > 0 {
-          let durationSecs = asset.duration.seconds
-          if durationSecs > 0 {
-              var targetBitrate = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
-              if muteAudio == false { targetBitrate -= 96_000 } // audio reserve
-
-              // Optimal resolution heuristic
-              let optimalRes: CGFloat
-              if targetBitrate > 3_000_000 { optimalRes = 1080 }
-              else if targetBitrate > 1_500_000 { optimalRes = 720 }
-              else if targetBitrate > 800_000 { optimalRes = 540 }
-              else { optimalRes = 480 }
-              
-              let finalResTarget = max(optimalRes, CGFloat(minResolution > 0 ? minResolution : 480))
-              let shortEdge = min(fw, fh)
-              
-              if shortEdge > finalResTarget {
-                  let scale = finalResTarget / shortEdge
-                  fw *= scale
-                  fh *= scale
-              }
-          }
-      }
-
-      if maxWidth > 0 && fw > CGFloat(maxWidth) {
-        fh = fh * CGFloat(maxWidth) / fw
-        fw = CGFloat(maxWidth)
-      }
-      
-      let comp = AVMutableVideoComposition(propertiesOf: exportAsset)
-      comp.renderSize = CGSize(width: fw, height: fh)
-      session.videoComposition = comp
-    }
-
     if targetSizeInMB > 0 {
-        // AVAssetExportSession accepts fileLengthLimit for multi-pass matching
-        var fileLimit = Int64(targetSizeInMB * 1024 * 1024)
+        // AVAssetExportSession accepts fileLengthLimit natively tracking Bitrate
+        var fileLimit = Int64(targetSizeInMB * 1024 * 1024 * 0.90) // 10% safety margin for MP4 overhead
         let sourceAsset = (asset as? AVURLAsset) ?? (exportAsset as? AVURLAsset)
         if let url = sourceAsset?.url, url.isFileURL {
             if let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
@@ -426,7 +419,13 @@ class VideoProcessor: NSObject {
   private static func videoResult(path: String, asset: AVAsset, trimmed: Double) -> [String: Any] {
     let fileSize = (try? Data(contentsOf: URL(fileURLWithPath: path)).count) ?? 0
     var w = 0; var h = 0
-    if let track = asset.tracks(withMediaType: .video).first {
+    
+    let outAsset = AVURLAsset(url: URL(fileURLWithPath: path))
+    if let track = outAsset.tracks(withMediaType: .video).first {
+      let ns = track.naturalSize.applying(track.preferredTransform)
+      w = Int(abs(ns.width))
+      h = Int(abs(ns.height))
+    } else if let track = asset.tracks(withMediaType: .video).first {
       let ns = track.naturalSize.applying(track.preferredTransform)
       w = Int(abs(ns.width))
       h = Int(abs(ns.height))

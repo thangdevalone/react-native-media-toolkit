@@ -207,13 +207,13 @@ Kết hợp trim và crop trong một lần encode duy nhất.
 
 ### `compressVideo(uri, options): Promise<MediaResult>`
 
-| Option | Kiểu | Mặc định | Mô tả |
+| Tùy chọn | Kiểu | Mặc định | Mô tả |
 |---|---|---|---|
-| `targetSizeInMB`| number | — | Smart compress đến kích thước mục tiêu (MB) |
-| `minResolution`| number | 720 | Độ phân giải tối thiểu cho Smart compress |
-| `muteAudio` | boolean| `false` | Loại bỏ track âm thanh khỏi output |
+| `targetSizeInMB`| number | — | Bật tính năng Smart Compress theo dung lượng |
+| `minResolution`| number | 720 | Ép cứng khung hình theo tỷ lệ Bound |
+| `muteAudio` | boolean| `false` | Loại bỏ hoàn toàn kênh âm thanh (Audio Track) |
 | `quality` | string | `'medium'` | `'low'` / `'medium'` / `'high'` |
-| `bitrate` | number | preset | Bitrate mục tiêu (bps) |
+| `bitrate` | number | preset | Tốc độ Bitrate mục tiêu (bps) |
 | `width` | number | gốc | Chiều rộng tối đa output |
 | `outputPath` | string | — | Đường dẫn tuyệt đối file output |
 

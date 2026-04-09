@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { VideoView, type VideoPlayer } from 'expo-video';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import VideoTrimBar from '../components/VideoTrimBar';
 import { T } from '../theme';
 
 interface Props {
+  player: VideoPlayer | null;
   srcUri: string;
   durationMs: number;
   loading: boolean;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function TrimVideoScreen({
+  player,
   srcUri,
   durationMs,
   loading,
@@ -36,10 +38,12 @@ export default function TrimVideoScreen({
   const [isPlaying, setIsPlaying] = useState(true);
   const [playheadPos, setPlayheadPos] = useState(0);
 
-  const player = useVideoPlayer(srcUri, (p) => {
-    p.loop = true;
-    p.play();
-  });
+  useEffect(() => {
+    if (player) {
+      player.loop = true;
+      player.play();
+    }
+  }, [player]);
 
   const handleSeek = useCallback(
     (ms: number) => {

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { VideoView, type VideoPlayer } from 'expo-video';
 import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -10,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MediaToolkit } from 'react-native-media-toolkit';
 import CropOverlay from '../components/CropOverlay';
 import VideoTrimBar from '../components/VideoTrimBar';
 import { T } from '../theme';
 import type { CropBox } from '../types';
 
 interface Props {
+  player: VideoPlayer | null;
   srcUri: string;
   durationMs: number;
   tcCrop: CropBox;
@@ -32,22 +34,47 @@ interface Props {
 }
 
 export default function TrimAndCropVideoScreen({
-  srcUri, durationMs, tcCrop, tcPrevSz, tcVidNat, loading, opLabel,
+  player, srcUri, durationMs, tcCrop, tcPrevSz, tcVidNat, loading, opLabel,
   onBack, onApply, onLayout, onNatSize, onCropCommit, getContainRect,
 }: Props) {
   const trimBarRef = React.useRef<{ getRange: () => { startMs: number; endMs: number } } | null>(null);
-  const player = useVideoPlayer(srcUri, p => { p.loop = true; p.play(); });
-  
+  const [playheadPos, setPlayheadPos] = React.useState(0);
+
   useEffect(() => {
-    // Polling for video dimensions as expo-video loads them async
+    if (player) {
+      player.loop = true;
+      player.play();
+    }
+  }, [player]);
+
+  useEffect(() => {
     const itv = setInterval(() => {
-      if (player.videoTrack?.size?.width && player.videoTrack.size.width > 0) {
-        onNatSize(player.videoTrack.size.width, player.videoTrack.size.height);
-        clearInterval(itv);
+      if (player && durationMs > 0) {
+        setPlayheadPos((player.currentTime * 1000) / durationMs);
       }
     }, 100);
     return () => clearInterval(itv);
-  }, [player, onNatSize]);
+  }, [player, durationMs]);
+
+  const handleSeek = (ms: number) => {
+    if (player) player.currentTime = ms / 1000;
+  };
+  
+  useEffect(() => {
+    let active = true;
+    MediaToolkit.getThumbnail(srcUri, { timeMs: 0 })
+      .then((res) => {
+        if (active && res.width > 0 && res.height > 0) {
+          onNatSize(res.width, res.height);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to get thumbnail for dimension detection:', err);
+      });
+    return () => {
+      active = false;
+    };
+  }, [srcUri, onNatSize]);
 
   return (
     <View style={s.root}>
@@ -78,27 +105,27 @@ export default function TrimAndCropVideoScreen({
             player={player}
             style={StyleSheet.absoluteFill}
             contentFit="contain"
-            nativeControls
+            nativeControls={false}
           />
-          {tcPrevSz.w > 0 && tcVidNat.w > 0 && (() => {
-            const vr = getContainRect(tcVidNat.w, tcVidNat.h, tcPrevSz.w, tcPrevSz.h);
-            return (
-              <CropOverlay
-                initialCrop={tcCrop}
-                containerW={vr.w}
-                containerH={vr.h}
-                offsetX={vr.x}
-                offsetY={vr.y}
-                onCommit={(c) => onCropCommit({
+          {tcPrevSz.w > 0 && tcVidNat.w > 0 && (
+            <CropOverlay
+              initialCrop={tcCrop}
+              containerW={getContainRect(tcVidNat.w, tcVidNat.h, tcPrevSz.w, tcPrevSz.h).w}
+              containerH={getContainRect(tcVidNat.w, tcVidNat.h, tcPrevSz.w, tcPrevSz.h).h}
+              offsetX={getContainRect(tcVidNat.w, tcVidNat.h, tcPrevSz.w, tcPrevSz.h).x}
+              offsetY={getContainRect(tcVidNat.w, tcVidNat.h, tcPrevSz.w, tcPrevSz.h).y}
+              onCommit={(c) => {
+                const vr = getContainRect(tcVidNat.w, tcVidNat.h, tcPrevSz.w, tcPrevSz.h);
+                onCropCommit({
                   x: (c.x * vr.w + vr.x) / tcPrevSz.w,
                   y: (c.y * vr.h + vr.y) / tcPrevSz.h,
                   w: (c.w * vr.w) / tcPrevSz.w,
                   h: (c.h * vr.h) / tcPrevSz.h,
-                })}
-                accentColor="#FF9500"
-              />
-            );
-          })()}
+                });
+              }}
+              accentColor="#FF9500"
+            />
+          )}
           {/* Hint */}
           <View style={s.hintWrap} pointerEvents="none">
             <View style={s.hintBg}>
@@ -111,7 +138,8 @@ export default function TrimAndCropVideoScreen({
           videoUri={srcUri}
           durationMs={durationMs}
           trimBarRef={trimBarRef}
-          onSeek={() => {}}
+          onSeek={handleSeek}
+          playheadPos={playheadPos}
         />
 
         {loading && (

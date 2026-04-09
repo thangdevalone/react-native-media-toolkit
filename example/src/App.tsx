@@ -11,6 +11,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -44,6 +45,7 @@ export default function App() {
   // ── Source media ─────────────────────────────────────────────────────────
   const [srcUri, setSrcUri]   = useState<string | null>(null);
   const [srcType, setSrcType] = useState<'image' | 'video' | null>(null);
+  const [srcMeta, setSrcMeta] = useState<any>(null);
   const [vidDur, setVidDur]   = useState(0);
 
   // ── Result & UI state ────────────────────────────────────────────────────
@@ -55,6 +57,7 @@ export default function App() {
   // ── Compress options states ─────────────────────────────────────────────
   const [targetSize, setTargetSize] = useState('8.0');
   const [minRes, setMinRes] = useState('720');
+  const [muteAudio, setMuteAudio] = useState(false);
   const [imgQuality, setImgQuality] = useState('80');
   const [imgMaxWidth, setImgMaxWidth] = useState('1080');
 
@@ -84,6 +87,9 @@ export default function App() {
   const addLog = useCallback((m: string) => setLog((p) => [m, ...p].slice(0, 12)), []);
 
   const doOp = useCallback(async (label: string, fn: () => Promise<MediaResult>) => {
+    if (srcPlayer?.playing) srcPlayer.pause();
+    if (resPlayer?.playing) resPlayer.pause();
+    
     setLoading(true); setResult(null); setOpLabel(label);
     try {
       const r = await fn();
@@ -93,7 +99,7 @@ export default function App() {
       addLog(`❌ ${label}: ${e?.message ?? e}`);
       Alert.alert(label + ' failed', e?.message ?? String(e));
     } finally { setLoading(false); setOpLabel(''); }
-  }, [addLog]);
+  }, [addLog, srcPlayer, resPlayer]);
 
   // ── Pick media ───────────────────────────────────────────────────────────
   const pickImage = async () => {
@@ -101,9 +107,11 @@ export default function App() {
     if (status !== 'granted') return Alert.alert('Permission required');
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
     if (!r.canceled && r.assets[0]) {
-      setSrcUri(r.assets[0].uri); setSrcType('image');
+      const a = r.assets[0];
+      setSrcUri(a.uri); setSrcType('image');
+      setSrcMeta({ fileName: a.fileName, fileSize: a.fileSize, width: a.width, height: a.height });
       setResult(null); setCrop(DEF_CROP);
-      addLog(`📷 ${r.assets[0].fileName ?? 'image'}`);
+      addLog(`📷 ${a.fileName ?? 'image'}`);
     }
   };
 
@@ -114,6 +122,7 @@ export default function App() {
     if (!r.canceled && r.assets[0]) {
       const a = r.assets[0];
       setSrcUri(a.uri); setSrcType('video'); setResult(null);
+      setSrcMeta({ fileName: a.fileName, fileSize: a.fileSize, width: a.width, height: a.height, duration: a.duration });
       setVcrop(DEF_CROP); setVidNat({ w: 0, h: 0 });
       const d = Math.round(a.duration ?? 0);
       setVidDur(d > 0 ? d : 30000);
@@ -169,7 +178,13 @@ export default function App() {
     setScreen('home');
     const size = parseFloat(targetSize) || 8.0;
     const res = parseInt(minRes) || 720;
-    doOp('Smart Compress Video', () => MediaToolkit.compressVideo(srcUri!, { targetSizeInMB: size, minResolution: res }));
+    doOp('Smart Compress Video', () => 
+      MediaToolkit.compressVideo(srcUri!, { 
+        targetSizeInMB: size, 
+        minResolution: res,
+        muteAudio: muteAudio 
+      })
+    );
   };
 
   const extractThumb = () => {
@@ -183,6 +198,7 @@ export default function App() {
   if (screen === 'trimVideo' && srcUri && srcType === 'video') {
     return (
       <TrimVideoScreen
+        player={srcPlayer}
         srcUri={srcUri}
         durationMs={vidDur}
         loading={loading}
@@ -212,6 +228,7 @@ export default function App() {
   if (screen === 'cropVideo' && srcUri && srcType === 'video') {
     return (
       <CropVideoScreen
+        player={srcPlayer}
         srcUri={srcUri}
         vcrop={vcrop}
         vPrevSz={vPrevSz}
@@ -231,6 +248,7 @@ export default function App() {
   if (screen === 'trimAndCropVideo' && srcUri && srcType === 'video') {
     return (
       <TrimAndCropVideoScreen
+        player={srcPlayer}
         srcUri={srcUri}
         durationMs={vidDur}
         tcCrop={tcCrop}
@@ -291,6 +309,21 @@ export default function App() {
           {srcUri && srcType === 'video' && (
             <View style={h.prev}>
               <VideoView player={srcPlayer} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
+            </View>
+          )}
+          {srcMeta && (
+            <View style={{ gap: 6, marginTop: 12 }}>
+              {[
+                ['File', srcMeta.fileName ?? srcUri?.split('/').pop() ?? ''],
+                ...(srcMeta.fileSize ? [['Size', fmtSize(srcMeta.fileSize)]] : []),
+                ...(srcMeta.width && srcMeta.height ? [['Dim', `${srcMeta.width}×${srcMeta.height}`]] : []),
+                ...(srcMeta.duration > 0 ? [['Dur', fmtMs(srcMeta.duration)]] : []),
+              ].map(([k, v]) => (
+                <View key={k} style={h.metaRow}>
+                  <Text style={h.metaK}>{k}</Text>
+                  <Text style={h.metaV} numberOfLines={1}>{v}</Text>
+                </View>
+              ))}
             </View>
           )}
           {!srcUri && (
@@ -413,7 +446,7 @@ export default function App() {
                   </View>
                 </View>
                 
-                <View style={{ marginBottom: 4 }}>
+                <View style={{ marginBottom: 12 }}>
                     <Text style={[h.opHint, { marginBottom: 6 }]}>Min Resolution Bounds</Text>
                     <View style={{ flexDirection: 'row', gap: 6 }}>
                       {['480', '540', '720', '1080'].map(res => (
@@ -430,6 +463,17 @@ export default function App() {
                         </Pressable>
                       ))}
                     </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={[h.opHint, { flex: 1 }]}>Mute (Remove Audio Track)</Text>
+                  <Switch 
+                    value={muteAudio} 
+                    onValueChange={setMuteAudio}
+                    trackColor={{ false: T.border, true: T.teal }}
+                    thumbColor="#FFF"
+                    style={{ transform: [{ scale: 0.8 }] }}
+                  />
                 </View>
               </View>
               <ActionBtn label="Compress" icon="archive" color={T.teal} onPress={compressVid} disabled={loading} />
@@ -462,7 +506,7 @@ export default function App() {
               <Image source={{ uri: result.uri }} style={{ width: '100%', height: 180, borderRadius: 10, marginBottom: 12 }} resizeMode="contain" />
             )}
             {result.mime?.startsWith('video') && (
-              <View style={{ width: '100%', height: 160, borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
+              <View style={{ width: '100%', height: SW * 0.58, borderRadius: 10, overflow: 'hidden', marginBottom: 12, backgroundColor: '#000' }}>
                 <VideoView player={resPlayer} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
               </View>
             )}

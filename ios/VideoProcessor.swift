@@ -333,7 +333,16 @@ class VideoProcessor: NSObject {
 
     if targetSizeInMB > 0 {
         // AVAssetExportSession accepts fileLengthLimit for multi-pass matching
-        session.fileLengthLimit = Int64(targetSizeInMB * 1024 * 1024)
+        var fileLimit = Int64(targetSizeInMB * 1024 * 1024)
+        let sourceAsset = (asset as? AVURLAsset) ?? (exportAsset as? AVURLAsset)
+        if let url = sourceAsset?.url, url.isFileURL {
+            if let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
+               let size = attr[.size] as? Int64, size > 0 {
+                // Prevent inflation: cap at original file size if it's already smaller than target
+                fileLimit = min(fileLimit, size)
+            }
+        }
+        session.fileLengthLimit = fileLimit
     }
 
     pollProgress(session: session, onProgress: onProgress)

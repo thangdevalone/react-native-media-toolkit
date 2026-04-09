@@ -82,13 +82,16 @@ const VideoTrimBar = ({ videoUri, durationMs, trimBarRef, onSeek, playheadPos }:
     setFrames((prev) => Array(FC).fill(null).map((_, i) => prev[i] ?? null));
     let cancelled = false;
     (async () => {
-      for (let i = 0; i < FC && !cancelled; i++) {
+      await Promise.all(Array.from({ length: FC }).map(async (_, i) => {
+        if (cancelled) return;
         try {
           const t = Math.round((i / Math.max(1, FC - 1)) * Math.max(0, durationMs - 100));
           const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, { time: t, quality: 0.4 });
-          if (!cancelled && uri) setFrames((p) => { const n = [...p]; n[i] = uri; return n; });
+          if (!cancelled && uri) {
+            setFrames((p) => { const n = [...p]; n[i] = uri; return n; });
+          }
         } catch {}
-      }
+      }));
     })();
     return () => { cancelled = true; };
   }, [videoUri, durationMs]);

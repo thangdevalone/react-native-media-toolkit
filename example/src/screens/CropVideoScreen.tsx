@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { VideoView, type VideoPlayer } from 'expo-video';
 import { useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -10,11 +10,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MediaToolkit } from 'react-native-media-toolkit';
 import CropOverlay from '../components/CropOverlay';
 import { T } from '../theme';
 import type { CropBox } from '../types';
 
 interface Props {
+  player: VideoPlayer | null;
   srcUri: string;
   vcrop: CropBox;
   vPrevSz: { w: number; h: number };
@@ -30,21 +32,31 @@ interface Props {
 }
 
 export default function CropVideoScreen({
-  srcUri, vcrop, vPrevSz, vidNat, loading, opLabel,
+  player, srcUri, vcrop, vPrevSz, vidNat, loading, opLabel,
   onBack, onApply, onLayout, onNatSize, onCropCommit, getContainRect,
 }: Props) {
-  const player = useVideoPlayer(srcUri, p => { p.loop = true; p.play(); });
+  useEffect(() => {
+    if (player) {
+      player.loop = true;
+      player.play();
+    }
+  }, [player]);
   
   useEffect(() => {
-    // Polling for video dimensions as expo-video loads them async
-    const itv = setInterval(() => {
-      if (player.videoTrack?.size?.width && player.videoTrack.size.width > 0) {
-        onNatSize(player.videoTrack.size.width, player.videoTrack.size.height);
-        clearInterval(itv);
-      }
-    }, 100);
-    return () => clearInterval(itv);
-  }, [player, onNatSize]);
+    let active = true;
+    MediaToolkit.getThumbnail(srcUri, { timeMs: 0 })
+      .then((res) => {
+        if (active && res.width > 0 && res.height > 0) {
+          onNatSize(res.width, res.height);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to get thumbnail for dimension detection:', err);
+      });
+    return () => {
+      active = false;
+    };
+  }, [srcUri, onNatSize]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -68,27 +80,27 @@ export default function CropVideoScreen({
             player={player}
             style={StyleSheet.absoluteFill}
             contentFit="contain"
-            nativeControls
+            nativeControls={false}
           />
-          {vPrevSz.w > 0 && vidNat.w > 0 && (() => {
-            const vr = getContainRect(vidNat.w, vidNat.h, vPrevSz.w, vPrevSz.h);
-            return (
-              <CropOverlay
-                initialCrop={vcrop}
-                containerW={vr.w}
-                containerH={vr.h}
-                offsetX={vr.x}
-                offsetY={vr.y}
-                onCommit={(c) => onCropCommit({
+          {vPrevSz.w > 0 && vidNat.w > 0 && (
+            <CropOverlay
+              initialCrop={vcrop}
+              containerW={getContainRect(vidNat.w, vidNat.h, vPrevSz.w, vPrevSz.h).w}
+              containerH={getContainRect(vidNat.w, vidNat.h, vPrevSz.w, vPrevSz.h).h}
+              offsetX={getContainRect(vidNat.w, vidNat.h, vPrevSz.w, vPrevSz.h).x}
+              offsetY={getContainRect(vidNat.w, vidNat.h, vPrevSz.w, vPrevSz.h).y}
+              onCommit={(c) => {
+                const vr = getContainRect(vidNat.w, vidNat.h, vPrevSz.w, vPrevSz.h);
+                onCropCommit({
                   x: (c.x * vr.w + vr.x) / vPrevSz.w,
                   y: (c.y * vr.h + vr.y) / vPrevSz.h,
                   w: (c.w * vr.w) / vPrevSz.w,
                   h: (c.h * vr.h) / vPrevSz.h,
-                })}
-                accentColor={T.accent}
-              />
-            );
-          })()}
+                });
+              }}
+              accentColor={T.accent}
+            />
+          )}
         </View>
 
         {loading && (

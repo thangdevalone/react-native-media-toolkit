@@ -68,14 +68,15 @@ internal object VideoProcessor {
     val mediaUri = toAndroidUri(uri)
     val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
 
-    // Crop by scaling to fit the desired region then presenting at target aspect ratio.
     // x, y, width, height are in [0,1] relative to original frame.
-    val aspectRatio = width / height.coerceAtLeast(0.001f)
-    val presentation = Presentation.createForAspectRatio(
-      aspectRatio,
-      Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
-    )
-    val effects = Effects(emptyList(), listOf(presentation))
+    // Media3 Crop uses Normalized Device Coordinates (NDC) [-1, 1], where (-1, -1) is bottom-left.
+    val left = x * 2.0f - 1.0f
+    val right = (x + width) * 2.0f - 1.0f
+    val top = 1.0f - y * 2.0f
+    val bottom = 1.0f - (y + height) * 2.0f
+
+    val cropEffect = androidx.media3.effect.Crop(left, right, bottom, top)
+    val effects = Effects(emptyList(), listOf(cropEffect))
 
     return runTransform(context, mediaItem, effects, out, onProgress)
   }
@@ -106,12 +107,14 @@ internal object VideoProcessor {
       .setClippingConfiguration(clippingConfig)
       .build()
 
-    val aspectRatio = width / height.coerceAtLeast(0.001f)
-    val presentation = Presentation.createForAspectRatio(
-      aspectRatio,
-      Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
-    )
-    val effects = Effects(emptyList(), listOf(presentation))
+    // Media3 Crop uses Normalized Device Coordinates (NDC) [-1, 1], where (-1, -1) is bottom-left.
+    val left = x * 2.0f - 1.0f
+    val right = (x + width) * 2.0f - 1.0f
+    val top = 1.0f - y * 2.0f
+    val bottom = 1.0f - (y + height) * 2.0f
+
+    val cropEffect = androidx.media3.effect.Crop(left, right, bottom, top)
+    val effects = Effects(emptyList(), listOf(cropEffect))
 
     // Must re-encode for crop, but only ONE pass (faster than trim then crop)
     return runTransform(context, mediaItem, effects, out, onProgress, transmux = false)
@@ -139,15 +142,40 @@ internal object VideoProcessor {
     var durationMs = 0L
     var videoW = 0
     var videoH = 0
+    var origBitrate = 0
+    var origSizeMB = 0.0
     try {
         val retriever = android.media.MediaMetadataRetriever()
-        val pathStr = if (mediaUri.scheme == "file") mediaUri.path else uri
-        retriever.setDataSource(pathStr)
+        val pathStr: String = if (mediaUri.scheme == "file") mediaUri.path ?: uri else uri
+        
+        val f = java.io.File(pathStr)
+        if (f.exists()) origSizeMB = f.length() / (1024.0 * 1024.0)
+        
+        if (mediaUri.scheme == "content") {
+            retriever.setDataSource(context, mediaUri)
+        } else {
+            retriever.setDataSource(pathStr)
+        }
+        
         durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
         videoW = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
         videoH = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+        
+        val rotation = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+        
+        android.util.Log.d("VideoProcessor", "Original Metadata: w=\${videoW}, h=\${videoH}, rot=\${rotation}")
+        
+        if (rotation == 90 || rotation == 270) {
+            val tmp = videoW
+            videoW = videoH
+            videoH = tmp
+        }
+        
+        origBitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull() ?: 0
         retriever.release()
-    } catch (e: Exception) {}
+    } catch (e: Exception) {
+        android.util.Log.e("VideoProcessor", "Metadata extraction failed", e)
+    }
 
     var computedBitrate = 0
     var finalWidth = videoW
@@ -155,26 +183,54 @@ internal object VideoProcessor {
 
     if (targetSizeInMB > 0 && durationMs > 0) {
         val durationSecs = durationMs / 1000.0
-        var targetBits = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
-        if (!muteAudio) { targetBits -= 96_000 } // audio reserve
 
-        computedBitrate = targetBits.toInt()
-
-        // Adaptive resolution heuristic
-        val optimalRes = when {
-            computedBitrate > 3_000_000 -> 1080.0
-            computedBitrate > 1_500_000 -> 720.0
-            computedBitrate > 800_000 -> 540.0
-            else -> 480.0
+        // Determine final resolution
+        var optimalRes = 480.0
+        if (targetSizeInMB > 0) {
+            val targetBits = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
+            optimalRes = when {
+                targetBits > 3_000_000 -> 1080.0
+                targetBits > 1_500_000 -> 720.0
+                targetBits > 800_000 -> 540.0
+                else -> 480.0
+            }
         }
-        
-        val finalResTarget = maxOf(optimalRes, if (minResolution > 0) minResolution else 480.0)
+        val finalResTarget = if (minResolution > 0) minResolution else optimalRes
         val shortEdge = minOf(videoW, videoH).toDouble()
+        
+        android.util.Log.d("VideoProcessor", "Resolution Check: optimal=\${optimalRes}, finalResTarget=\${finalResTarget}, shortEdge=\${shortEdge}")
         
         if (shortEdge > finalResTarget) {
             val scale = finalResTarget / shortEdge
             finalWidth = (videoW * scale).toInt()
             finalHeight = (videoH * scale).toInt()
+            if (finalWidth % 2 != 0) finalWidth -= 1
+            if (finalHeight % 2 != 0) finalHeight -= 1
+        }
+        
+        android.util.Log.d("VideoProcessor", "Effect Dimensions: finalW=\${finalWidth}, finalH=\${finalHeight}")
+
+        if (origSizeMB > 0 && targetSizeInMB >= origSizeMB) {
+            // File is already under target size. 
+            // Varry the compression purely based on the resolution reduction!
+            val pixelRatio = (finalWidth.toDouble() * finalHeight) / maxOf(1, videoW * videoH)
+            // Bitrate scales down roughly with sqrt of pixel reduction, capped at 90% of original
+            val bitScale = minOf(0.90, Math.max(0.3, Math.sqrt(pixelRatio)))
+            computedBitrate = (origBitrate * bitScale).toInt()
+            if (computedBitrate < 400_000) computedBitrate = 400_000 // absolute floor
+        } else {
+            // File is OVER target size. Squeeze it strictly into target bounds.
+            // Apply a 90% safety margin to account for VBR (Variable Bitrate) overshoot and MP4 container overhead
+            var targetBits = ((targetSizeInMB * 0.90) * 1024 * 1024 * 8) / durationSecs
+            if (!muteAudio) { targetBits -= 128_000 } // audio reserve (128kbps)
+            computedBitrate = targetBits.toInt()
+        }
+        
+        // Prevent extreme bitrates that cause java.lang.OutOfMemoryError (e.g. short video, high target)
+        if (computedBitrate > 20_000_000) computedBitrate = 20_000_000
+        
+        if (origBitrate > 0 && computedBitrate > origBitrate) {
+            computedBitrate = origBitrate
         }
     } else {
         computedBitrate = when {
@@ -189,6 +245,8 @@ internal object VideoProcessor {
         val scale = maxWidth.toDouble() / finalWidth
         finalWidth = maxWidth
         finalHeight = (finalHeight * scale).toInt()
+        if (finalWidth % 2 != 0) finalWidth -= 1
+        if (finalHeight % 2 != 0) finalHeight -= 1
     }
 
     val effects: Effects = if (finalWidth != videoW || finalHeight != videoH) {
@@ -263,24 +321,33 @@ internal object VideoProcessor {
 
     // Run on main thread (Media3 requirement), then wait
     val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    mainHandler.post {
-      transformer.start(editedItem, outputPath)
+    val progressHolder = ProgressHolder()
+
+    val progressRunnable = object : Runnable {
+      override fun run() {
+        if (latch.count == 0L) {
+          onProgress(100)
+          return
+        }
+        try {
+          transformer.getProgress(progressHolder)
+          onProgress(progressHolder.progress)
+        } catch (e: Exception) {}
+        mainHandler.postDelayed(this, 150)
+      }
     }
 
-    // Poll progress on current thread
-    val progressHolder = ProgressHolder()
-    val progressThread = Thread {
-      while (latch.count > 0) {
-        transformer.getProgress(progressHolder)
-        onProgress(progressHolder.progress)
-        Thread.sleep(150)
+    mainHandler.post {
+      try {
+        transformer.start(editedItem, outputPath)
+        mainHandler.postDelayed(progressRunnable, 150)
+      } catch (e: Exception) {
+        exportError = e
+        latch.countDown()
       }
-      onProgress(100)
     }
-    progressThread.start()
 
     latch.await()
-    progressThread.interrupt()
 
     exportError?.let { throw MediaToolkitException("Transform failed: ${it.message}") }
 
@@ -291,6 +358,7 @@ internal object VideoProcessor {
   // ─── THUMBNAIL ──────────────────────────────────────────────────────────────
 
   fun getThumbnail(
+    context: Context,
     uri: String,
     timeMs: Long,
     quality: Int,
@@ -301,9 +369,13 @@ internal object VideoProcessor {
     try {
       val uriParsed = if (uri.startsWith("file://") || uri.startsWith("content://"))
         android.net.Uri.parse(uri) else android.net.Uri.fromFile(java.io.File(uri))
-      // Note: MediaMetadataRetriever needs a string path for file URIs
-      val filePath = if (uri.startsWith("file://")) uri.removePrefix("file://") else uri
-      retriever.setDataSource(filePath)
+        
+      if (uri.startsWith("content://")) {
+         retriever.setDataSource(context, uriParsed)
+      } else {
+         val filePath = if (uri.startsWith("file://")) uri.removePrefix("file://") else uri
+         retriever.setDataSource(filePath)
+      }
 
       // getFrameAtTime takes microseconds
       val bitmap = retriever.getFrameAtTime(
@@ -362,6 +434,14 @@ internal object VideoProcessor {
       retriever.setDataSource(path)
       width = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
       height = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+      
+      val rotation = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+      if (rotation == 90 || rotation == 270) {
+          val tmp = width
+          width = height
+          height = tmp
+      }
+      
       if (duration == 0L) {
         duration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
       }

@@ -130,7 +130,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
       val timeMs   = options?.timeMs?.toLong() ?: 0L
       val quality  = options?.quality?.toInt() ?: 80
       val maxWidth = options?.maxWidth?.toInt() ?: 0
-      val raw = VideoProcessor.getThumbnail(uri, timeMs, quality, maxWidth, options?.outputPath)
+      val raw = VideoProcessor.getThumbnail(ctx, uri, timeMs, quality, maxWidth, options?.outputPath)
       ThumbnailResult(
         uri    = raw["uri"]    as? String ?: "",
         size   = (raw["size"]   as? Number)?.toDouble() ?: 0.0,

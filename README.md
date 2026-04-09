@@ -16,8 +16,6 @@ Built on **Nitro Modules** (JSI), using `AVFoundation` on iOS and **Jetpack Medi
   <img src=".github/images/2.png" width="200" />
   &nbsp;&nbsp;
   <img src=".github/images/3.png" width="200" />
-  &nbsp;&nbsp;
-  <img src=".github/images/4.png" width="200" />
 </p>
 
 ---

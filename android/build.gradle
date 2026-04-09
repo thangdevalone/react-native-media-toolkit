@@ -75,13 +75,13 @@ android {
     externalNativeBuild {
       cmake {
         cppFlags "-std=c++20 -frtti -fexceptions"
-        // Support both ABIs:
-        //   arm64-v8a → physical Android devices
-        //   x86_64    → Android emulators
-        // Note: in the monorepo example (composite build), x86_64 may fail to link
-        // Nitro symbols. This is a dev-only limitation of the includeBuild setup,
-        // NOT a limitation of the published library.
-        abiFilters "arm64-v8a", "x86_64"
+        // Follow the reactNativeArchitectures Gradle property so that:
+        //   - `yarn expo run:android` on a physical device only builds arm64-v8a
+        //   - `yarn expo run:android --device` on an emulator only builds x86_64
+        //   - a standalone library build defaults to both
+        // This is the same pattern used by react-native-vision-camera.
+        def architectures = findProperty("reactNativeArchitectures")?.split(",")?.collect { it.trim() } ?: ["arm64-v8a", "x86_64"]
+        abiFilters(*architectures)
         arguments "-DANDROID_STL=c++_shared"
       }
     }

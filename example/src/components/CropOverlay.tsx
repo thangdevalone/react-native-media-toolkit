@@ -29,28 +29,28 @@ const CropOverlay = React.memo(
     const box = useRef({
       l: initialCrop.x * W,
       t: initialCrop.y * H,
-      w: initialCrop.w * W,
-      h: initialCrop.h * H,
+      r: W - (initialCrop.x + initialCrop.w) * W,
+      b: H - (initialCrop.y + initialCrop.h) * H,
     });
     const aL = useRef(new Animated.Value(box.current.l)).current;
     const aT = useRef(new Animated.Value(box.current.t)).current;
-    const aW = useRef(new Animated.Value(box.current.w)).current;
-    const aH = useRef(new Animated.Value(box.current.h)).current;
+    const aR = useRef(new Animated.Value(box.current.r)).current;
+    const aB = useRef(new Animated.Value(box.current.b)).current;
 
     const applyBox = () => {
       const b = box.current;
       aL.setValue(b.l);
       aT.setValue(b.t);
-      aW.setValue(b.w);
-      aH.setValue(b.h);
+      aR.setValue(b.r);
+      aB.setValue(b.b);
     };
     const notify = () => {
       const b = box.current;
-      onCommit({ x: b.l / W, y: b.t / H, w: b.w / W, h: b.h / H });
+      onCommit({ x: b.l / W, y: b.t / H, w: (W - b.l - b.r) / W, h: (H - b.t - b.b) / H });
     };
 
     // ── Box pan (move entire selection) ─────────────────────────────────────
-    const ds = useRef({ l: 0, t: 0 });
+    const ds = useRef({ l: 0, t: 0, r: 0, b: 0 });
     const boxPan = useRef(
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
@@ -58,14 +58,22 @@ const CropOverlay = React.memo(
         onMoveShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponderCapture: () => true,
         onPanResponderGrant: () => {
-          ds.current = { l: box.current.l, t: box.current.t };
+          ds.current = { ...box.current };
         },
         onPanResponderMove: (_, g) => {
-          const { w, h } = box.current;
-          box.current.l = Math.max(0, Math.min(W - w, ds.current.l + g.dx));
-          box.current.t = Math.max(0, Math.min(H - h, ds.current.t + g.dy));
-          aL.setValue(box.current.l);
-          aT.setValue(box.current.t);
+          const { l, t, r, b } = ds.current;
+          const minDx = -l; // max left
+          const maxDx = r;  // max right
+          const dx = Math.max(minDx, Math.min(maxDx, g.dx));
+          const minDy = -t; // max up
+          const maxDy = b;  // max down
+          const dy = Math.max(minDy, Math.min(maxDy, g.dy));
+          
+          box.current.l = l + dx;
+          box.current.t = t + dy;
+          box.current.r = r - dx;
+          box.current.b = b - dy;
+          applyBox();
         },
         onPanResponderRelease: notify,
         onPanResponderTerminate: notify,
@@ -74,7 +82,7 @@ const CropOverlay = React.memo(
 
     // ── Corner resize handles ────────────────────────────────────────────────
     type Corner = 'tl' | 'tr' | 'bl' | 'br';
-    const rs = useRef({ l: 0, t: 0, w: 0, h: 0 });
+    const rs = useRef({ l: 0, t: 0, r: 0, b: 0 });
     const mkCP = (c: Corner) =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
@@ -86,28 +94,24 @@ const CropOverlay = React.memo(
         },
         onPanResponderMove: (_, g) => {
           const s = rs.current;
-          let l = s.l, t = s.t, w = s.w, h = s.h;
+          let { l, t, r, b } = s;
           if (c === 'tl') {
-            l = Math.max(0, Math.min(s.l + s.w - MIN_PX, s.l + g.dx));
-            t = Math.max(0, Math.min(s.t + s.h - MIN_PX, s.t + g.dy));
-            w = s.l + s.w - l;
-            h = s.t + s.h - t;
+            l = Math.max(0, Math.min(W - r - MIN_PX, s.l + g.dx));
+            t = Math.max(0, Math.min(H - b - MIN_PX, s.t + g.dy));
           }
           if (c === 'tr') {
-            t = Math.max(0, Math.min(s.t + s.h - MIN_PX, s.t + g.dy));
-            w = Math.max(MIN_PX, Math.min(W - s.l, s.w + g.dx));
-            h = s.t + s.h - t;
+            t = Math.max(0, Math.min(H - b - MIN_PX, s.t + g.dy));
+            r = Math.max(0, Math.min(W - l - MIN_PX, s.r - g.dx));
           }
           if (c === 'bl') {
-            l = Math.max(0, Math.min(s.l + s.w - MIN_PX, s.l + g.dx));
-            w = s.l + s.w - l;
-            h = Math.max(MIN_PX, Math.min(H - s.t, s.h + g.dy));
+            l = Math.max(0, Math.min(W - r - MIN_PX, s.l + g.dx));
+            b = Math.max(0, Math.min(H - t - MIN_PX, s.b - g.dy));
           }
           if (c === 'br') {
-            w = Math.max(MIN_PX, Math.min(W - s.l, s.w + g.dx));
-            h = Math.max(MIN_PX, Math.min(H - s.t, s.h + g.dy));
+            r = Math.max(0, Math.min(W - l - MIN_PX, s.r - g.dx));
+            b = Math.max(0, Math.min(H - t - MIN_PX, s.b - g.dy));
           }
-          box.current = { l, t, w, h };
+          box.current = { l, t, r, b };
           applyBox();
         },
         onPanResponderRelease: notify,
@@ -138,13 +142,13 @@ const CropOverlay = React.memo(
       >
         {/* Vignette overlays */}
         <Animated.View style={[s.vig, { top: 0, left: 0, right: 0, height: aT }]} />
-        <Animated.View style={[s.vig, { top: Animated.add(aT, aH), left: 0, right: 0, bottom: 0 }]} />
-        <Animated.View style={[s.vig, { top: aT, left: 0, width: aL, height: aH }]} />
-        <Animated.View style={[s.vig, { top: aT, left: Animated.add(aL, aW), right: 0, height: aH }]} />
+        <Animated.View style={[s.vig, { bottom: 0, left: 0, right: 0, height: aB }]} />
+        <Animated.View style={[s.vig, { top: aT, bottom: aB, left: 0, width: aL }]} />
+        <Animated.View style={[s.vig, { top: aT, bottom: aB, right: 0, width: aR }]} />
 
         {/* Selection box with grid */}
         <Animated.View
-          style={[s.box, { left: aL, top: aT, width: aW, height: aH, borderColor: accentColor }]}
+          style={[s.box, { left: aL, top: aT, right: aR, bottom: aB, borderColor: accentColor }]}
           {...boxPan.panHandlers}
         >
           <View style={[s.grid, { top: '33%', left: 0, right: 0, height: 1 }]} />
@@ -164,10 +168,10 @@ const CropOverlay = React.memo(
 
         {/* Corner handles (larger hit area) */}
         {[
-          { pos: { left: Animated.subtract(aL, HS / 2), top: Animated.subtract(aT, HS / 2) }, p: tlP },
-          { pos: { left: Animated.subtract(Animated.add(aL, aW), HS / 2), top: Animated.subtract(aT, HS / 2) }, p: trP },
-          { pos: { left: Animated.subtract(aL, HS / 2), top: Animated.subtract(Animated.add(aT, aH), HS / 2) }, p: blP },
-          { pos: { left: Animated.subtract(Animated.add(aL, aW), HS / 2), top: Animated.subtract(Animated.add(aT, aH), HS / 2) }, p: brP },
+          { pos: { left: aL, top: aT, marginLeft: -HS / 2, marginTop: -HS / 2 }, p: tlP },
+          { pos: { right: aR, top: aT, marginRight: -HS / 2, marginTop: -HS / 2 }, p: trP },
+          { pos: { left: aL, bottom: aB, marginLeft: -HS / 2, marginBottom: -HS / 2 }, p: blP },
+          { pos: { right: aR, bottom: aB, marginRight: -HS / 2, marginBottom: -HS / 2 }, p: brP },
         ].map((h, i) => (
           <Animated.View
             key={i}

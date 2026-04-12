@@ -18,8 +18,8 @@ public extension ThumbnailResult {
   /**
    * Create a new instance of `ThumbnailResult`.
    */
-  init(uri: String, size: Double, width: Double, height: Double) {
-    self.init(std.string(uri), size, width, height)
+  init(uri: String, size: Double, width: Double, height: Double, duration: Double) {
+    self.init(std.string(uri), size, width, height, duration)
   }
 
   @inline(__always)
@@ -40,5 +40,10 @@ public extension ThumbnailResult {
   @inline(__always)
   var height: Double {
     return self.__height
+  }
+
+  @inline(__always)
+  var duration: Double {
+    return self.__duration
   }
 }

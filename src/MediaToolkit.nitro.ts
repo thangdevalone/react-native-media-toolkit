@@ -98,12 +98,14 @@ export interface ThumbnailOptions {
 export interface ThumbnailResult {
   /** file:// URI of the output JPEG */
   uri: string;
-  /** File size in bytes */
+  /** Source video file size in bytes */
   size: number;
-  /** Width in pixels */
+  /** Source video width in pixels (rotation-corrected) */
   width: number;
-  /** Height in pixels */
+  /** Source video height in pixels (rotation-corrected) */
   height: number;
+  /** Source video duration in milliseconds */
+  duration: number;
 }
 
 export interface TrimAndCropOptions {

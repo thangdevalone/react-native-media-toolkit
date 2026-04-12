@@ -39,11 +39,14 @@ namespace margelo::nitro::mediatoolkit {
       double width = this->getFieldValue(fieldWidth);
       static const auto fieldHeight = clazz->getField<double>("height");
       double height = this->getFieldValue(fieldHeight);
+      static const auto fieldDuration = clazz->getField<double>("duration");
+      double duration = this->getFieldValue(fieldDuration);
       return ThumbnailResult(
         uri->toStdString(),
         size,
         width,
-        height
+        height,
+        duration
       );
     }
 
@@ -53,7 +56,7 @@ namespace margelo::nitro::mediatoolkit {
      */
     [[maybe_unused]]
     static jni::local_ref<JThumbnailResult::javaobject> fromCpp(const ThumbnailResult& value) {
-      using JSignature = JThumbnailResult(jni::alias_ref<jni::JString>, double, double, double);
+      using JSignature = JThumbnailResult(jni::alias_ref<jni::JString>, double, double, double, double);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -61,7 +64,8 @@ namespace margelo::nitro::mediatoolkit {
         jni::make_jstring(value.uri),
         value.size,
         value.width,
-        value.height
+        value.height,
+        value.duration
       );
     }
   };

@@ -150,9 +150,13 @@ const result = await MediaToolkit.compressVideo(videoUri, {
 const thumb = await MediaToolkit.getThumbnail(videoUri, {
   timeMs: 3000,    // frame time in milliseconds, default 0
   quality: 85,     // 0–100, default 80
-  maxWidth: 720,   // max output width
+  maxWidth: 720,   // max thumbnail width (does not affect returned metadata)
 });
-console.log(thumb.uri, thumb.width, thumb.height);
+// thumb.uri      → thumbnail JPEG file
+// thumb.width    → source video width (rotation-corrected)
+// thumb.height   → source video height
+// thumb.size     → source video file size in bytes
+// thumb.duration → source video duration in ms
 ```
 
 ---
@@ -239,12 +243,15 @@ interface MediaResult {
 }
 
 interface ThumbnailResult {
-  uri: string;    // file:// URI of the output JPEG
-  size: number;   // file size in bytes
-  width: number;  // output width in pixels
-  height: number; // output height in pixels
+  uri: string;      // file:// URI of the output JPEG thumbnail
+  size: number;     // source video file size in bytes
+  width: number;    // source video width in pixels (rotation-corrected)
+  height: number;   // source video height in pixels (rotation-corrected)
+  duration: number; // source video duration in milliseconds
 }
 ```
+
+> **Note:** `width`, `height`, `size`, and `duration` in `ThumbnailResult` refer to the **source video** metadata — not the thumbnail image. This makes `getThumbnail` a lightweight way to probe video metadata without processing the file.
 
 ---
 

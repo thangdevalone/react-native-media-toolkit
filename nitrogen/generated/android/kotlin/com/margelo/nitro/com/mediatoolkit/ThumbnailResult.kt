@@ -28,7 +28,10 @@ data class ThumbnailResult(
   val width: Double,
   @DoNotStrip
   @Keep
-  val height: Double
+  val height: Double,
+  @DoNotStrip
+  @Keep
+  val duration: Double
 ) {
   /* primary constructor */
 
@@ -40,8 +43,8 @@ data class ThumbnailResult(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(uri: String, size: Double, width: Double, height: Double): ThumbnailResult {
-      return ThumbnailResult(uri, size, width, height)
+    private fun fromCpp(uri: String, size: Double, width: Double, height: Double, duration: Double): ThumbnailResult {
+      return ThumbnailResult(uri, size, width, height, duration)
     }
   }
 }

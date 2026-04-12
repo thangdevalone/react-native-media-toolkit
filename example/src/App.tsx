@@ -26,6 +26,7 @@ import CropImageScreen from './screens/CropImageScreen';
 import CropVideoScreen from './screens/CropVideoScreen';
 import TrimAndCropVideoScreen from './screens/TrimAndCropVideoScreen';
 import TrimVideoScreen from './screens/TrimVideoScreen';
+import RecordVideoScreen from './screens/RecordVideoScreen';
 import { T, fmtMs, fmtSize } from './theme';
 import { DEF_CROP, type CropBox, type Screen } from './types';
 
@@ -130,6 +131,33 @@ export default function App() {
     }
   };
 
+  const handleRecordComplete = (uri: string, durationMs: number, width: number, height: number) => {
+    setScreen('home');
+    setSrcUri(uri); setSrcType('video'); setResult(null);
+    setVcrop(DEF_CROP); setVidNat({ w: 0, h: 0 });
+    setVidDur(durationMs > 0 ? durationMs : 30000);
+
+    // Set initial metadata immediately — will be refined by getThumbnail
+    setSrcMeta({ fileName: 'recorded_video.mp4', fileSize: 0, width, height, duration: durationMs });
+    addLog(`🎥 recorded · ${fmtMs(durationMs)}`);
+
+    // getThumbnail → returns SOURCE VIDEO metadata: dimensions + file size + duration
+    MediaToolkit.getThumbnail(uri, { timeMs: 0, quality: 30, maxWidth: 120 })
+      .then((thumb) => {
+        const realDur = thumb.duration > 0 ? thumb.duration : durationMs;
+        setSrcMeta((prev: any) => ({
+          ...prev,
+          fileSize: thumb.size > 0 ? thumb.size : prev.fileSize,
+          width: thumb.width > 0 ? thumb.width : prev.width,
+          height: thumb.height > 0 ? thumb.height : prev.height,
+          duration: realDur,
+        }));
+        setVidDur(realDur);
+        if (thumb.size > 0) addLog(`📦 ${fmtSize(thumb.size)} · ${fmtMs(realDur)}`);
+      })
+      .catch(() => {});
+  };
+
   // ── Operations ───────────────────────────────────────────────────────────
   const applyTrim = (startMs: number, endMs: number) => {
     setScreen('home');
@@ -195,6 +223,15 @@ export default function App() {
   };
 
   // ── Screen routing ────────────────────────────────────────────────────────
+  if (screen === 'recordVideo') {
+    return (
+      <RecordVideoScreen
+        onBack={() => setScreen('home')}
+        onRecord={handleRecordComplete}
+      />
+    );
+  }
+
   if (screen === 'trimVideo' && srcUri && srcType === 'video') {
     return (
       <TrimVideoScreen
@@ -292,11 +329,15 @@ export default function App() {
           <View style={h.row}>
             <Pressable style={({ pressed }) => [h.pickBtn, { opacity: pressed ? 0.7 : 1 }]} onPress={pickImage}>
               <Ionicons name="image-outline" size={20} color={T.teal} />
-              <Text style={[h.pickTxt, { color: T.teal }]}>Pick Image</Text>
+              <Text style={[h.pickTxt, { color: T.teal }]}>Image</Text>
             </Pressable>
             <Pressable style={({ pressed }) => [h.pickBtn, h.pickBtnV, { opacity: pressed ? 0.7 : 1 }]} onPress={pickVideo}>
               <Ionicons name="videocam-outline" size={22} color={T.orange} />
-              <Text style={[h.pickTxt, { color: T.orange }]}>Pick Video</Text>
+              <Text style={[h.pickTxt, { color: T.orange }]}>Video</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [h.pickBtn, { opacity: pressed ? 0.7 : 1, borderColor: '#FF3B30', backgroundColor: '#FF3B3011' }]} onPress={() => setScreen('recordVideo')}>
+              <Ionicons name="camera-outline" size={22} color="#FF3B30" />
+              <Text style={[h.pickTxt, { color: '#FF3B30' }]}>Record</Text>
             </Pressable>
           </View>
 

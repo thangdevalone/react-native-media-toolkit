@@ -395,7 +395,13 @@ internal object VideoProcessor {
         android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
       ) ?: throw MediaToolkitException("Could not extract frame at ${timeMs}ms")
 
-      // Downscale if requested
+      // Source video dimensions (rotation-corrected) — NOT the scaled thumbnail dims
+      var srcW = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: bitmap.width
+      var srcH = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: bitmap.height
+      val rotation = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+      if (rotation == 90 || rotation == 270) { val tmp = srcW; srcW = srcH; srcH = tmp }
+
+      // Downscale thumbnail image if requested
       val scaledBitmap = if (maxWidth > 0 && bitmap.width > maxWidth) {
         val scale = maxWidth.toFloat() / bitmap.width
         val newH = (bitmap.height * scale).toInt()
@@ -411,12 +417,19 @@ internal object VideoProcessor {
       if (scaledBitmap !== bitmap) scaledBitmap.recycle()
       bitmap.recycle()
 
-      val file = java.io.File(out)
+      // Source video file size (NOT thumbnail file size)
+      val srcFilePath = if (uri.startsWith("file://")) uri.removePrefix("file://") else uri
+      val srcFileSize = java.io.File(srcFilePath).length()
+
+      // Source video duration in milliseconds
+      val srcDurationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+
       return mapOf(
-        "uri"    to "file://$out",
-        "size"   to file.length(),
-        "width"  to scaledBitmap.width,
-        "height" to scaledBitmap.height
+        "uri"      to "file://$out",
+        "size"     to srcFileSize,      // source video file size
+        "width"    to srcW,             // source video width
+        "height"   to srcH,             // source video height
+        "duration" to srcDurationMs     // source video duration in ms
       )
     } finally {
       retriever.release()
@@ -454,9 +467,8 @@ internal object VideoProcessor {
           height = tmp
       }
       
-      if (duration == 0L) {
-        duration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-      }
+      // Always read ACTUAL duration from output file (not the passed parameter)
+      duration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: durationMs
     } finally {
       retriever.release()
     }

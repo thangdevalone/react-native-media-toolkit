@@ -43,10 +43,11 @@ namespace margelo::nitro::mediatoolkit {
     double size     SWIFT_PRIVATE;
     double width     SWIFT_PRIVATE;
     double height     SWIFT_PRIVATE;
+    double duration     SWIFT_PRIVATE;
 
   public:
     ThumbnailResult() = default;
-    explicit ThumbnailResult(std::string uri, double size, double width, double height): uri(uri), size(size), width(width), height(height) {}
+    explicit ThumbnailResult(std::string uri, double size, double width, double height, double duration): uri(uri), size(size), width(width), height(height), duration(duration) {}
 
   public:
     friend bool operator==(const ThumbnailResult& lhs, const ThumbnailResult& rhs) = default;
@@ -65,7 +66,8 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "uri"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "size"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "height")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "height"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "duration")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::mediatoolkit::ThumbnailResult& arg) {
@@ -74,6 +76,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "size"), JSIConverter<double>::toJSI(runtime, arg.size));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "width"), JSIConverter<double>::toJSI(runtime, arg.width));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "height"), JSIConverter<double>::toJSI(runtime, arg.height));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "duration"), JSIConverter<double>::toJSI(runtime, arg.duration));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -88,6 +91,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "size")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "height")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "duration")))) return false;
       return true;
     }
   };

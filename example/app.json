@@ -34,7 +34,18 @@
         {
           "android": {
             "ndkVersion": "27.1.12297006"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
           }
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your camera to record video",
+          "enableMicrophonePermission": true,
+          "microphonePermissionText": "$(PRODUCT_NAME) needs access to your microphone to record video with audio"
         }
       ],
       "./plugins/withMediaToolkitAndroid"

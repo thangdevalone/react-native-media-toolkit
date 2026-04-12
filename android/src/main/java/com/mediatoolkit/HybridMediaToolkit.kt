@@ -132,10 +132,11 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
       val maxWidth = options?.maxWidth?.toInt() ?: 0
       val raw = VideoProcessor.getThumbnail(ctx, uri, timeMs, quality, maxWidth, options?.outputPath)
       ThumbnailResult(
-        uri    = raw["uri"]    as? String ?: "",
-        size   = (raw["size"]   as? Number)?.toDouble() ?: 0.0,
-        width  = (raw["width"]  as? Number)?.toDouble() ?: 0.0,
-        height = (raw["height"] as? Number)?.toDouble() ?: 0.0
+        uri      = raw["uri"]      as? String ?: "",
+        size     = (raw["size"]     as? Number)?.toDouble() ?: 0.0,
+        width    = (raw["width"]    as? Number)?.toDouble() ?: 0.0,
+        height   = (raw["height"]   as? Number)?.toDouble() ?: 0.0,
+        duration = (raw["duration"] as? Number)?.toDouble() ?: 0.0
       )
     }
   }

@@ -164,6 +164,10 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       let cgImage = try gen.copyCGImage(at: cmTime, actualTime: nil)
       var uiImage = UIImage(cgImage: cgImage)
 
+      // Source video dimensions (rotation-corrected) — from the full-res image BEFORE scaling
+      let srcWidth  = Double(uiImage.size.width)
+      let srcHeight = Double(uiImage.size.height)
+
       if maxW > 0 {
         let scale = CGFloat(maxW) / uiImage.size.width
         if scale < 1.0 {
@@ -184,11 +188,26 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       let outURL  = URL(fileURLWithPath: outPath)
       try data.write(to: outURL)
 
+      // Source video file size (NOT the thumbnail JPEG size)
+      let srcPath = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
+      let srcFileSize: Double
+      if let attrs = try? FileManager.default.attributesOfItem(atPath: srcPath),
+         let sz = attrs[.size] as? Int {
+        srcFileSize = Double(sz)
+      } else {
+        srcFileSize = Double(data.count) // fallback to thumbnail size
+      }
+
+      // Source video duration in milliseconds (actual file duration)
+      let srcDurationMs = asset.duration.seconds * 1000.0
+
+      // Return SOURCE VIDEO metadata (dimensions + file size + duration)
       return ThumbnailResult(
-        uri:    "file://" + outPath,
-        size:   Double(data.count),
-        width:  Double(uiImage.size.width),
-        height: Double(uiImage.size.height)
+        uri:      "file://" + outPath,
+        size:     srcFileSize,
+        width:    srcWidth,
+        height:   srcHeight,
+        duration: srcDurationMs
       )
     }
   }

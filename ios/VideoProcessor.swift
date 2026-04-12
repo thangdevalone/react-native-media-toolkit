@@ -65,7 +65,7 @@ class VideoProcessor: NSObject {
   // ─── TRIM + CROP (single pass) ───────────────────────────────────────────
 
   /// Trim to [startMs, endMs] AND crop to [x,y,w,h] in ONE encode pass.
-  /// Faster and preserves quality vs running trimVideo + cropVideo sequentially.
+  /// Uses CIFilter pipeline which automatically handles video rotation.
   @objc
   static func trimAndCropVideo(
     uri: String,
@@ -90,43 +90,76 @@ class VideoProcessor: NSObject {
     let outURL = URL(fileURLWithPath: out)
     removeIfExists(outURL)
 
-    // Build crop composition
-    let naturalSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
-    let fw = abs(naturalSize.width), fh = abs(naturalSize.height)
+    // Display dimensions (rotation-corrected)
+    let tfSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
+    let fw = abs(tfSize.width), fh = abs(tfSize.height)
     let cropX = CGFloat(x) * fw, cropY = CGFloat(y) * fh
     let cropW = CGFloat(width) * fw, cropH = CGFloat(height) * fh
 
-    let transform = CGAffineTransform(translationX: -cropX, y: -cropY)
-      .concatenating(videoTrack.preferredTransform)
+    NSLog("[MediaToolkit] trimAndCrop: naturalSize=%@, transform=%@, display=%.0fx%.0f, crop=(%.0f,%.0f,%.0f,%.0f)",
+          NSCoder.string(for: videoTrack.naturalSize), NSCoder.string(for: videoTrack.preferredTransform),
+          fw, fh, cropX, cropY, cropW, cropH)
 
-    let composition = AVMutableVideoComposition()
-    composition.renderSize = CGSize(width: cropW, height: cropH)
-    composition.frameDuration = CMTime(
-      value: 1,
-      timescale: CMTimeScale(videoTrack.nominalFrameRate > 0 ? videoTrack.nominalFrameRate : 30)
-    )
+    // ── Build AVMutableComposition ──────────────────────────────────────
+    let mixComposition = AVMutableComposition()
 
-    let instruction = AVMutableVideoCompositionInstruction()
-    instruction.timeRange = CMTimeRange(start: .zero, duration: asset.duration)
-    let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
-    layerInstruction.setTransform(transform, at: .zero)
-    instruction.layerInstructions = [layerInstruction]
-    composition.instructions = [instruction]
+    guard let compVideoTrack = mixComposition.addMutableTrack(
+      withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid
+    ) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create composition video track")); return
+    }
+    do {
+      try compVideoTrack.insertTimeRange(
+        CMTimeRange(start: .zero, duration: asset.duration),
+        of: videoTrack, at: .zero
+      )
+    } catch {
+      completion(nil, MediaToolkitError.processingFailed("Failed to insert video track: \(error.localizedDescription)")); return
+    }
+    // Preserve rotation so CIFilter handler receives display-oriented frames
+    compVideoTrack.preferredTransform = videoTrack.preferredTransform
 
-    // Use Medium preset — crop always requires re-encode; Medium is ~2x faster than Highest
+    // Copy audio track
+    if let audioTrack = asset.tracks(withMediaType: .audio).first,
+       let compAudioTrack = mixComposition.addMutableTrack(
+         withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid
+       ) {
+      try? compAudioTrack.insertTimeRange(
+        CMTimeRange(start: .zero, duration: asset.duration),
+        of: audioTrack, at: .zero
+      )
+    }
+
+    // ── Video composition using CIFilter (rotation handled automatically) ──
+    // sourceImage arrives already in display orientation (preferredTransform applied)
+    // CIImage uses bottom-left origin; our crop coords use top-left origin
+    let videoComp = AVMutableVideoComposition(asset: mixComposition, applyingCIFiltersWithHandler: { request in
+      let ciRect = CGRect(
+        x: cropX,
+        y: fh - cropY - cropH,   // flip Y: top-left → bottom-left origin
+        width: cropW,
+        height: cropH
+      )
+      let cropped = request.sourceImage
+        .cropped(to: ciRect)
+        .transformed(by: CGAffineTransform(translationX: -ciRect.origin.x, y: -ciRect.origin.y))
+      request.finish(with: cropped, context: nil)
+    })
+    videoComp.renderSize = CGSize(width: cropW, height: cropH)
+
+    // ── Export ─────────────────────────────────────────────────────────────
     guard let session = AVAssetExportSession(
-      asset: asset,
-      presetName: AVAssetExportPresetMediumQuality
+      asset: mixComposition,
+      presetName: AVAssetExportPresetHighestQuality
     ) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
     }
 
-    // Apply BOTH time range (trim) AND video composition (crop) in one session
     let start = CMTime(seconds: startMs / 1000.0, preferredTimescale: 600)
     let end   = CMTime(seconds: endMs   / 1000.0, preferredTimescale: 600)
     session.outputFileType    = .mp4
     session.outputURL         = outURL
-    session.videoComposition  = composition
+    session.videoComposition  = videoComp
     session.timeRange         = CMTimeRange(start: start, end: end)
 
     pollProgress(session: session, onProgress: onProgress)
@@ -135,6 +168,7 @@ class VideoProcessor: NSObject {
       case .completed:
         completion(videoResult(path: out, asset: asset, trimmed: endMs - startMs), nil)
       default:
+        NSLog("[MediaToolkit] trimAndCrop export failed: %@", session.error?.localizedDescription ?? "unknown")
         completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
       }
     }
@@ -162,43 +196,78 @@ class VideoProcessor: NSObject {
     let outURL = URL(fileURLWithPath: out)
     removeIfExists(outURL)
 
-    // Build composition
-    guard
-      let videoTrack = asset.tracks(withMediaType: .video).first
-    else {
+    guard let videoTrack = asset.tracks(withMediaType: .video).first else {
       completion(nil, MediaToolkitError.processingFailed("No video track"))
       return
     }
 
-    let naturalSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
-    let fw = abs(naturalSize.width)
-    let fh = abs(naturalSize.height)
+    // Display dimensions (rotation-corrected)
+    let tfSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
+    let fw = abs(tfSize.width)
+    let fh = abs(tfSize.height)
 
     let cropX  = CGFloat(x) * fw
     let cropY  = CGFloat(y) * fh
     let cropW  = CGFloat(width) * fw
     let cropH  = CGFloat(height) * fh
 
-    // Translate so crop region starts at origin
-    let transform = CGAffineTransform(translationX: -cropX, y: -cropY)
-      .concatenating(videoTrack.preferredTransform)
+    NSLog("[MediaToolkit] crop: naturalSize=%@, preferredTransform=%@, display=%.0fx%.0f, crop=(%.0f,%.0f,%.0f,%.0f)",
+          NSCoder.string(for: videoTrack.naturalSize), NSCoder.string(for: videoTrack.preferredTransform),
+          fw, fh, cropX, cropY, cropW, cropH)
 
-    let composition = AVMutableVideoComposition()
-    composition.renderSize = CGSize(width: cropW, height: cropH)
-    composition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(videoTrack.nominalFrameRate > 0 ? videoTrack.nominalFrameRate : 30))
+    // ── Build AVMutableComposition ──────────────────────────────────────
+    let mixComposition = AVMutableComposition()
 
-    let instruction = AVMutableVideoCompositionInstruction()
-    instruction.timeRange = CMTimeRange(start: .zero, duration: asset.duration)
+    guard let compVideoTrack = mixComposition.addMutableTrack(
+      withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid
+    ) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create composition video track"))
+      return
+    }
+    do {
+      try compVideoTrack.insertTimeRange(
+        CMTimeRange(start: .zero, duration: asset.duration),
+        of: videoTrack, at: .zero
+      )
+    } catch {
+      completion(nil, MediaToolkitError.processingFailed("Failed to insert video track: \(error.localizedDescription)"))
+      return
+    }
+    // Preserve rotation so CIFilter handler receives display-oriented frames
+    compVideoTrack.preferredTransform = videoTrack.preferredTransform
 
-    let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
-    layerInstruction.setTransform(transform, at: .zero)
-    instruction.layerInstructions = [layerInstruction]
-    composition.instructions = [instruction]
+    // Copy audio track
+    if let audioTrack = asset.tracks(withMediaType: .audio).first,
+       let compAudioTrack = mixComposition.addMutableTrack(
+         withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid
+       ) {
+      try? compAudioTrack.insertTimeRange(
+        CMTimeRange(start: .zero, duration: asset.duration),
+        of: audioTrack, at: .zero
+      )
+    }
 
-    // MediumQuality is ~2x faster than HighestQuality for crop re-encodes
+    // ── Video composition using CIFilter (rotation handled automatically) ──
+    // sourceImage arrives already in display orientation (preferredTransform applied)
+    // CIImage uses bottom-left origin; our crop coords use top-left origin
+    let videoComp = AVMutableVideoComposition(asset: mixComposition, applyingCIFiltersWithHandler: { request in
+      let ciRect = CGRect(
+        x: cropX,
+        y: fh - cropY - cropH,   // flip Y: top-left → bottom-left origin
+        width: cropW,
+        height: cropH
+      )
+      let cropped = request.sourceImage
+        .cropped(to: ciRect)
+        .transformed(by: CGAffineTransform(translationX: -ciRect.origin.x, y: -ciRect.origin.y))
+      request.finish(with: cropped, context: nil)
+    })
+    videoComp.renderSize = CGSize(width: cropW, height: cropH)
+
+    // ── Export ─────────────────────────────────────────────────────────────
     guard let session = AVAssetExportSession(
-      asset: asset,
-      presetName: AVAssetExportPresetMediumQuality
+      asset: mixComposition,
+      presetName: AVAssetExportPresetHighestQuality
     ) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session"))
       return
@@ -206,7 +275,7 @@ class VideoProcessor: NSObject {
 
     session.outputFileType       = .mp4
     session.outputURL            = outURL
-    session.videoComposition     = composition
+    session.videoComposition     = videoComp
 
     pollProgress(session: session, onProgress: onProgress)
 
@@ -216,6 +285,7 @@ class VideoProcessor: NSObject {
         let durationMs = asset.duration.seconds * 1000
         completion(videoResult(path: out, asset: asset, trimmed: durationMs), nil)
       default:
+        NSLog("[MediaToolkit] crop export failed: %@", session.error?.localizedDescription ?? "unknown")
         completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
       }
     }
@@ -417,10 +487,18 @@ class VideoProcessor: NSObject {
   }
 
   private static func videoResult(path: String, asset: AVAsset, trimmed: Double) -> [String: Any] {
-    let fileSize = (try? Data(contentsOf: URL(fileURLWithPath: path)).count) ?? 0
-    var w = 0; var h = 0
-    
+    // Read file size WITHOUT loading entire file into memory
+    let fileSize: Int
+    if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+       let size = attrs[.size] as? Int {
+      fileSize = size
+    } else {
+      fileSize = 0
+    }
+
     let outAsset = AVURLAsset(url: URL(fileURLWithPath: path))
+    var w = 0; var h = 0
+
     if let track = outAsset.tracks(withMediaType: .video).first {
       let ns = track.naturalSize.applying(track.preferredTransform)
       w = Int(abs(ns.width))
@@ -430,12 +508,16 @@ class VideoProcessor: NSObject {
       w = Int(abs(ns.width))
       h = Int(abs(ns.height))
     }
+
+    // Read ACTUAL duration from the output file (not the trim range parameter)
+    let actualDurationMs = Int(outAsset.duration.seconds * 1000)
+
     return [
       "uri":      "file://" + path,
       "size":     fileSize,
       "width":    w,
       "height":   h,
-      "duration": Int(trimmed),
+      "duration": actualDurationMs,
       "mime":     "video/mp4",
     ]
   }

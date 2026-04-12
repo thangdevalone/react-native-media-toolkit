@@ -150,9 +150,13 @@ const result = await MediaToolkit.compressVideo(videoUri, {
 const thumb = await MediaToolkit.getThumbnail(videoUri, {
   timeMs: 3000,    // thời điểm lấy frame (milliseconds), mặc định 0
   quality: 85,     // 0–100, mặc định 80
-  maxWidth: 720,   // chiều rộng output tối đa
+  maxWidth: 720,   // chiều rộng thumbnail tối đa (không ảnh hưởng metadata trả về)
 });
-console.log(thumb.uri, thumb.width, thumb.height);
+// thumb.uri      → file JPEG thumbnail
+// thumb.width    → chiều rộng video gốc (đã xoay đúng)
+// thumb.height   → chiều cao video gốc
+// thumb.size     → dung lượng video gốc (bytes)
+// thumb.duration → thời lượng video gốc (ms)
 ```
 
 ---
@@ -239,12 +243,15 @@ interface MediaResult {
 }
 
 interface ThumbnailResult {
-  uri: string;    // file:// URI của file JPEG output
-  size: number;   // kích thước file (bytes)
-  width: number;  // chiều rộng output (pixels)
-  height: number; // chiều cao output (pixels)
+  uri: string;      // file:// URI của file JPEG thumbnail
+  size: number;     // dung lượng video gốc (bytes)
+  width: number;    // chiều rộng video gốc (pixels, đã xoay đúng)
+  height: number;   // chiều cao video gốc (pixels, đã xoay đúng)
+  duration: number; // thời lượng video gốc (milliseconds)
 }
 ```
+
+> **Lưu ý:** `width`, `height`, `size` và `duration` trong `ThumbnailResult` là **metadata của video gốc** — không phải của thumbnail. Điều này giúp `getThumbnail` trở thành cách nhẹ nhất để đọc thông tin video mà không cần xử lý file.
 
 ---
 

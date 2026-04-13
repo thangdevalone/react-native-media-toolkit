@@ -326,9 +326,10 @@ react-native-media-toolkit/
 │   └── MediaToolkitErrors.swift    Error definitions
 ├── android/
 │   └── src/main/java/com/mediatoolkit/
-│       ├── HybridMediaToolkit.kt   Nitro entry point (Kotlin)
-│       ├── ImageProcessor.kt       Bitmap crop and compress
-│       └── VideoProcessor.kt       Media3 trim, crop, compress, thumbnail
+│       ├── HybridMediaToolkit.kt     Nitro entry point (Kotlin)
+│       ├── ImageProcessor.kt         Bitmap crop and compress
+│       ├── VideoProcessor.kt         Media3 trim, crop, compress, thumbnail
+│       └── MediaToolkitException.kt  Error definitions
 ├── nitrogen/                    Generated C++ and Swift/Kotlin bridge files
 └── example/                     Demo app (Expo Dev Client)
 ```

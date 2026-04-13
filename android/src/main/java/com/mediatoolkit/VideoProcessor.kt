@@ -205,10 +205,10 @@ internal object VideoProcessor {
         val minRequiredMB = (durationSecs * minRequiredBitrate) / (8.0 * 1024 * 1024)
         if (targetSizeInMB < minRequiredMB) {
             val reqMBStr = String.format("%.1f", minRequiredMB)
-            throw MediaToolkitException("Target size (${targetSizeInMB}MB) is impossible for a ${durationSecs.toInt()}s video. Minimum required limit is ~${reqMBStr}MB to prevent corruption.")
+            throw MediaToolkitException.InvalidInput("Target size (${targetSizeInMB}MB) is impossible for a ${durationSecs.toInt()}s video. Minimum required limit is ~${reqMBStr}MB to prevent corruption.")
         }
         if (origSizeMB > 0 && targetSizeInMB < (origSizeMB * 0.05)) {
-            throw MediaToolkitException("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it.")
+            throw MediaToolkitException.InvalidInput("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it.")
         }
         // ----------------------------------------------
         
@@ -361,7 +361,7 @@ internal object VideoProcessor {
 
     latch.await()
 
-    exportError?.let { throw MediaToolkitException("Transform failed: ${it.message}") }
+    exportError?.let { throw MediaToolkitException.ProcessingFailed("Transform failed: ${it.message}") }
 
     return buildResult(outputPath, 0)
   }
@@ -381,19 +381,23 @@ internal object VideoProcessor {
     try {
       val uriParsed = if (uri.startsWith("file://") || uri.startsWith("content://"))
         android.net.Uri.parse(uri) else android.net.Uri.fromFile(java.io.File(uri))
-        
-      if (uri.startsWith("content://")) {
-         retriever.setDataSource(context, uriParsed)
-      } else {
-         val filePath = if (uri.startsWith("file://")) uri.removePrefix("file://") else uri
-         retriever.setDataSource(filePath)
+
+      try {
+        if (uri.startsWith("content://")) {
+           retriever.setDataSource(context, uriParsed)
+        } else {
+           val filePath = if (uri.startsWith("file://")) uri.removePrefix("file://") else uri
+           retriever.setDataSource(filePath)
+        }
+      } catch (e: Exception) {
+        throw MediaToolkitException.InvalidInput("Cannot load video: $uri")
       }
 
       // getFrameAtTime takes microseconds
       val bitmap = retriever.getFrameAtTime(
         timeMs * 1000L,
         android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-      ) ?: throw MediaToolkitException("Could not extract frame at ${timeMs}ms")
+      ) ?: throw MediaToolkitException.ProcessingFailed("Could not extract frame at ${timeMs}ms")
 
       // Source video dimensions (rotation-corrected) — NOT the scaled thumbnail dims
       var srcW = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: bitmap.width
@@ -411,9 +415,10 @@ internal object VideoProcessor {
 
       val q = quality.coerceIn(0, 100)
       val out = outputPath ?: (System.getProperty("java.io.tmpdir") + "/" + java.util.UUID.randomUUID() + ".jpg")
-      java.io.FileOutputStream(out).use { fos ->
+      val written = java.io.FileOutputStream(out).use { fos ->
         scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, q, fos)
       }
+      if (!written) throw MediaToolkitException.ProcessingFailed("Failed to encode JPEG thumbnail")
       if (scaledBitmap !== bitmap) scaledBitmap.recycle()
       bitmap.recycle()
 

@@ -28,7 +28,7 @@ internal object ImageProcessor {
   ): Map<String, Any> {
     val path = uriToPath(uri)
     var bmp = BitmapFactory.decodeFile(path)
-      ?: throw MediaToolkitException("Cannot decode image: $uri")
+      ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientation(bmp, path)
 
@@ -41,12 +41,14 @@ internal object ImageProcessor {
     val ph = (height * ih).toInt().coerceIn(1, ih - py)
 
     val cropped = Bitmap.createBitmap(bmp, px, py, pw, ph)
+      ?: run { bmp.recycle(); throw MediaToolkitException.ProcessingFailed("Bitmap crop failed") }
     bmp.recycle()
 
     val out = outputPath ?: tempPath("jpg")
-    FileOutputStream(out).use { fos ->
+    val written = FileOutputStream(out).use { fos ->
       cropped.compress(Bitmap.CompressFormat.JPEG, 90, fos)
     }
+    if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode cropped image")
 
     return buildResult(out, cropped, "image/jpeg", 0)
   }
@@ -88,7 +90,7 @@ internal object ImageProcessor {
     options.inSampleSize = sampleSize
 
     var bmp = BitmapFactory.decodeFile(path, options)
-      ?: throw MediaToolkitException("Cannot decode image: $uri")
+      ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientationDirect(bmp, orientation)
     bmp = resizeIfNeeded(bmp, maxWidth, maxHeight)
@@ -106,9 +108,10 @@ internal object ImageProcessor {
 
     val out = outputPath ?: tempPath(ext)
     val q = quality.coerceIn(0, 100)
-    FileOutputStream(out).use { fos ->
+    val written = FileOutputStream(out).use { fos ->
       bmp.compress(compressFormat, q, fos)
     }
+    if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode image")
 
     return buildResult(out, bmp, mime, 0)
   }

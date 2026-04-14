@@ -79,10 +79,11 @@ import { MediaToolkit } from 'react-native-media-toolkit';
 
 ```typescript
 const result = await MediaToolkit.cropImage(imageUri, {
-  x: 0.25,      // left offset relative to image width (0.0–1.0)
-  y: 0.25,      // top offset relative to image height (0.0–1.0)
-  width: 0.5,   // crop width relative to image width (0.0–1.0)
-  height: 0.5,  // crop height relative to image height (0.0–1.0)
+  x: 0.25,      // required — left offset relative to image width (0.0–1.0)
+  y: 0.25,      // required — top offset relative to image height (0.0–1.0)
+  width: 0.5,   // required — crop width relative to image width (0.0–1.0)
+  height: 0.5,  // required — crop height relative to image height (0.0–1.0)
+  outputPath: '/custom/path/out.jpg', // optional
 });
 console.log(result.uri, result.width, result.height);
 ```
@@ -91,9 +92,10 @@ console.log(result.uri, result.width, result.height);
 
 ```typescript
 const result = await MediaToolkit.compressImage(imageUri, {
-  quality: 70,       // 0–100, default 80
-  maxWidth: 1080,    // max output width, aspect ratio preserved
-  format: 'jpeg',    // 'jpeg' | 'png' | 'webp'
+  quality: 70,       // optional — 0–100, default 80
+  maxWidth: 1080,    // optional — max output width, aspect ratio preserved
+  maxHeight: 1920,   // optional — max output height, aspect ratio preserved
+  format: 'jpeg',    // optional — 'jpeg' | 'png' | 'webp', default 'jpeg'
 });
 ```
 
@@ -134,15 +136,29 @@ const result = await MediaToolkit.trimAndCropVideo(videoUri, {
 
 ### Compress video
 
+The compressor supports two modes. Use **one** of them:
+
+**Mode 1 — Smart compress to a target file size** (recommended):
 ```typescript
 const result = await MediaToolkit.compressVideo(videoUri, {
-  targetSizeInMB: 8,       // Smart compress: calculate optimal bitrate for ~8MB
-  minResolution: 720,      // Optional: floor resolution for smart compress
-  muteAudio: true,         // Optional: strip audio track
-  quality: 'medium',       // 'low' | 'medium' | 'high' (ignored if targetSizeInMB exists)
-  width: 1080,             // max output width, aspect ratio preserved
+  targetSizeInMB: 8,   // required for this mode — target output size in MB
+  minResolution: 480,  // optional — minimum short-edge resolution (default 720)
+  muteAudio: false,    // optional — strip audio track (default false)
+  width: 1280,         // optional — max output width, aspect ratio preserved
 });
 ```
+
+**Mode 2 — Quality preset or explicit bitrate**:
+```typescript
+const result = await MediaToolkit.compressVideo(videoUri, {
+  quality: 'medium',   // optional — 'low' | 'medium' | 'high' (default 'medium')
+  bitrate: 2_000_000,  // optional — explicit bitrate in bps (overrides quality)
+  muteAudio: false,    // optional — strip audio track (default false)
+  width: 1280,         // optional — max output width, aspect ratio preserved
+});
+```
+
+> **Note:** `targetSizeInMB`, `quality`, and `bitrate` are all optional — but the library needs at least one signal to determine bitrate. If you pass nothing, it defaults to `quality: 'medium'` (~4 Mbps). `targetSizeInMB` takes highest priority; `bitrate` overrides `quality`.
 
 ### Extract thumbnail
 
@@ -163,72 +179,94 @@ const thumb = await MediaToolkit.getThumbnail(videoUri, {
 
 ## API Reference
 
+> **Convention:** `Required` = must be provided. `Optional` = has a sensible default or can be omitted entirely.
+
 ### `cropImage(uri, options): Promise<MediaResult>`
 
 | Option | Type | Required | Description |
 |---|---|---|---|
-| `x` | number | Yes | Left offset (0.0–1.0) |
-| `y` | number | Yes | Top offset (0.0–1.0) |
-| `width` | number | Yes | Crop width (0.0–1.0) |
-| `height` | number | Yes | Crop height (0.0–1.0) |
-| `outputPath` | string | No | Absolute path for output file |
+| `x` | `number` | **Required** | Left offset relative to image width (0.0–1.0) |
+| `y` | `number` | **Required** | Top offset relative to image height (0.0–1.0) |
+| `width` | `number` | **Required** | Crop width relative to image width (0.0–1.0) |
+| `height` | `number` | **Required** | Crop height relative to image height (0.0–1.0) |
+| `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
 
 ### `compressImage(uri, options): Promise<MediaResult>`
 
+All options are optional. Pass an empty object `{}` to use all defaults.
+
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `quality` | number | 80 | JPEG/WebP quality (0–100) |
-| `maxWidth` | number | original | Max output width |
-| `maxHeight` | number | original | Max output height |
-| `format` | string | `'jpeg'` | `'jpeg'` / `'png'` / `'webp'` |
-| `outputPath` | string | — | Absolute output path |
+| `quality` | `number` | `80` | JPEG/WebP encode quality (0–100) |
+| `maxWidth` | `number` | original | Max output width in px (aspect ratio preserved) |
+| `maxHeight` | `number` | original | Max output height in px (aspect ratio preserved) |
+| `format` | `string` | `'jpeg'` | Output format: `'jpeg'` \| `'png'` \| `'webp'` |
+| `outputPath` | `string` | temp file | Absolute path for the output file |
 
 ### `trimVideo(uri, options): Promise<MediaResult>`
 
 | Option | Type | Required | Description |
 |---|---|---|---|
-| `startTime` | number | Yes | Trim start in milliseconds |
-| `endTime` | number | Yes | Trim end in milliseconds |
-| `outputPath` | string | No | Absolute output path |
+| `startTime` | `number` | **Required** | Trim start position in milliseconds |
+| `endTime` | `number` | **Required** | Trim end position in milliseconds |
+| `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
 
 ### `cropVideo(uri, options): Promise<MediaResult>`
 
-Same coordinate system as `cropImage`. All values are relative (0.0–1.0).
-
-### `trimAndCropVideo(uri, options): Promise<MediaResult>`
-
-Combines trim and crop into a single encode pass.
+Same relative coordinate system as `cropImage` — all values in the range (0.0–1.0).
 
 | Option | Type | Required | Description |
 |---|---|---|---|
-| `startTime` | number | Yes | Trim start in milliseconds |
-| `endTime` | number | Yes | Trim end in milliseconds |
-| `x` | number | Yes | Crop left offset (0.0–1.0) |
-| `y` | number | Yes | Crop top offset (0.0–1.0) |
-| `width` | number | Yes | Crop width (0.0–1.0) |
-| `height` | number | Yes | Crop height (0.0–1.0) |
-| `outputPath` | string | No | Absolute output path |
+| `x` | `number` | **Required** | Left offset relative to frame width (0.0–1.0) |
+| `y` | `number` | **Required** | Top offset relative to frame height (0.0–1.0) |
+| `width` | `number` | **Required** | Crop width relative to frame width (0.0–1.0) |
+| `height` | `number` | **Required** | Crop height relative to frame height (0.0–1.0) |
+| `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+
+### `trimAndCropVideo(uri, options): Promise<MediaResult>`
+
+Combines trim and crop into a **single encode pass** — faster and avoids double-encode quality loss.
+
+| Option | Type | Required | Description |
+|---|---|---|---|
+| `startTime` | `number` | **Required** | Trim start position in milliseconds |
+| `endTime` | `number` | **Required** | Trim end position in milliseconds |
+| `x` | `number` | **Required** | Crop left offset relative to frame width (0.0–1.0) |
+| `y` | `number` | **Required** | Crop top offset relative to frame height (0.0–1.0) |
+| `width` | `number` | **Required** | Crop width relative to frame width (0.0–1.0) |
+| `height` | `number` | **Required** | Crop height relative to frame height (0.0–1.0) |
+| `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
 
 ### `compressVideo(uri, options): Promise<MediaResult>`
 
+All options are **optional**. The bitrate strategy follows this priority:
+
+1. **`targetSizeInMB`** → smart-compress: calculates optimal bitrate and resolution from duration + target size *(highest priority)*
+2. **`bitrate`** → explicit bitrate override *(takes priority over `quality`)*
+3. **`quality`** → preset mapping: `low` ≈ 1 Mbps · `medium` ≈ 4 Mbps · `high` ≈ 8 Mbps *(default)*
+
+If none of the three are passed, the library falls back to `quality: 'medium'`.
+
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `targetSizeInMB`| number | — | Smart compress to target file size |
-| `minResolution`| number | 720 | Forces Target Resolution Bound |
-| `muteAudio` | boolean| `false` | Strip audio track from output |
-| `quality` | string | `'medium'` | `'low'` / `'medium'` / `'high'` |
-| `bitrate` | number | preset | Target bitrate in bps |
-| `width` | number | original | Max output width |
-| `outputPath` | string | — | Absolute output path |
+| `targetSizeInMB` | `number` | — | **Optional.** Target output file size in MB. When set, overrides `quality` and `bitrate`. |
+| `minResolution` | `number` | `720` | **Optional.** Minimum short-edge resolution (px) when using `targetSizeInMB`. Prevents over-downscaling. |
+| `quality` | `string` | `'medium'` | **Optional.** Preset: `'low'` \| `'medium'` \| `'high'`. Ignored if `targetSizeInMB` or `bitrate` is set. |
+| `bitrate` | `number` | — | **Optional.** Explicit target bitrate in bps. Overrides `quality`; ignored if `targetSizeInMB` is set. |
+| `width` | `number` | original | **Optional.** Max output width in px (aspect ratio preserved). |
+| `muteAudio` | `boolean` | `false` | **Optional.** Strip audio track from the output. |
+| `outputPath` | `string` | temp file | **Optional.** Absolute path for the output file. |
 
 ### `getThumbnail(uri, options?): Promise<ThumbnailResult>`
 
+`options` itself is optional — pass nothing to extract a full-res JPEG at time 0.
+
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `timeMs` | number | 0 | Frame time in milliseconds |
-| `quality` | number | 80 | Output quality (0–100) |
-| `maxWidth` | number | original | Max output width |
-| `outputPath` | string | — | Absolute output path |
+| `timeMs` | `number` | `0` | Frame time in milliseconds |
+| `quality` | `number` | `80` | JPEG output quality (0–100) |
+| `maxWidth` | `number` | original | Max thumbnail width in px (aspect ratio preserved) |
+| `outputPath` | `string` | temp file | Absolute path for the output JPEG |
 
 ### Return types
 

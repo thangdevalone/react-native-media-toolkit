@@ -79,10 +79,11 @@ import { MediaToolkit } from 'react-native-media-toolkit';
 
 ```typescript
 const result = await MediaToolkit.cropImage(imageUri, {
-  x: 0.25,      // offset trái so với chiều rộng ảnh (0.0–1.0)
-  y: 0.25,      // offset trên so với chiều cao ảnh (0.0–1.0)
-  width: 0.5,   // chiều rộng vùng cắt so với chiều rộng ảnh (0.0–1.0)
-  height: 0.5,  // chiều cao vùng cắt so với chiều cao ảnh (0.0–1.0)
+  x: 0.25,      // bắt buộc — offset trái so với chiều rộng ảnh (0.0–1.0)
+  y: 0.25,      // bắt buộc — offset trên so với chiều cao ảnh (0.0–1.0)
+  width: 0.5,   // bắt buộc — chiều rộng vùng cắt so với chiều rộng ảnh (0.0–1.0)
+  height: 0.5,  // bắt buộc — chiều cao vùng cắt so với chiều cao ảnh (0.0–1.0)
+  outputPath: '/custom/path/out.jpg', // tuỳ chọn
 });
 console.log(result.uri, result.width, result.height);
 ```
@@ -91,9 +92,10 @@ console.log(result.uri, result.width, result.height);
 
 ```typescript
 const result = await MediaToolkit.compressImage(imageUri, {
-  quality: 70,       // 0–100, mặc định 80
-  maxWidth: 1080,    // chiều rộng tối đa, giữ nguyên tỉ lệ
-  format: 'jpeg',    // 'jpeg' | 'png' | 'webp'
+  quality: 70,       // tuỳ chọn — 0–100, mặc định 80
+  maxWidth: 1080,    // tuỳ chọn — chiều rộng tối đa, giữ nguyên tỉ lệ
+  maxHeight: 1920,   // tuỳ chọn — chiều cao tối đa, giữ nguyên tỉ lệ
+  format: 'jpeg',    // tuỳ chọn — 'jpeg' | 'png' | 'webp', mặc định 'jpeg'
 });
 ```
 
@@ -134,15 +136,29 @@ const result = await MediaToolkit.trimAndCropVideo(videoUri, {
 
 ### Nén video
 
+Bộ nén hỗ trợ hai chế độ. Dùng **một trong hai**:
+
+**Chế độ 1 — Smart compress theo dung lượng mục tiêu** (khuyến nghị):
 ```typescript
 const result = await MediaToolkit.compressVideo(videoUri, {
-  targetSizeInMB: 8,       // Smart compress: tính toán bitrate tối ưu cho ~8MB
-  minResolution: 720,      // Tuỳ chọn: độ phân giải tối thiểu cho smart compress
-  muteAudio: true,         // Tuỳ chọn: loại bỏ âm thanh
-  quality: 'medium',       // 'low' | 'medium' | 'high' (bỏ qua nếu có targetSizeInMB)
-  width: 1080,             // chiều rộng tối đa, giữ nguyên tỉ lệ
+  targetSizeInMB: 8,   // bắt buộc cho chế độ này — dung lượng output mục tiêu (MB)
+  minResolution: 480,  // tuỳ chọn — độ phân giải ngắn nhất tối thiểu (mặc định 720)
+  muteAudio: false,    // tuỳ chọn — loại bỏ âm thanh (mặc định false)
+  width: 1280,         // tuỳ chọn — chiều rộng tối đa, giữ nguyên tỉ lệ
 });
 ```
+
+**Chế độ 2 — Preset chất lượng hoặc bitrate thủ công**:
+```typescript
+const result = await MediaToolkit.compressVideo(videoUri, {
+  quality: 'medium',   // tuỳ chọn — 'low' | 'medium' | 'high' (mặc định 'medium')
+  bitrate: 2_000_000,  // tuỳ chọn — bitrate thủ công (bps), ghi đè quality
+  muteAudio: false,    // tuỳ chọn — loại bỏ âm thanh (mặc định false)
+  width: 1280,         // tuỳ chọn — chiều rộng tối đa, giữ nguyên tỉ lệ
+});
+```
+
+> **Lưu ý:** `targetSizeInMB`, `quality`, và `bitrate` đều là **tuỳ chọn** — nhưng thư viện cần ít nhất một tín hiệu để xác định bitrate. Nếu không truyền gì cả, mặc định là `quality: 'medium'` (~4 Mbps). `targetSizeInMB` có độ ưu tiên cao nhất; `bitrate` ghi đè `quality`.
 
 ### Lấy thumbnail từ video
 
@@ -163,72 +179,94 @@ const thumb = await MediaToolkit.getThumbnail(videoUri, {
 
 ## API Reference
 
+> **Quy ước:** `Bắt buộc` = phải truyền vào. `Tuỳ chọn` = có giá trị mặc định hợp lý, có thể bỏ qua.
+
 ### `cropImage(uri, options): Promise<MediaResult>`
 
 | Option | Kiểu | Bắt buộc | Mô tả |
 |---|---|---|---|
-| `x` | number | Có | Offset trái (0.0–1.0) |
-| `y` | number | Có | Offset trên (0.0–1.0) |
-| `width` | number | Có | Chiều rộng vùng cắt (0.0–1.0) |
-| `height` | number | Có | Chiều cao vùng cắt (0.0–1.0) |
-| `outputPath` | string | Không | Đường dẫn tuyệt đối file output |
+| `x` | `number` | **Bắt buộc** | Offset trái so với chiều rộng ảnh (0.0–1.0) |
+| `y` | `number` | **Bắt buộc** | Offset trên so với chiều cao ảnh (0.0–1.0) |
+| `width` | `number` | **Bắt buộc** | Chiều rộng vùng cắt so với chiều rộng ảnh (0.0–1.0) |
+| `height` | `number` | **Bắt buộc** | Chiều cao vùng cắt so với chiều cao ảnh (0.0–1.0) |
+| `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
 
 ### `compressImage(uri, options): Promise<MediaResult>`
 
+Tất cả options đều là tuỳ chọn. Có thể truyền object rỗng `{}` để dùng toàn bộ giá trị mặc định.
+
 | Option | Kiểu | Mặc định | Mô tả |
 |---|---|---|---|
-| `quality` | number | 80 | Chất lượng JPEG/WebP (0–100) |
-| `maxWidth` | number | gốc | Chiều rộng tối đa output |
-| `maxHeight` | number | gốc | Chiều cao tối đa output |
-| `format` | string | `'jpeg'` | `'jpeg'` / `'png'` / `'webp'` |
-| `outputPath` | string | — | Đường dẫn tuyệt đối file output |
+| `quality` | `number` | `80` | Chất lượng encode JPEG/WebP (0–100) |
+| `maxWidth` | `number` | gốc | Chiều rộng tối đa output (px, giữ tỉ lệ) |
+| `maxHeight` | `number` | gốc | Chiều cao tối đa output (px, giữ tỉ lệ) |
+| `format` | `string` | `'jpeg'` | Định dạng output: `'jpeg'` \| `'png'` \| `'webp'` |
+| `outputPath` | `string` | file tạm | Đường dẫn tuyệt đối file output |
 
 ### `trimVideo(uri, options): Promise<MediaResult>`
 
 | Option | Kiểu | Bắt buộc | Mô tả |
 |---|---|---|---|
-| `startTime` | number | Có | Thời điểm bắt đầu (milliseconds) |
-| `endTime` | number | Có | Thời điểm kết thúc (milliseconds) |
-| `outputPath` | string | Không | Đường dẫn tuyệt đối file output |
+| `startTime` | `number` | **Bắt buộc** | Thời điểm bắt đầu cắt (milliseconds) |
+| `endTime` | `number` | **Bắt buộc** | Thời điểm kết thúc cắt (milliseconds) |
+| `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
 
 ### `cropVideo(uri, options): Promise<MediaResult>`
 
-Cùng hệ toạ độ với `cropImage`. Tất cả giá trị là tương đối (0.0–1.0).
-
-### `trimAndCropVideo(uri, options): Promise<MediaResult>`
-
-Kết hợp trim và crop trong một lần encode duy nhất.
+Cùng hệ toạ độ tương đối với `cropImage` — tất cả giá trị trong khoảng (0.0–1.0).
 
 | Option | Kiểu | Bắt buộc | Mô tả |
 |---|---|---|---|
-| `startTime` | number | Có | Thời điểm bắt đầu (milliseconds) |
-| `endTime` | number | Có | Thời điểm kết thúc (milliseconds) |
-| `x` | number | Có | Offset trái vùng cắt (0.0–1.0) |
-| `y` | number | Có | Offset trên vùng cắt (0.0–1.0) |
-| `width` | number | Có | Chiều rộng vùng cắt (0.0–1.0) |
-| `height` | number | Có | Chiều cao vùng cắt (0.0–1.0) |
-| `outputPath` | string | Không | Đường dẫn tuyệt đối file output |
+| `x` | `number` | **Bắt buộc** | Offset trái so với chiều rộng frame (0.0–1.0) |
+| `y` | `number` | **Bắt buộc** | Offset trên so với chiều cao frame (0.0–1.0) |
+| `width` | `number` | **Bắt buộc** | Chiều rộng vùng cắt so với chiều rộng frame (0.0–1.0) |
+| `height` | `number` | **Bắt buộc** | Chiều cao vùng cắt so với chiều cao frame (0.0–1.0) |
+| `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+
+### `trimAndCropVideo(uri, options): Promise<MediaResult>`
+
+Kết hợp trim và crop trong **một lần encode duy nhất** — nhanh hơn và tránh mất chất lượng do encode 2 lần.
+
+| Option | Kiểu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| `startTime` | `number` | **Bắt buộc** | Thời điểm bắt đầu cắt (milliseconds) |
+| `endTime` | `number` | **Bắt buộc** | Thời điểm kết thúc cắt (milliseconds) |
+| `x` | `number` | **Bắt buộc** | Offset trái vùng cắt so với chiều rộng frame (0.0–1.0) |
+| `y` | `number` | **Bắt buộc** | Offset trên vùng cắt so với chiều cao frame (0.0–1.0) |
+| `width` | `number` | **Bắt buộc** | Chiều rộng vùng cắt so với chiều rộng frame (0.0–1.0) |
+| `height` | `number` | **Bắt buộc** | Chiều cao vùng cắt so với chiều cao frame (0.0–1.0) |
+| `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
 
 ### `compressVideo(uri, options): Promise<MediaResult>`
 
-| Tùy chọn | Kiểu | Mặc định | Mô tả |
+Tất cả options đều **tuỳ chọn**. Thứ tự ưu tiên xác định bitrate như sau:
+
+1. **`targetSizeInMB`** → smart-compress: tính bitrate và độ phân giải tối ưu từ duration + dung lượng mục tiêu *(ưu tiên cao nhất)*
+2. **`bitrate`** → bitrate thủ công *(ghi đè `quality`)*
+3. **`quality`** → preset: `low` ≈ 1 Mbps · `medium` ≈ 4 Mbps · `high` ≈ 8 Mbps *(mặc định)*
+
+Nếu không truyền gì cả, thư viện mặc định dùng `quality: 'medium'`.
+
+| Tuỳ chọn | Kiểu | Mặc định | Mô tả |
 |---|---|---|---|
-| `targetSizeInMB`| number | — | Bật tính năng Smart Compress theo dung lượng |
-| `minResolution`| number | 720 | Ép cứng khung hình theo tỷ lệ Bound |
-| `muteAudio` | boolean| `false` | Loại bỏ hoàn toàn kênh âm thanh (Audio Track) |
-| `quality` | string | `'medium'` | `'low'` / `'medium'` / `'high'` |
-| `bitrate` | number | preset | Tốc độ Bitrate mục tiêu (bps) |
-| `width` | number | gốc | Chiều rộng tối đa output |
-| `outputPath` | string | — | Đường dẫn tuyệt đối file output |
+| `targetSizeInMB` | `number` | — | **Tuỳ chọn.** Dung lượng output mục tiêu (MB). Khi đặt, ghi đè `quality` và `bitrate`. |
+| `minResolution` | `number` | `720` | **Tuỳ chọn.** Độ phân giải cạnh ngắn tối thiểu (px) khi dùng `targetSizeInMB`. Tránh downscale quá mức. |
+| `quality` | `string` | `'medium'` | **Tuỳ chọn.** Preset: `'low'` \| `'medium'` \| `'high'`. Bị bỏ qua nếu có `targetSizeInMB` hoặc `bitrate`. |
+| `bitrate` | `number` | — | **Tuỳ chọn.** Bitrate mục tiêu (bps). Ghi đè `quality`; bị bỏ qua nếu có `targetSizeInMB`. |
+| `width` | `number` | gốc | **Tuỳ chọn.** Chiều rộng tối đa output (px, giữ tỉ lệ). |
+| `muteAudio` | `boolean` | `false` | **Tuỳ chọn.** Loại bỏ track âm thanh khỏi output. |
+| `outputPath` | `string` | file tạm | **Tuỳ chọn.** Đường dẫn tuyệt đối file output. |
 
 ### `getThumbnail(uri, options?): Promise<ThumbnailResult>`
 
+`options` hoàn toàn là tuỳ chọn — có thể không truyền để lấy JPEG full-res tại thời điểm 0.
+
 | Option | Kiểu | Mặc định | Mô tả |
 |---|---|---|---|
-| `timeMs` | number | 0 | Thời điểm lấy frame (milliseconds) |
-| `quality` | number | 80 | Chất lượng output (0–100) |
-| `maxWidth` | number | gốc | Chiều rộng tối đa output |
-| `outputPath` | string | — | Đường dẫn tuyệt đối file output |
+| `timeMs` | `number` | `0` | Thời điểm lấy frame (milliseconds) |
+| `quality` | `number` | `80` | Chất lượng JPEG output (0–100) |
+| `maxWidth` | `number` | gốc | Chiều rộng thumbnail tối đa (px, giữ tỉ lệ) |
+| `outputPath` | `string` | file tạm | Đường dẫn tuyệt đối file JPEG output |
 
 ### Kiểu trả về
 
@@ -324,9 +362,10 @@ react-native-media-toolkit/
 │   └── MediaToolkitErrors.swift    Định nghĩa lỗi
 ├── android/
 │   └── src/main/java/com/mediatoolkit/
-│       ├── HybridMediaToolkit.kt   Nitro entry point (Kotlin)
-│       ├── ImageProcessor.kt       Bitmap crop và compress
-│       └── VideoProcessor.kt       Media3 trim, crop, compress, thumbnail
+│       ├── HybridMediaToolkit.kt     Nitro entry point (Kotlin)
+│       ├── ImageProcessor.kt         Bitmap crop và compress
+│       ├── VideoProcessor.kt         Media3 trim, crop, compress, thumbnail
+│       └── MediaToolkitException.kt  Định nghĩa lỗi
 ├── nitrogen/                    File C++ và Swift/Kotlin bridge sinh tự động
 └── example/                     App demo (Expo Dev Client)
 ```

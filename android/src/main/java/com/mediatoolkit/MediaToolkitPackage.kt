@@ -11,6 +11,9 @@ import com.facebook.react.uimanager.ViewManager
  * but is required by the React Native autolinking system.
  */
 class MediaToolkitPackage : ReactPackage {
+  init {
+    com.margelo.nitro.com.mediatoolkit.MediaToolkitOnLoad.initializeNative()
+  }
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = emptyList()
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
 }

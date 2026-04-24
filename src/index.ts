@@ -10,6 +10,10 @@ export type {
   CompressVideoOptions,
   ThumbnailOptions,
   ThumbnailResult,
+  FlipOptions,
+  RotateOptions,
+  ProcessVideoOptions,
+  ProcessImageOptions,
   MediaResult,
 } from './MediaToolkit.nitro';
 
@@ -37,6 +41,16 @@ export const MediaToolkit = {
    * Compress (resize + quality reduce) an image.
    */
   compressImage: native.compressImage.bind(native),
+
+  /**
+   * Flip an image horizontally or vertically.
+   */
+  flipImage: native.flipImage.bind(native),
+
+  /**
+   * Rotate an image by 90, 180, or 270 degrees.
+   */
+  rotateImage: native.rotateImage.bind(native),
 
   // ── Video ─────────────────────────────────────────────────────────────────
 
@@ -67,6 +81,26 @@ export const MediaToolkit = {
    * @param options  timeMs, quality (0–100), maxWidth, outputPath
    */
   getThumbnail: native.getThumbnail.bind(native),
+
+  /**
+   * Flip a video horizontally or vertically.
+   */
+  flipVideo: native.flipVideo.bind(native),
+
+  /**
+   * Rotate a video by 90, 180, or 270 degrees.
+   */
+  rotateVideo: native.rotateVideo.bind(native),
+
+  /**
+   * Run multiple transformations (trim, crop, flip, rotate) on a video in a single pass.
+   */
+  processVideo: native.processVideo.bind(native),
+
+  /**
+   * Run multiple transformations (crop, flip, rotate) on an image.
+   */
+  processImage: native.processImage.bind(native),
 };
 
 export default MediaToolkit;

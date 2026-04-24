@@ -56,11 +56,17 @@ namespace margelo::nitro::mediatoolkit {
     // Methods
     std::shared_ptr<Promise<MediaResult>> cropImage(const std::string& uri, const CropOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> compressImage(const std::string& uri, const CompressImageOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> flipImage(const std::string& uri, const FlipOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> rotateImage(const std::string& uri, const RotateOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> cropVideo(const std::string& uri, const VideoCropOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> trimVideo(const std::string& uri, const TrimOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> trimAndCropVideo(const std::string& uri, const TrimAndCropOptions& options) override;
     std::shared_ptr<Promise<ThumbnailResult>> getThumbnail(const std::string& uri, const std::optional<ThumbnailOptions>& options) override;
     std::shared_ptr<Promise<MediaResult>> compressVideo(const std::string& uri, const CompressVideoOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> flipVideo(const std::string& uri, const FlipOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> rotateVideo(const std::string& uri, const RotateOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> processVideo(const std::string& uri, const ProcessVideoOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> processImage(const std::string& uri, const ProcessImageOptions& options) override;
 
   private:
     jni::global_ref<JHybridMediaToolkitSpec::JavaPart> _javaPart;

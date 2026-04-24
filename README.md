@@ -42,9 +42,13 @@ Built on **Nitro Modules** (JSI), using `AVFoundation` on iOS and **Jetpack Medi
 |---|---|---|
 | Crop image | AVFoundation / CGImage | Bitmap |
 | Compress image | CGImageSource (OOM-free) | BitmapFactory / inSampleSize |
+| Flip / Rotate image | CGImage / CoreGraphics | Bitmap |
+| Multi-transform image | CGImage / CoreGraphics | Bitmap |
 | Trim video (start/end in ms) | AVAssetExportSession | Media3 Transformer |
 | Crop video (relative region) | AVMutableVideoComposition | Media3 Presentation |
+| Flip / Rotate video | AVMutableVideoComposition | Media3 Presentation |
 | Trim + Crop in single pass | AVMutableVideoComposition | Media3 Transformer |
+| Multi-transform video | AVMutableVideoComposition | Media3 Transformer |
 | Compress video | AVAssetExportSession presets | Media3 Transformer |
 | Extract thumbnail from video | AVAssetImageGenerator | MediaMetadataRetriever |
 
@@ -96,6 +100,36 @@ const result = await MediaToolkit.compressImage(imageUri, {
   maxWidth: 1080,    // optional — max output width, aspect ratio preserved
   maxHeight: 1920,   // optional — max output height, aspect ratio preserved
   format: 'jpeg',    // optional — 'jpeg' | 'png' | 'webp', default 'jpeg'
+});
+```
+
+### Flip image
+
+```typescript
+const result = await MediaToolkit.flipImage(imageUri, {
+  direction: 'horizontal', // 'horizontal' | 'vertical'
+});
+```
+
+### Rotate image
+
+```typescript
+const result = await MediaToolkit.rotateImage(imageUri, {
+  degrees: 90, // 90, 180, 270
+});
+```
+
+### Process image (Multi-transform)
+
+Run multiple operations in a single pass to save processing time and memory.
+```typescript
+const result = await MediaToolkit.processImage(imageUri, {
+  cropX: 0.1,
+  cropY: 0.1,
+  cropWidth: 0.8,
+  cropHeight: 0.8,
+  flip: 'horizontal',
+  rotation: 90,
 });
 ```
 
@@ -175,6 +209,38 @@ const thumb = await MediaToolkit.getThumbnail(videoUri, {
 // thumb.duration → source video duration in ms
 ```
 
+### Flip video
+
+```typescript
+const result = await MediaToolkit.flipVideo(videoUri, {
+  direction: 'horizontal', // 'horizontal' | 'vertical'
+});
+```
+
+### Rotate video
+
+```typescript
+const result = await MediaToolkit.rotateVideo(videoUri, {
+  degrees: 90, // 90, 180, 270
+});
+```
+
+### Process video (Multi-transform)
+
+Run multiple video operations in a single pass (trim, crop, flip, rotate).
+```typescript
+const result = await MediaToolkit.processVideo(videoUri, {
+  startTime: 1000,
+  endTime: 8000,
+  cropX: 0.1,
+  cropY: 0.1,
+  cropWidth: 0.8,
+  cropHeight: 0.8,
+  flip: 'horizontal',
+  rotation: 90,
+});
+```
+
 ---
 
 ## API Reference
@@ -202,6 +268,36 @@ All options are optional. Pass an empty object `{}` to use all defaults.
 | `maxHeight` | `number` | original | Max output height in px (aspect ratio preserved) |
 | `format` | `string` | `'jpeg'` | Output format: `'jpeg'` \| `'png'` \| `'webp'` |
 | `outputPath` | `string` | temp file | Absolute path for the output file |
+
+### `flipImage(uri, options): Promise<MediaResult>`
+### `flipVideo(uri, options): Promise<MediaResult>`
+
+| Option | Type | Required | Description |
+|---|---|---|---|
+| `direction` | `string` | **Required** | `'horizontal'` or `'vertical'` |
+| `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+
+### `rotateImage(uri, options): Promise<MediaResult>`
+### `rotateVideo(uri, options): Promise<MediaResult>`
+
+| Option | Type | Required | Description |
+|---|---|---|---|
+| `degrees` | `number` | **Required** | `90`, `180`, or `270` |
+| `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+
+### `processImage(uri, options): Promise<MediaResult>`
+
+Multi-transform image in a single pass. All options are **optional**.
+
+| Option | Type | Description |
+|---|---|---|
+| `cropX` | `number` | Crop left offset relative to image width (0.0–1.0) |
+| `cropY` | `number` | Crop top offset relative to image height (0.0–1.0) |
+| `cropWidth` | `number` | Crop width relative to image width (0.0–1.0) |
+| `cropHeight` | `number` | Crop height relative to image height (0.0–1.0) |
+| `flip` | `string` | `'horizontal'` or `'vertical'` |
+| `rotation` | `number` | `90`, `180`, or `270` |
+| `outputPath` | `string` | Absolute path for the output file. Defaults to a temp file. |
 
 ### `trimVideo(uri, options): Promise<MediaResult>`
 
@@ -236,6 +332,22 @@ Combines trim and crop into a **single encode pass** — faster and avoids doubl
 | `width` | `number` | **Required** | Crop width relative to frame width (0.0–1.0) |
 | `height` | `number` | **Required** | Crop height relative to frame height (0.0–1.0) |
 | `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+
+### `processVideo(uri, options): Promise<MediaResult>`
+
+Multi-transform video in a single pass (trim, crop, flip, rotate). All options are **optional**.
+
+| Option | Type | Description |
+|---|---|---|
+| `startTime` | `number` | Trim start position in milliseconds |
+| `endTime` | `number` | Trim end position in milliseconds |
+| `cropX` | `number` | Crop left offset relative to frame width (0.0–1.0) |
+| `cropY` | `number` | Crop top offset relative to frame height (0.0–1.0) |
+| `cropWidth` | `number` | Crop width relative to frame width (0.0–1.0) |
+| `cropHeight` | `number` | Crop height relative to frame height (0.0–1.0) |
+| `flip` | `string` | `'horizontal'` or `'vertical'` |
+| `rotation` | `number` | `90`, `180`, or `270` |
+| `outputPath` | `string` | Absolute path for the output file. Defaults to a temp file. |
 
 ### `compressVideo(uri, options): Promise<MediaResult>`
 
@@ -339,14 +451,11 @@ The `compressVideo` API provides a dynamically balanced encoding strategy via th
 
 ### Comparison with common alternatives
 
-| Library | Native engine | JS bridge | Trim (no re-encode) | Single-pass trim+crop |
-|---|---|---|---|---|
-| react-native-media-toolkit | AVFoundation / Media3 | JSI (no overhead) | Yes | Yes |
-| react-native-video-trim | AVFoundation / FFmpegKit | Bridge | iOS only | No |
-| react-native-compressor | AVFoundation / MediaCodec | Bridge | No | No |
-| ffmpeg-kit-react-native | FFmpeg (software) | Bridge | No | No |
-
-Note: FFmpegKit is the most flexible option for complex pipelines. This library is optimized for the common cases: trim, crop, compress, and thumbnail extraction.
+| Library | Native Engine | JS Bridge | Image Support | Video Support | Trim (no re-encode) | Multi-transform (1-pass) |
+|---|---|---|---|---|---|---|
+| **react-native-media-toolkit** | AVFoundation / Media3 | **JSI (Nitro)** | **Yes** (OOM-free) | **Yes** | **Yes** | **Yes** |
+| `react-native-compressor` | AVFoundation / MediaCodec | Bridge | Yes | Yes | No | No |
+| `react-native-video-trim` | AVFoundation / FFmpegKit | Bridge | No | Yes (UI included) | iOS only | No |
 
 ---
 

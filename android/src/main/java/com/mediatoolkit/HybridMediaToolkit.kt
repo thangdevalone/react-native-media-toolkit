@@ -8,9 +8,13 @@ import com.margelo.nitro.com.mediatoolkit.CropOptions
 import com.margelo.nitro.com.mediatoolkit.HybridMediaToolkitSpec
 import com.margelo.nitro.com.mediatoolkit.MediaResult
 import com.margelo.nitro.com.mediatoolkit.TrimOptions
+import com.margelo.nitro.com.mediatoolkit.FlipOptions
+import com.margelo.nitro.com.mediatoolkit.ProcessImageOptions
+import com.margelo.nitro.com.mediatoolkit.ProcessVideoOptions
+import com.margelo.nitro.com.mediatoolkit.RotateOptions
 import com.margelo.nitro.com.mediatoolkit.ThumbnailOptions
 import com.margelo.nitro.com.mediatoolkit.ThumbnailResult
- import com.margelo.nitro.com.mediatoolkit.TrimAndCropOptions
+import com.margelo.nitro.com.mediatoolkit.TrimAndCropOptions
 import com.margelo.nitro.com.mediatoolkit.VideoCropOptions
 import com.margelo.nitro.core.Promise
 import kotlinx.coroutines.CoroutineScope
@@ -55,6 +59,44 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         (options.maxWidth ?: 0.0).toInt(),
         (options.maxHeight ?: 0.0).toInt(),
         options.format ?: "jpeg",
+        options.outputPath
+      )
+      raw.toMediaResult()
+    }
+  }
+
+  override fun flipImage(uri: String, options: FlipOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = ImageProcessor.flipImage(
+        uri,
+        options.direction,
+        options.outputPath
+      )
+      raw.toMediaResult()
+    }
+  }
+
+  override fun rotateImage(uri: String, options: RotateOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = ImageProcessor.rotateImage(
+        uri,
+        options.degrees,
+        options.outputPath
+      )
+      raw.toMediaResult()
+    }
+  }
+
+  override fun processImage(uri: String, options: ProcessImageOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = ImageProcessor.processImage(
+        uri,
+        options.cropX ?: 0.0,
+        options.cropY ?: 0.0,
+        options.cropWidth ?: 0.0,
+        options.cropHeight ?: 0.0,
+        options.flip,
+        options.rotation ?: 0.0,
         options.outputPath
       )
       raw.toMediaResult()
@@ -119,6 +161,49 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         options.y.toFloat(),
         options.width.toFloat(),
         options.height.toFloat(),
+        options.outputPath
+      ) { /* progress ignored */ }
+      raw.toMediaResult()
+    }
+  }
+
+  override fun flipVideo(uri: String, options: FlipOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = VideoProcessor.flipVideo(
+        ctx,
+        uri,
+        options.direction,
+        options.outputPath
+      ) { /* progress ignored */ }
+      raw.toMediaResult()
+    }
+  }
+
+  override fun rotateVideo(uri: String, options: RotateOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = VideoProcessor.rotateVideo(
+        ctx,
+        uri,
+        options.degrees,
+        options.outputPath
+      ) { /* progress ignored */ }
+      raw.toMediaResult()
+    }
+  }
+
+  override fun processVideo(uri: String, options: ProcessVideoOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = VideoProcessor.processVideo(
+        ctx,
+        uri,
+        (options.startTime ?: 0.0).toLong(),
+        (options.endTime ?: 0.0).toLong(),
+        (options.cropX ?: 0.0).toFloat(),
+        (options.cropY ?: 0.0).toFloat(),
+        (options.cropWidth ?: 0.0).toFloat(),
+        (options.cropHeight ?: 0.0).toFloat(),
+        options.flip,
+        options.rotation ?: 0.0,
         options.outputPath
       ) { /* progress ignored */ }
       raw.toMediaResult()

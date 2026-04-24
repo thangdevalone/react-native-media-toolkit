@@ -36,7 +36,7 @@
     "example": "yarn workspace react-native-media-toolkit-example",
     "clean": "del-cli lib",
     "prepare": "bob build",
-    "codegen": "nitrogen --config nitro.json",
+    "codegen": "nitrogen ./src --config nitro.json",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\""
   },

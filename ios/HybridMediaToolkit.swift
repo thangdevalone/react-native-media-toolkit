@@ -42,6 +42,44 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
     }
   }
 
+  func flipImage(uri: String, options: FlipOptions) throws -> Promise<MediaResult> {
+    return Promise.parallel(queue) {
+      let raw = try ImageProcessor.flipImage(
+        uri: uri,
+        direction: options.direction,
+        outputPath: options.outputPath
+      )
+      return makeMediaResult(raw)
+    }
+  }
+
+  func rotateImage(uri: String, options: RotateOptions) throws -> Promise<MediaResult> {
+    return Promise.parallel(queue) {
+      let raw = try ImageProcessor.rotateImage(
+        uri: uri,
+        degrees: options.degrees,
+        outputPath: options.outputPath
+      )
+      return makeMediaResult(raw)
+    }
+  }
+
+  func processImage(uri: String, options: ProcessImageOptions) throws -> Promise<MediaResult> {
+    return Promise.parallel(queue) {
+      let raw = try ImageProcessor.processImage(
+        uri: uri,
+        cropX: options.cropX ?? 0,
+        cropY: options.cropY ?? 0,
+        cropW: options.cropWidth ?? 0,
+        cropH: options.cropHeight ?? 0,
+        flip: options.flip,
+        rotation: options.rotation ?? 0,
+        outputPath: options.outputPath
+      )
+      return makeMediaResult(raw)
+    }
+  }
+
   // ─── Video ──────────────────────────────────────────────────────────────────
 
   func trimVideo(uri: String, options: TrimOptions) throws -> Promise<MediaResult> {
@@ -130,6 +168,79 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
           y: options.y,
           width: options.width,
           height: options.height,
+          outputPath: options.outputPath,
+          onProgress: { _ in },
+          completion: { result, error in
+            if let error {
+              continuation.resume(throwing: error)
+            } else if let result {
+              continuation.resume(returning: makeMediaResult(result))
+            } else {
+              continuation.resume(throwing: MediaToolkitError.processingFailed("No result"))
+            }
+          }
+        )
+      }
+    }
+  }
+
+  func flipVideo(uri: String, options: FlipOptions) throws -> Promise<MediaResult> {
+    return Promise.async {
+      try await withCheckedThrowingContinuation { continuation in
+        VideoProcessor.flipVideo(
+          uri: uri,
+          direction: options.direction,
+          outputPath: options.outputPath,
+          onProgress: { _ in },
+          completion: { result, error in
+            if let error {
+              continuation.resume(throwing: error)
+            } else if let result {
+              continuation.resume(returning: makeMediaResult(result))
+            } else {
+              continuation.resume(throwing: MediaToolkitError.processingFailed("No result"))
+            }
+          }
+        )
+      }
+    }
+  }
+
+  func rotateVideo(uri: String, options: RotateOptions) throws -> Promise<MediaResult> {
+    return Promise.async {
+      try await withCheckedThrowingContinuation { continuation in
+        VideoProcessor.rotateVideo(
+          uri: uri,
+          degrees: options.degrees,
+          outputPath: options.outputPath,
+          onProgress: { _ in },
+          completion: { result, error in
+            if let error {
+              continuation.resume(throwing: error)
+            } else if let result {
+              continuation.resume(returning: makeMediaResult(result))
+            } else {
+              continuation.resume(throwing: MediaToolkitError.processingFailed("No result"))
+            }
+          }
+        )
+      }
+    }
+  }
+
+  func processVideo(uri: String, options: ProcessVideoOptions) throws -> Promise<MediaResult> {
+    return Promise.async {
+      try await withCheckedThrowingContinuation { continuation in
+        VideoProcessor.processVideo(
+          uri: uri,
+          startMs: options.startTime ?? 0,
+          endMs: options.endTime ?? 0,
+          cropX: options.cropX ?? 0,
+          cropY: options.cropY ?? 0,
+          cropW: options.cropWidth ?? 0,
+          cropH: options.cropHeight ?? 0,
+          flip: options.flip,
+          rotation: options.rotation ?? 0,
           outputPath: options.outputPath,
           onProgress: { _ in },
           completion: { result, error in

@@ -42,9 +42,13 @@ Xây dựng trên **Nitro Modules** (JSI), dùng `AVFoundation` trên iOS và **
 |---|---|---|
 | Cắt ảnh | AVFoundation / CGImage | Bitmap |
 | Nén ảnh | CGImageSource (Chống OOM) | BitmapFactory / inSampleSize |
+| Lật / Xoay ảnh | CGImage / CoreGraphics | Bitmap |
+| Xử lý đa tác vụ ảnh | CGImage / CoreGraphics | Bitmap |
 | Cắt video theo thời gian (ms) | AVAssetExportSession | Media3 Transformer |
 | Cắt vùng video (tương đối) | AVMutableVideoComposition | Media3 Presentation |
+| Lật / Xoay video | AVMutableVideoComposition | Media3 Presentation |
 | Cắt thời gian + cắt vùng trong 1 lần encode | AVMutableVideoComposition | Media3 Transformer |
+| Xử lý đa tác vụ video | AVMutableVideoComposition | Media3 Transformer |
 | Nén video | AVAssetExportSession presets | Media3 Transformer |
 | Lấy thumbnail từ video | AVAssetImageGenerator | MediaMetadataRetriever |
 
@@ -96,6 +100,36 @@ const result = await MediaToolkit.compressImage(imageUri, {
   maxWidth: 1080,    // tuỳ chọn — chiều rộng tối đa, giữ nguyên tỉ lệ
   maxHeight: 1920,   // tuỳ chọn — chiều cao tối đa, giữ nguyên tỉ lệ
   format: 'jpeg',    // tuỳ chọn — 'jpeg' | 'png' | 'webp', mặc định 'jpeg'
+});
+```
+
+### Lật ảnh
+
+```typescript
+const result = await MediaToolkit.flipImage(imageUri, {
+  direction: 'horizontal', // 'horizontal' | 'vertical'
+});
+```
+
+### Xoay ảnh
+
+```typescript
+const result = await MediaToolkit.rotateImage(imageUri, {
+  degrees: 90, // 90, 180, 270
+});
+```
+
+### Xử lý đa tác vụ ảnh (Multi-transform)
+
+Chạy nhiều thao tác trong một lần duy nhất để tiết kiệm thời gian xử lý và bộ nhớ.
+```typescript
+const result = await MediaToolkit.processImage(imageUri, {
+  cropX: 0.1,
+  cropY: 0.1,
+  cropWidth: 0.8,
+  cropHeight: 0.8,
+  flip: 'horizontal',
+  rotation: 90,
 });
 ```
 
@@ -175,6 +209,38 @@ const thumb = await MediaToolkit.getThumbnail(videoUri, {
 // thumb.duration → thời lượng video gốc (ms)
 ```
 
+### Lật video
+
+```typescript
+const result = await MediaToolkit.flipVideo(videoUri, {
+  direction: 'horizontal', // 'horizontal' | 'vertical'
+});
+```
+
+### Xoay video
+
+```typescript
+const result = await MediaToolkit.rotateVideo(videoUri, {
+  degrees: 90, // 90, 180, 270
+});
+```
+
+### Xử lý đa tác vụ video (Multi-transform)
+
+Chạy nhiều thao tác video trong một lần encode (trim, crop, flip, rotate).
+```typescript
+const result = await MediaToolkit.processVideo(videoUri, {
+  startTime: 1000,
+  endTime: 8000,
+  cropX: 0.1,
+  cropY: 0.1,
+  cropWidth: 0.8,
+  cropHeight: 0.8,
+  flip: 'horizontal',
+  rotation: 90,
+});
+```
+
 ---
 
 ## API Reference
@@ -202,6 +268,36 @@ Tất cả options đều là tuỳ chọn. Có thể truyền object rỗng `{}
 | `maxHeight` | `number` | gốc | Chiều cao tối đa output (px, giữ tỉ lệ) |
 | `format` | `string` | `'jpeg'` | Định dạng output: `'jpeg'` \| `'png'` \| `'webp'` |
 | `outputPath` | `string` | file tạm | Đường dẫn tuyệt đối file output |
+
+### `flipImage(uri, options): Promise<MediaResult>`
+### `flipVideo(uri, options): Promise<MediaResult>`
+
+| Option | Kiểu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| `direction` | `string` | **Bắt buộc** | `'horizontal'` hoặc `'vertical'` |
+| `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+
+### `rotateImage(uri, options): Promise<MediaResult>`
+### `rotateVideo(uri, options): Promise<MediaResult>`
+
+| Option | Kiểu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| `degrees` | `number` | **Bắt buộc** | `90`, `180`, hoặc `270` |
+| `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+
+### `processImage(uri, options): Promise<MediaResult>`
+
+Xử lý đa tác vụ ảnh. Tất cả options đều là **tuỳ chọn**.
+
+| Option | Kiểu | Mô tả |
+|---|---|---|
+| `cropX` | `number` | Offset trái so với chiều rộng ảnh (0.0–1.0) |
+| `cropY` | `number` | Offset trên so với chiều cao ảnh (0.0–1.0) |
+| `cropWidth` | `number` | Chiều rộng vùng cắt so với chiều rộng ảnh (0.0–1.0) |
+| `cropHeight` | `number` | Chiều cao vùng cắt so với chiều cao ảnh (0.0–1.0) |
+| `flip` | `string` | `'horizontal'` hoặc `'vertical'` |
+| `rotation` | `number` | `90`, `180`, hoặc `270` |
+| `outputPath` | `string` | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
 
 ### `trimVideo(uri, options): Promise<MediaResult>`
 
@@ -236,6 +332,22 @@ Kết hợp trim và crop trong **một lần encode duy nhất** — nhanh hơn
 | `width` | `number` | **Bắt buộc** | Chiều rộng vùng cắt so với chiều rộng frame (0.0–1.0) |
 | `height` | `number` | **Bắt buộc** | Chiều cao vùng cắt so với chiều cao frame (0.0–1.0) |
 | `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+
+### `processVideo(uri, options): Promise<MediaResult>`
+
+Xử lý đa tác vụ video trong một lần duy nhất (trim, crop, flip, rotate). Tất cả options đều là **tuỳ chọn**.
+
+| Option | Kiểu | Mô tả |
+|---|---|---|
+| `startTime` | `number` | Thời điểm bắt đầu cắt (milliseconds) |
+| `endTime` | `number` | Thời điểm kết thúc cắt (milliseconds) |
+| `cropX` | `number` | Offset trái vùng cắt so với chiều rộng frame (0.0–1.0) |
+| `cropY` | `number` | Offset trên vùng cắt so với chiều cao frame (0.0–1.0) |
+| `cropWidth` | `number` | Chiều rộng vùng cắt so với chiều rộng frame (0.0–1.0) |
+| `cropHeight` | `number` | Chiều cao vùng cắt so với chiều cao frame (0.0–1.0) |
+| `flip` | `string` | `'horizontal'` hoặc `'vertical'` |
+| `rotation` | `number` | `90`, `180`, hoặc `270` |
+| `outputPath` | `string` | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
 
 ### `compressVideo(uri, options): Promise<MediaResult>`
 
@@ -337,14 +449,11 @@ Hàm `compressVideo` hỗ trợ chiến lược encode động thông qua tham s
 
 ### So sánh với các thư viện phổ biến
 
-| Thư viện | Engine native | JS bridge | Trim không re-encode | Trim+crop 1 lần |
-|---|---|---|---|---|
-| react-native-media-toolkit | AVFoundation / Media3 | JSI (không overhead) | Có | Có |
-| react-native-video-trim | AVFoundation / FFmpegKit | Bridge | Chỉ iOS | Không |
-| react-native-compressor | AVFoundation / MediaCodec | Bridge | Không | Không |
-| ffmpeg-kit-react-native | FFmpeg (software) | Bridge | Không | Không |
-
-Lưu ý: FFmpegKit là lựa chọn linh hoạt nhất cho các pipeline phức tạp. Thư viện này được tối ưu cho các tác vụ phổ biến: trim, crop, compress, và lấy thumbnail.
+| Thư viện | Engine Native | JS Bridge | Hỗ trợ Ảnh | Hỗ trợ Video | Trim không re-encode | Xử lý đa tác vụ (1-pass) |
+|---|---|---|---|---|---|---|
+| **react-native-media-toolkit** | AVFoundation / Media3 | **JSI (Nitro)** | **Có** (Chống OOM) | **Có** | **Có** | **Có** |
+| `react-native-compressor` | AVFoundation / MediaCodec | Bridge | Có | Có | Không | Không |
+| `react-native-video-trim` | AVFoundation / FFmpegKit | Bridge | Không | Có (Kèm UI) | Chỉ iOS | Không |
 
 ---
 

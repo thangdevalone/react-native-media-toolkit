@@ -15,6 +15,10 @@ namespace margelo::nitro::mediatoolkit { struct ThumbnailResult; }
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
 // Forward declaration of `CompressImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
+// Forward declaration of `FlipOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct FlipOptions; }
+// Forward declaration of `RotateOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct RotateOptions; }
 // Forward declaration of `VideoCropOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 // Forward declaration of `TrimOptions` to properly resolve imports.
@@ -25,6 +29,10 @@ namespace margelo::nitro::mediatoolkit { struct TrimAndCropOptions; }
 namespace margelo::nitro::mediatoolkit { struct ThumbnailOptions; }
 // Forward declaration of `CompressVideoOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
+// Forward declaration of `ProcessVideoOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessVideoOptions; }
+// Forward declaration of `ProcessImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
 
 #include "MediaResult.hpp"
 #include <NitroModules/Promise.hpp>
@@ -38,6 +46,10 @@ namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
 #include <optional>
 #include "CompressImageOptions.hpp"
 #include "JCompressImageOptions.hpp"
+#include "FlipOptions.hpp"
+#include "JFlipOptions.hpp"
+#include "RotateOptions.hpp"
+#include "JRotateOptions.hpp"
 #include "VideoCropOptions.hpp"
 #include "JVideoCropOptions.hpp"
 #include "TrimOptions.hpp"
@@ -48,6 +60,10 @@ namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
 #include "JThumbnailOptions.hpp"
 #include "CompressVideoOptions.hpp"
 #include "JCompressVideoOptions.hpp"
+#include "ProcessVideoOptions.hpp"
+#include "JProcessVideoOptions.hpp"
+#include "ProcessImageOptions.hpp"
+#include "JProcessImageOptions.hpp"
 
 namespace margelo::nitro::mediatoolkit {
 
@@ -101,6 +117,38 @@ namespace margelo::nitro::mediatoolkit {
   std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::compressImage(const std::string& uri, const CompressImageOptions& options) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JCompressImageOptions> /* options */)>("compressImage");
     auto __result = method(_javaPart, jni::make_jstring(uri), JCompressImageOptions::fromCpp(options));
+    return [&]() {
+      auto __promise = Promise<MediaResult>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<JMediaResult>(__boxedResult);
+        __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::flipImage(const std::string& uri, const FlipOptions& options) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JFlipOptions> /* options */)>("flipImage");
+    auto __result = method(_javaPart, jni::make_jstring(uri), JFlipOptions::fromCpp(options));
+    return [&]() {
+      auto __promise = Promise<MediaResult>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<JMediaResult>(__boxedResult);
+        __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::rotateImage(const std::string& uri, const RotateOptions& options) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JRotateOptions> /* options */)>("rotateImage");
+    auto __result = method(_javaPart, jni::make_jstring(uri), JRotateOptions::fromCpp(options));
     return [&]() {
       auto __promise = Promise<MediaResult>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
@@ -181,6 +229,70 @@ namespace margelo::nitro::mediatoolkit {
   std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::compressVideo(const std::string& uri, const CompressVideoOptions& options) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JCompressVideoOptions> /* options */)>("compressVideo");
     auto __result = method(_javaPart, jni::make_jstring(uri), JCompressVideoOptions::fromCpp(options));
+    return [&]() {
+      auto __promise = Promise<MediaResult>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<JMediaResult>(__boxedResult);
+        __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::flipVideo(const std::string& uri, const FlipOptions& options) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JFlipOptions> /* options */)>("flipVideo");
+    auto __result = method(_javaPart, jni::make_jstring(uri), JFlipOptions::fromCpp(options));
+    return [&]() {
+      auto __promise = Promise<MediaResult>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<JMediaResult>(__boxedResult);
+        __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::rotateVideo(const std::string& uri, const RotateOptions& options) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JRotateOptions> /* options */)>("rotateVideo");
+    auto __result = method(_javaPart, jni::make_jstring(uri), JRotateOptions::fromCpp(options));
+    return [&]() {
+      auto __promise = Promise<MediaResult>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<JMediaResult>(__boxedResult);
+        __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::processVideo(const std::string& uri, const ProcessVideoOptions& options) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JProcessVideoOptions> /* options */)>("processVideo");
+    auto __result = method(_javaPart, jni::make_jstring(uri), JProcessVideoOptions::fromCpp(options));
+    return [&]() {
+      auto __promise = Promise<MediaResult>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<JMediaResult>(__boxedResult);
+        __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<MediaResult>> JHybridMediaToolkitSpec::processImage(const std::string& uri, const ProcessImageOptions& options) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JProcessImageOptions> /* options */)>("processImage");
+    auto __result = method(_javaPart, jni::make_jstring(uri), JProcessImageOptions::fromCpp(options));
     return [&]() {
       auto __promise = Promise<MediaResult>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {

@@ -18,6 +18,10 @@ namespace margelo::nitro::mediatoolkit { struct MediaResult; }
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
 // Forward declaration of `CompressImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
+// Forward declaration of `FlipOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct FlipOptions; }
+// Forward declaration of `RotateOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct RotateOptions; }
 // Forward declaration of `VideoCropOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 // Forward declaration of `TrimOptions` to properly resolve imports.
@@ -30,6 +34,10 @@ namespace margelo::nitro::mediatoolkit { struct ThumbnailResult; }
 namespace margelo::nitro::mediatoolkit { struct ThumbnailOptions; }
 // Forward declaration of `CompressVideoOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
+// Forward declaration of `ProcessVideoOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessVideoOptions; }
+// Forward declaration of `ProcessImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
 
 #include "MediaResult.hpp"
 #include <NitroModules/Promise.hpp>
@@ -37,12 +45,16 @@ namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
 #include "CropOptions.hpp"
 #include <optional>
 #include "CompressImageOptions.hpp"
+#include "FlipOptions.hpp"
+#include "RotateOptions.hpp"
 #include "VideoCropOptions.hpp"
 #include "TrimOptions.hpp"
 #include "TrimAndCropOptions.hpp"
 #include "ThumbnailResult.hpp"
 #include "ThumbnailOptions.hpp"
 #include "CompressVideoOptions.hpp"
+#include "ProcessVideoOptions.hpp"
+#include "ProcessImageOptions.hpp"
 
 #include "MediaToolkit-Swift-Cxx-Umbrella.hpp"
 
@@ -110,6 +122,22 @@ namespace margelo::nitro::mediatoolkit {
       auto __value = std::move(__result.value());
       return __value;
     }
+    inline std::shared_ptr<Promise<MediaResult>> flipImage(const std::string& uri, const FlipOptions& options) override {
+      auto __result = _swiftPart.flipImage(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> rotateImage(const std::string& uri, const RotateOptions& options) override {
+      auto __result = _swiftPart.rotateImage(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
     inline std::shared_ptr<Promise<MediaResult>> cropVideo(const std::string& uri, const VideoCropOptions& options) override {
       auto __result = _swiftPart.cropVideo(uri, std::forward<decltype(options)>(options));
       if (__result.hasError()) [[unlikely]] {
@@ -144,6 +172,38 @@ namespace margelo::nitro::mediatoolkit {
     }
     inline std::shared_ptr<Promise<MediaResult>> compressVideo(const std::string& uri, const CompressVideoOptions& options) override {
       auto __result = _swiftPart.compressVideo(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> flipVideo(const std::string& uri, const FlipOptions& options) override {
+      auto __result = _swiftPart.flipVideo(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> rotateVideo(const std::string& uri, const RotateOptions& options) override {
+      auto __result = _swiftPart.rotateVideo(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> processVideo(const std::string& uri, const ProcessVideoOptions& options) override {
+      auto __result = _swiftPart.processVideo(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> processImage(const std::string& uri, const ProcessImageOptions& options) override {
+      auto __result = _swiftPart.processImage(uri, std::forward<decltype(options)>(options));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

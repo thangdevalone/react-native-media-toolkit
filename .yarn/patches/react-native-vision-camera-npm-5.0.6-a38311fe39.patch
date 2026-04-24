@@ -1,22 +1,17 @@
-diff --git a/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift b/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift
-index dc40d8ccce69b959d9f4ed1ff28112b30661e612..07643659273eee214e9ae65bc8c87327029876cb 100644
---- a/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift	
-+++ b/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift	
-@@ -25,7 +25,7 @@ extension ResolutionBiasConstraint: ResolvableConstraint {
-     case .closestTo(let targetResolution):
-       let targetResolution = targetResolution.toCMVideoDimensions()
-       guard let closestSupportedResolution = supportedResolutions.nearest(to: targetResolution) else {
--        throw RuntimeError("Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
-+        throw RuntimeError.error(withMessage: "Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
-       }
-       penalty = closestSupportedResolution.penalty(targetResolution)
-     case .min(let minimumResolution):
-@@ -37,7 +37,7 @@ extension ResolutionBiasConstraint: ResolvableConstraint {
-         penalty = 0.0
-       } else {
-         guard let best = supportedResolutions.nearest(to: minimumResolution) else {
--          throw RuntimeError("Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
-+          throw RuntimeError.error(withMessage: "Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
-         }
-         penalty = best.penalty(minimumResolution)
-       }
+diff --git a/ios/Extensions/Converters/AV+PixelFormat.swift b/ios/Extensions/Converters/AV+PixelFormat.swift
+index f0c61086a44e165c3643ce8bd52b8fda62624ae5..d03b48794bb0bc62baa826ea198dd1f757d41424 100644
+--- a/ios/Extensions/Converters/AV+PixelFormat.swift
++++ b/ios/Extensions/Converters/AV+PixelFormat.swift
+@@ -48,10 +48,12 @@ extension PixelFormat {
+       self = .rgbRgba8Bit
+     case .rgbRgb8Bit:
+       self = .rgbRgb8Bit
++#if arch(arm64)
+     case .rawBayerPacked9612Bit:
+       self = .rawBayerPacked9612Bit
+     case .rawBayerUnpacked16Bit:
+       self = .rawBayerUnpacked16Bit
++#endif
+     default:
+       let stringified = Self.fourCharCodeToString(mediaSubType.rawValue)
+       logger.error("Unknown Format PixelFormat: \"\(stringified)\"")

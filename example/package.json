@@ -7,7 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "postinstall": "patch-package && node -e \"fs.rmSync('node_modules/expo-video/local-maven-repo', {recursive:true, force:true})\"",
+    "postinstall": "node -e \"fs.rmSync('node_modules/expo-video/local-maven-repo', {recursive:true, force:true})\"",
     "build:ios": "xcodebuild ONLY_ACTIVE_ARCH=YES -workspace ios/MediaToolkitExample.xcworkspace -UseNewBuildSystem=YES -scheme MediaToolkitExample -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet",
     "build:android": "cd android && ./gradlew assembleDebug -DtestBuildType=debug -Dorg.gradle.jvmargs=-Xmx4g",
     "build:web": "expo export --platform web"
@@ -27,12 +27,11 @@
     "react-native-nitro-image": "^0.13.1",
     "react-native-nitro-modules": "^0.35.2",
     "react-native-safe-area-context": "~5.6.0",
-    "react-native-vision-camera": "patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-a38311fe39.patch",
+    "react-native-vision-camera": "patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-v3.patch",
     "react-native-web": "~0.21.0"
   },
   "private": true,
   "devDependencies": {
-    "patch-package": "^8.0.1",
     "react-native-builder-bob": "^0.41.0",
     "react-native-monorepo-config": "^0.3.3"
   }

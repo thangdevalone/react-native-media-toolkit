@@ -1,0 +1,53 @@
+diff --git a/ios/Extensions/CoreMedia/CMFormatDescription.MediaSubType+hidden.swift b/ios/Extensions/CoreMedia/CMFormatDescription.MediaSubType+hidden.swift
+index d524eda6cf972438360cada6570c03800c32e283..2e6e3396553f4f31a09f1e5f9fa0620aa89a8109 100644
+--- a/ios/Extensions/CoreMedia/CMFormatDescription.MediaSubType+hidden.swift
++++ b/ios/Extensions/CoreMedia/CMFormatDescription.MediaSubType+hidden.swift
+@@ -52,8 +52,10 @@ extension CMFormatDescription.MediaSubType {
+   static let rgbRgb8Bit = CMFormatDescription.MediaSubType(rawValue: kCVPixelFormatType_24RGB)
+ 
+   // Bayer/RAW
++#if arch(arm64)
+   static let rawBayerPacked9612Bit = CMFormatDescription.MediaSubType(
+     rawValue: kCVPixelFormatType_96VersatileBayerPacked12)
+   static let rawBayerUnpacked16Bit = CMFormatDescription.MediaSubType(
+     rawValue: kCVPixelFormatType_16VersatileBayer)
++#endif
+ }
+diff --git a/ios/Extensions/URL+createTempURL.swift b/ios/Extensions/URL+createTempURL.swift
+index 528b26761e5dbf43f4b45abc91a66e928d8b8dac..f8e8a80fd9b5caed2e7305b5742c10752897387b 100644
+--- a/ios/Extensions/URL+createTempURL.swift
++++ b/ios/Extensions/URL+createTempURL.swift
+@@ -32,9 +32,8 @@ extension URL {
+    * in the temporary directory using a random `UUID` as its name.
+    */
+   static func createTempURL(fileType: AVFileType) throws(TemporaryFileError) -> URL {
+-    // AVFileType is a string-like type (usually MIME, like "video/mp4")
+-    let mimeType = fileType.rawValue
+-    guard let utFileType = UTType(mimeType: mimeType) else {
++    // AVFileType is a UTI string in Apple systems (e.g. "public.mpeg-4" or "com.apple.quicktime-movie")
++    guard let utFileType = UTType(fileType.rawValue) else {
+       throw TemporaryFileError.invalidAVFileType
+     }
+     return try createTempURL(fileType: utFileType)
+diff --git a/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift b/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift
+index dc40d8ccce69b959d9f4ed1ff28112b30661e612..07643659273eee214e9ae65bc8c87327029876cb 100644
+--- a/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift	
++++ b/ios/Hybrid Objects/Constraints/ResolvableConstraint/ResolvableConstraint+ResolutionBiasConstraint.swift	
+@@ -25,7 +25,7 @@ extension ResolutionBiasConstraint: ResolvableConstraint {
+     case .closestTo(let targetResolution):
+       let targetResolution = targetResolution.toCMVideoDimensions()
+       guard let closestSupportedResolution = supportedResolutions.nearest(to: targetResolution) else {
+-        throw RuntimeError("Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
++        throw RuntimeError.error(withMessage: "Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
+       }
+       penalty = closestSupportedResolution.penalty(targetResolution)
+     case .min(let minimumResolution):
+@@ -37,7 +37,7 @@ extension ResolutionBiasConstraint: ResolvableConstraint {
+         penalty = 0.0
+       } else {
+         guard let best = supportedResolutions.nearest(to: minimumResolution) else {
+-          throw RuntimeError("Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
++          throw RuntimeError.error(withMessage: "Format \(format) does not have any available resolutions for stream type \"\(streamType)\"!")
+         }
+         penalty = best.penalty(minimumResolution)
+       }

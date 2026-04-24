@@ -62,8 +62,15 @@ export default function App() {
   const [imgQuality, setImgQuality] = useState('80');
   const [imgMaxWidth, setImgMaxWidth] = useState('1080');
 
-  const srcPlayer = useVideoPlayer(srcUri, player => { player.loop = true; });
-  const resPlayer = useVideoPlayer(result?.uri ?? null, player => { player.loop = true; });
+  const srcPlayer = useVideoPlayer(srcUri, player => {
+    player.loop = true;
+    // Limit ExoPlayer buffer to avoid OOM: default is 50s which exhausts 256MB heap
+    player.bufferOptions = { preferredForwardBufferDuration: 5, maxBufferBytes: 30 * 1024 * 1024 };
+  });
+  const resPlayer = useVideoPlayer(result?.uri ?? null, player => {
+    player.loop = true;
+    player.bufferOptions = { preferredForwardBufferDuration: 5, maxBufferBytes: 30 * 1024 * 1024 };
+  });
 
   React.useEffect(() => { if (srcUri && srcType === 'video') srcPlayer.play(); }, [srcUri, srcType, srcPlayer]);
   React.useEffect(() => { if (result?.uri && result.mime?.startsWith('video')) resPlayer.play(); }, [result, resPlayer]);
@@ -304,7 +311,6 @@ export default function App() {
   }
 
   // ── Home Screen ───────────────────────────────────────────────────────────
-  const dispUri = result?.mime?.startsWith('image') ? result.uri : srcUri;
 
   return (
     <SafeAreaProvider>
@@ -335,16 +341,21 @@ export default function App() {
               <Ionicons name="videocam-outline" size={22} color={T.orange} />
               <Text style={[h.pickTxt, { color: T.orange }]}>Video</Text>
             </Pressable>
-            <Pressable style={({ pressed }) => [h.pickBtn, { opacity: pressed ? 0.7 : 1, borderColor: '#FF3B30', backgroundColor: '#FF3B3011' }]} onPress={() => setScreen('recordVideo')}>
+            <Pressable style={({ pressed }) => [h.pickBtn, { opacity: pressed ? 0.7 : 1, borderColor: '#FF3B30', backgroundColor: '#FF3B3011' }]} onPress={() => {
+              // Pause both players to free ExoPlayer RAM/GPU buffers before opening camera
+              if (srcPlayer?.playing) srcPlayer.pause();
+              if (resPlayer?.playing) resPlayer.pause();
+              setScreen('recordVideo');
+            }}>
               <Ionicons name="camera-outline" size={22} color="#FF3B30" />
               <Text style={[h.pickTxt, { color: '#FF3B30' }]}>Record</Text>
             </Pressable>
           </View>
 
           {/* Preview */}
-          {srcUri && srcType === 'image' && dispUri && (
+          {srcUri && srcType === 'image' && (
             <View style={h.prev}>
-              <Image source={{ uri: dispUri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+              <Image source={{ uri: srcUri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
             </View>
           )}
           {srcUri && srcType === 'video' && (

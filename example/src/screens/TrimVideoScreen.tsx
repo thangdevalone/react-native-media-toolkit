@@ -47,12 +47,14 @@ export default function TrimVideoScreen({
 
   const handleSeek = useCallback(
     (ms: number) => {
+      if (!player) return;
       player.currentTime = ms / 1000;
     },
     [player]
   );
 
   const togglePlay = useCallback(() => {
+    if (!player) return;
     if (player.playing) {
       player.pause();
       setIsPlaying(false);
@@ -64,6 +66,7 @@ export default function TrimVideoScreen({
 
   useEffect(() => {
     const itv = setInterval(() => {
+      if (!player) return;
       setIsPlaying(player.playing);
       if (durationMs > 0) {
         setPlayheadPos((player.currentTime * 1000) / durationMs);
@@ -97,12 +100,14 @@ export default function TrimVideoScreen({
         </View>
 
         <View style={s.preview}>
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            contentFit="contain"
-            nativeControls={false}
-          />
+          {player && (
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit="contain"
+              nativeControls={false}
+            />
+          )}
           <TouchableOpacity
             style={s.playBtn}
             onPress={togglePlay}

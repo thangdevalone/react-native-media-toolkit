@@ -136,15 +136,24 @@ const CropOverlay = React.memo(
             bottom: undefined,
             width: W,
             height: H,
+            overflow: 'hidden',
           },
         ]}
         pointerEvents="box-none"
       >
-        {/* Vignette overlays */}
-        <Animated.View style={[s.vig, { top: 0, left: 0, right: 0, height: aT }]} />
-        <Animated.View style={[s.vig, { bottom: 0, left: 0, right: 0, height: aB }]} />
-        <Animated.View style={[s.vig, { top: aT, bottom: aB, left: 0, width: aL }]} />
-        <Animated.View style={[s.vig, { top: aT, bottom: aB, right: 0, width: aR }]} />
+        {/* Vignette overlay (Thick border trick to prevent gap jitter) */}
+        <Animated.View 
+          style={{
+            position: 'absolute',
+            left: aL.interpolate({ inputRange: [0, 10000], outputRange: [-4000, 6000] }),
+            top: aT.interpolate({ inputRange: [0, 10000], outputRange: [-4000, 6000] }),
+            right: aR.interpolate({ inputRange: [0, 10000], outputRange: [-4000, 6000] }),
+            bottom: aB.interpolate({ inputRange: [0, 10000], outputRange: [-4000, 6000] }),
+            borderWidth: 4000,
+            borderColor: 'rgba(0,0,0,0.55)',
+          }} 
+          pointerEvents="none"
+        />
 
         {/* Selection box with grid */}
         <Animated.View

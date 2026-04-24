@@ -76,12 +76,14 @@ export default function CropVideoScreen({
           style={{ flex: 1 }}
           onLayout={(e) => onLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}
         >
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            contentFit="contain"
-            nativeControls={false}
-          />
+          {player && (
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit="contain"
+              nativeControls={false}
+            />
+          )}
           {vPrevSz.w > 0 && vidNat.w > 0 && (
             <CropOverlay
               initialCrop={vcrop}

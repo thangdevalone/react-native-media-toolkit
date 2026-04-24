@@ -15,7 +15,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mediatoolkit.example",
-      "appleTeamId": "39D3CZD74P"
+      "appleTeamId": "39D3CZD74P",
+      "infoPlist": {
+        "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera to capture photos and videos.",
+        "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone to record audio for video recordings."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +27,13 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "mediatoolkit.example"
+      "package": "mediatoolkit.example",
+      "jsEngine": "hermes",
+      "largeHeap": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,14 +48,6 @@
           "ios": {
             "deploymentTarget": "15.1"
           }
-        }
-      ],
-      [
-        "react-native-vision-camera",
-        {
-          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your camera to record video",
-          "enableMicrophonePermission": true,
-          "microphonePermissionText": "$(PRODUCT_NAME) needs access to your microphone to record video with audio"
         }
       ],
       "./plugins/withMediaToolkitAndroid"

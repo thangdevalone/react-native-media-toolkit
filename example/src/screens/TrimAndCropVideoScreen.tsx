@@ -101,12 +101,14 @@ export default function TrimAndCropVideoScreen({
           style={{ flex: 1 }}
           onLayout={(e) => onLayout(e.nativeEvent.layout.width, e.nativeEvent.layout.height)}
         >
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            contentFit="contain"
-            nativeControls={false}
-          />
+          {player && (
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit="contain"
+              nativeControls={false}
+            />
+          )}
           {tcPrevSz.w > 0 && tcVidNat.w > 0 && (
             <CropOverlay
               initialCrop={tcCrop}

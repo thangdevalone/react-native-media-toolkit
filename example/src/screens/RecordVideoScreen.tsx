@@ -1,8 +1,8 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
 import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission, useVideoOutput, type CameraRef, type Recorder } from 'react-native-vision-camera';
 import { T } from '../theme';
 
 interface RecordVideoScreenProps {
@@ -15,10 +15,12 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
   const { hasPermission, requestPermission } = useCameraPermission();
   const { hasPermission: hasMicPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
 
-  const camera = useRef<Camera>(null);
+  const camera = useRef<CameraRef>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [saving, setSaving] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const recorderRef = useRef<Recorder | null>(null);
+  const videoOutput = useVideoOutput({ enableAudio: true });
 
   // Use ref for startTime to avoid stale closure in onRecordingFinished
   const startTimeRef = useRef<number>(0);
@@ -46,8 +48,8 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const startRecording = useCallback(() => {
-    if (!camera.current) return;
+  const startRecording = useCallback(async () => {
+    if (!camera.current || !videoOutput) return;
     startTimeRef.current = Date.now();
     setIsRecording(true);
     setElapsed(0);
@@ -57,34 +59,44 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
       setElapsed(Date.now() - startTimeRef.current);
     }, 200);
 
-    camera.current.startRecording({
-      onRecordingFinished: (video) => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        // Use VisionCamera's video.duration (actual file duration) as primary.
-        // Manual timer includes camera startup delay so it's always longer.
-        // video.duration is in seconds → convert to ms.
-        const vcDurMs = video.duration > 0 ? Math.round(video.duration * 1000) : 0;
-        const manualDurMs = stopTimeRef.current > 0
-          ? stopTimeRef.current - startTimeRef.current
-          : Date.now() - startTimeRef.current;
-        const durMs = vcDurMs > 0 ? vcDurMs : manualDurMs;
+    try {
+      const recorder = await videoOutput.createRecorder({});
+      recorderRef.current = recorder;
 
-        // VisionCamera returns a plain path (no file:// prefix)
-        const uri = video.path.startsWith('file://') ? video.path : `file://${video.path}`;
-        onRecord(uri, durMs, video.width, video.height);
-      },
-      onRecordingError: (error) => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        console.error('Recording error:', error);
-        setIsRecording(false);
-        setElapsed(0);
-      },
-    });
-  }, [onRecord]);
+      await recorder.startRecording(
+        (filePath: string) => {
+          if (timerRef.current) clearInterval(timerRef.current);
+          const durMs = stopTimeRef.current > 0
+            ? stopTimeRef.current - startTimeRef.current
+            : Date.now() - startTimeRef.current;
 
-  const stopRecording = useCallback(() => {
+          // VisionCamera returns a plain path (no file:// prefix)
+          const uri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+          onRecord(uri, durMs, 1080, 1920); // Defaulting to 1080x1920 for portrait
+        },
+        (error: Error) => {
+          if (timerRef.current) clearInterval(timerRef.current);
+          console.error('Recording error:', error);
+          setIsRecording(false);
+          setElapsed(0);
+        }
+      );
+    } catch (e) {
+      console.error('Failed to create or start recorder:', e);
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [onRecord, videoOutput]);
+
+  const stopRecording = useCallback(async () => {
     stopTimeRef.current = Date.now();  // Capture EXACT stop moment for duration
-    camera.current?.stopRecording();
+    try {
+      if (recorderRef.current) {
+        await recorderRef.current.stopRecording();
+      }
+    } catch (e) {
+      console.warn('Failed to stop recording:', e);
+    }
     setIsRecording(false);
     setSaving(true);  // Show processing indicator until onRecordingFinished
   }, []);
@@ -124,10 +136,7 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={true}
-        video={true}
-        audio={true}
-        videoStabilizationMode="auto"
-        orientation="portrait"
+        outputs={[videoOutput]}
       />
 
       {/* Overlay UI */}

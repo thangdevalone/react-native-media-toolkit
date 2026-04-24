@@ -1,0 +1,34 @@
+diff --git a/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java b/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java
+index 9ac55d6a8a24c53c5f1a8e1c2aaba06639464bad..edeedbcd77c1733669a8e9d6d93f2d2be66ed033 100644
+--- a/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java
++++ b/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java
+@@ -393,6 +393,11 @@ public class DefaultLoadControl implements LoadControl {
+     return allocator;
+   }
+ 
++  // Compatibility with newer media3 (pulled by CameraX 1.7+): added PlayerId overload as abstract.
++  public Allocator getAllocator(PlayerId playerId) {
++    return allocator;
++  }
++
+   @Override
+   public long getBackBufferDurationUs(PlayerId playerId) {
+     return backBufferDurationUs;
+diff --git a/expo-module.config.json b/expo-module.config.json
+index bd6bd1c9e09d6c61dae49be5a179da504cb888f8..6d6ecae977a616274d83e4dcc14e8cfc20d9a320 100644
+--- a/expo-module.config.json
++++ b/expo-module.config.json
+@@ -4,12 +4,6 @@
+     "modules": ["VideoModule"]
+   },
+   "android": {
+-    "modules": ["expo.modules.video.VideoModule"],
+-    "publication": {
+-      "groupId": "host.exp.exponent",
+-      "artifactId": "expo.modules.video",
+-      "version": "3.0.16",
+-      "repository": "local-maven-repo"
+-    }
++    "modules": ["expo.modules.video.VideoModule"]
+   }
+ }

@@ -8465,7 +8465,7 @@ __metadata:
     react-native-nitro-image: "npm:^0.13.1"
     react-native-nitro-modules: "npm:^0.35.2"
     react-native-safe-area-context: "npm:~5.6.0"
-    react-native-vision-camera: "patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-v3.patch"
+    react-native-vision-camera: "patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-v4.patch"
     react-native-web: "npm:~0.21.0"
   languageName: unknown
   linkType: soft
@@ -8553,15 +8553,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-vision-camera@patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-v3.patch":
+"react-native-vision-camera@patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-v4.patch":
   version: 5.0.6
-  resolution: "react-native-vision-camera@patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-v3.patch::version=5.0.6&hash=20e9d0"
+  resolution: "react-native-vision-camera@patch:react-native-vision-camera@npm%3A5.0.6#~/.yarn/patches/react-native-vision-camera-npm-5.0.6-v4.patch::version=5.0.6&hash=be5bf7"
   peerDependencies:
     react: "*"
     react-native: "*"
     react-native-nitro-image: "*"
     react-native-nitro-modules: "*"
-  checksum: 10c0/8ddb867ef475f88a3cb9b3d4bdf6eb4ad5e3dc382bc86dbbfade77da1a681eed9107a949617ef9dc5d17cabf73c9eec2d1bdbe8e06b30fa9254240f35632f61e
+  checksum: 10c0/9257f8cffed25ba38b1b86ee165bac32167b0118e8b1d4cf071c8c9b03de6847ef69a8e605f6937215117eab7dbbb1b2273aa8e9db177ac4f8dd1d3175e114b4
   languageName: node
   linkType: hard
 

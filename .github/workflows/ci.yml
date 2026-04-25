@@ -135,25 +135,29 @@ jobs:
         run: |
           yarn example expo prebuild --platform ios
 
-      # Workaround: Swift 6.1.2 has a compiler bug where the USR mangler crashes
-      # during source info serialization for HybridRecorderSpec_cxx.startRecording
-      # due to inconsistent mangling of complex C++ interop types.
-      # Setting SWIFT_COMPILATION_MODE=wholemodule for VisionCamera changes the
-      # compilation path and avoids the per-file USR generation crash.
+      # Workaround: Swift 6.1.2 compiler bug - USR mangler crashes for
+      # HybridRecorderSpec_cxx.startRecording with complex C++ interop types.
+      # Inject SWIFT_COMPILATION_MODE=wholemodule inside the existing post_install
+      # block (CocoaPods forbids multiple post_install hooks).
       - name: Patch Podfile for VisionCamera Swift compiler workaround
         if: env.turbo_cache_hit != 1
         run: |
-          cat >> example/ios/Podfile << 'PODFILE_PATCH'
-
-          post_install do |installer|
+          node -e "
+          const fs = require('fs');
+          let podfile = fs.readFileSync('example/ios/Podfile', 'utf8');
+          const injection = \`
+            # Workaround: Swift 6.1.2 C++ interop USR mangling bug
             installer.pods_project.targets.each do |target|
               next unless target.name == 'VisionCamera'
               target.build_configurations.each do |config|
                 config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
               end
             end
-          end
-          PODFILE_PATCH
+          \`;
+          podfile = podfile.replace('post_install do |installer|', 'post_install do |installer|' + injection);
+          fs.writeFileSync('example/ios/Podfile', podfile);
+          console.log('Podfile patched for VisionCamera SWIFT_COMPILATION_MODE=wholemodule');
+          "
 
       - name: Setup Ruby
         if: env.turbo_cache_hit != 1

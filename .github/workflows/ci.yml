@@ -135,27 +135,6 @@ jobs:
         run: |
           yarn example expo prebuild --platform ios
 
-      - name: Patch Podfile for iOS 16 Deployment Target
-        if: env.turbo_cache_hit != 1
-        run: |
-          node -e "
-          const fs = require('fs');
-          let podfile = fs.readFileSync('example/ios/Podfile', 'utf8');
-          const injection = \`
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] && config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 16.0
-                  config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
-                end
-              end
-            end
-          \`;
-          podfile = podfile.replace('post_install do |installer|', 'post_install do |installer|\\n' + injection);
-          fs.writeFileSync('example/ios/Podfile', podfile);
-          console.log('Podfile patched: IPHONEOS_DEPLOYMENT_TARGET enforced to 16.0');
-          "
-
-
       - name: Setup Ruby
         if: env.turbo_cache_hit != 1
         uses: ruby/setup-ruby@v1

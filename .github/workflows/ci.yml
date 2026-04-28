@@ -74,16 +74,9 @@ jobs:
         run: |
           yarn example expo prebuild --platform android
 
-      - name: Cache Gradle
+      - name: Setup Gradle
         if: env.turbo_cache_hit != 1
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: |
-            ~/.gradle/wrapper
-            ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build example for Android
         env:

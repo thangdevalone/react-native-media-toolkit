@@ -92,10 +92,10 @@ jobs:
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
   build-ios:
-    runs-on: macos-15
-
+    runs-on: macos-26
+    
     env:
-      XCODE_VERSION: '16.2'
+      XCODE_VERSION: '26.2'
       TURBO_CACHE_DIR: .turbo/ios
       RCT_USE_RN_DEP: 1
       RCT_USE_PREBUILT_RNCORE: 1
@@ -134,19 +134,6 @@ jobs:
         if: env.turbo_cache_hit != 1
         run: |
           yarn example expo prebuild --platform ios
-
-      - name: Patch VisionCamera iOS 26 API incompatibilities
-        if: env.turbo_cache_hit != 1
-        run: |
-          node -e "
-          const fs = require('fs');
-          const file = 'example/node_modules/react-native-vision-camera/ios/Extensions/Converters/AV+TargetColorSpace.swift';
-          if (fs.existsSync(file)) {
-            let code = fs.readFileSync(file, 'utf8');
-            code = code.replace(/if #available\(iOS 26\.0, \*\) \{[\s\S]*?else \{/g, '{');
-            fs.writeFileSync(file, code);
-          }
-          "
 
       - name: Patch Podfile for VisionCamera Swift compiler workaround
         if: env.turbo_cache_hit != 1

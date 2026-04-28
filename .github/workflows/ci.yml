@@ -135,6 +135,19 @@ jobs:
         run: |
           yarn example expo prebuild --platform ios
 
+      - name: Patch VisionCamera iOS 26 API incompatibilities
+        if: env.turbo_cache_hit != 1
+        run: |
+          node -e "
+          const fs = require('fs');
+          const file = 'example/node_modules/react-native-vision-camera/ios/Extensions/Converters/AV+TargetColorSpace.swift';
+          if (fs.existsSync(file)) {
+            let code = fs.readFileSync(file, 'utf8');
+            code = code.replace(/if #available\(iOS 26\.0, \*\) \{[\s\S]*?else \{/g, '{');
+            fs.writeFileSync(file, code);
+          }
+          "
+
       - name: Patch Podfile for VisionCamera Swift compiler workaround
         if: env.turbo_cache_hit != 1
         run: |

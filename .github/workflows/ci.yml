@@ -135,18 +135,6 @@ jobs:
         run: |
           yarn example expo prebuild --platform ios
 
-      # Workaround: VisionCamera 5.0.6 uses iOS 26.0 APIs that don't exist in
-      # the Xcode 16.4 / iOS 18.5 SDK. Even with #available(iOS 26.0, *) runtime
-      # guards, Swift requires symbols to exist in SDK headers at compile time.
-      # All iOS 26 patches are done here via Node.js regex replacement (not yarn-patch)
-      # to avoid brittle line-number hunk headers.
-
-
-
-      # Workaround: Swift 6.1.2 compiler bug - USR mangler crashes for
-      # HybridRecorderSpec_cxx.startRecording with complex C++ interop types.
-      # Inject SWIFT_COMPILATION_MODE=wholemodule inside the existing post_install
-      # block (CocoaPods forbids multiple post_install hooks).
       - name: Patch Podfile for VisionCamera Swift compiler workaround
         if: env.turbo_cache_hit != 1
         run: |
@@ -160,6 +148,11 @@ jobs:
             # 2. SwiftCompile: indexAndRecord -> IndexSwiftASTWalker (USR generation)
             # Fix: disable index store to prevent IndexSwiftASTWalker from running.
             installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |config|
+                if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] && config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 16.0
+                  config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+                end
+              end
               next unless target.name == 'VisionCamera'
               target.build_configurations.each do |config|
                 config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'

@@ -27,6 +27,7 @@ import CropVideoScreen from './screens/CropVideoScreen';
 import TrimAndCropVideoScreen from './screens/TrimAndCropVideoScreen';
 import TrimVideoScreen from './screens/TrimVideoScreen';
 import RecordVideoScreen from './screens/RecordVideoScreen';
+import MultiProcessScreen from './screens/MultiProcessScreen';
 import { T, fmtMs, fmtSize } from './theme';
 import { DEF_CROP, type CropBox, type Screen } from './types';
 
@@ -229,6 +230,47 @@ export default function App() {
     });
   };
 
+  const flipImage = (dir: string) => {
+    setScreen('home');
+    doOp(`Flip ${dir}`, () => MediaToolkit.flipImage(srcUri!, { direction: dir }));
+  };
+
+  const rotateImage = (deg: number) => {
+    setScreen('home');
+    doOp(`Rotate ${deg}°`, () => MediaToolkit.rotateImage(srcUri!, { degrees: deg }));
+  };
+
+  const flipVideo = (dir: string) => {
+    setScreen('home');
+    doOp(`Flip ${dir}`, () => MediaToolkit.flipVideo(srcUri!, { direction: dir }));
+  };
+
+  const rotateVideo = (deg: number) => {
+    setScreen('home');
+    doOp(`Rotate ${deg}°`, () => MediaToolkit.rotateVideo(srcUri!, { degrees: deg }));
+  };
+
+  const applyVideoProcess = (opts: any) => {
+    setScreen('home');
+    doOp('Process Video (Multi)', () => 
+      MediaToolkit.processVideo(srcUri!, { 
+        startTime: opts.startMs, endTime: opts.endMs,
+        cropX: opts.cropX, cropY: opts.cropY, cropWidth: opts.cropW, cropHeight: opts.cropH, 
+        flip: opts.flip, rotation: opts.rotation 
+      })
+    );
+  };
+
+  const applyImageProcess = (opts: any) => {
+    setScreen('home');
+    doOp('Process Image (Multi)', () => 
+      MediaToolkit.processImage(srcUri!, { 
+        cropX: opts.cropX, cropY: opts.cropY, cropWidth: opts.cropW, cropHeight: opts.cropH, 
+        flip: opts.flip, rotation: opts.rotation 
+      })
+    );
+  };
+
   // ── Screen routing ────────────────────────────────────────────────────────
   if (screen === 'recordVideo') {
     return (
@@ -306,6 +348,21 @@ export default function App() {
         onNatSize={(w, h) => setTcVidNat({ w, h })}
         onCropCommit={setTcCrop}
         getContainRect={getContainRect}
+      />
+    );
+  }
+
+  if (screen === 'multiProcess' && srcUri && srcType) {
+    return (
+      <MultiProcessScreen
+        srcUri={srcUri}
+        srcType={srcType}
+        durationMs={vidDur}
+        player={srcPlayer}
+        loading={loading}
+        opLabel={opLabel}
+        onBack={() => setScreen('home')}
+        onApply={srcType === 'video' ? applyVideoProcess : applyImageProcess}
       />
     );
   }
@@ -437,6 +494,27 @@ export default function App() {
               </View>
               <ActionBtn label="Compress" icon="archive" color={T.accent} onPress={compressImg} disabled={loading} />
             </View>
+            <View style={h.divider} />
+            <View style={[h.opRow, { alignItems: 'flex-start' }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={h.opTitle}>Transform</Text>
+                <Text style={h.opHint}>Flip & Rotate</Text>
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  <ActionBtn label="Flip H" icon="swap-horizontal" color={T.teal} onPress={() => flipImage('horizontal')} disabled={loading} />
+                  <ActionBtn label="Flip V" icon="swap-vertical" color={T.teal} onPress={() => flipImage('vertical')} disabled={loading} />
+                  <ActionBtn label="Rot 90°" icon="refresh" color={T.teal} onPress={() => rotateImage(90)} disabled={loading} />
+                </View>
+              </View>
+            </View>
+            <View style={h.divider} />
+            <View style={h.opRow}>
+              <Ionicons name="color-wand-outline" size={20} color={T.teal} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={h.opTitle}>Multi Process</Text>
+                <Text style={h.opHint}>Custom Crop, Flip, Rotate in 1 pass</Text>
+              </View>
+              <ActionBtn label="Editor" icon="options" color={T.teal} onPress={() => setScreen('multiProcess')} disabled={loading} />
+            </View>
           </View>
         )}
 
@@ -538,6 +616,28 @@ export default function App() {
                 <Text style={h.opHint}>Extract frame at 0s as JPEG</Text>
               </View>
               <ActionBtn label="Extract" icon="camera" color={T.orange} onPress={extractThumb} disabled={loading} />
+            </View>
+            <View style={h.divider} />
+            <View style={[h.opRow, { alignItems: 'flex-start' }]}>
+              <Ionicons name="sync-outline" size={20} color={T.orange} style={{ marginTop: 4 }} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={h.opTitle}>Transform</Text>
+                <Text style={h.opHint}>Flip & Rotate</Text>
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  <ActionBtn label="Flip H" icon="swap-horizontal" color={T.orange} onPress={() => flipVideo('horizontal')} disabled={loading} />
+                  <ActionBtn label="Flip V" icon="swap-vertical" color={T.orange} onPress={() => flipVideo('vertical')} disabled={loading} />
+                  <ActionBtn label="Rot 90°" icon="refresh" color={T.orange} onPress={() => rotateVideo(90)} disabled={loading} />
+                </View>
+              </View>
+            </View>
+            <View style={h.divider} />
+            <View style={h.opRow}>
+              <Ionicons name="color-wand-outline" size={20} color={T.orange} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={h.opTitle}>Multi Process</Text>
+                <Text style={h.opHint}>Custom Trim, Crop, Flip, Rot in 1 pass</Text>
+              </View>
+              <ActionBtn label="Editor" icon="options" color={T.orange} onPress={() => setScreen('multiProcess')} disabled={loading} />
             </View>
           </View>
         )}

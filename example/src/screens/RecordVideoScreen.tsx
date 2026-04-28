@@ -20,7 +20,7 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
   const [saving, setSaving] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const recorderRef = useRef<Recorder | null>(null);
-  const videoOutput = useVideoOutput({ enableAudio: true });
+  const videoOutput = useVideoOutput({ enableAudio: true, fileType: 'mp4' });
 
   // Use ref for startTime to avoid stale closure in onRecordingFinished
   const startTimeRef = useRef<number>(0);

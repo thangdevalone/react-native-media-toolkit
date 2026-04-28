@@ -39,6 +39,14 @@ abstract class HybridMediaToolkitSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
+  abstract fun flipImage(uri: String, options: FlipOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun rotateImage(uri: String, options: RotateOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
   abstract fun cropVideo(uri: String, options: VideoCropOptions): Promise<MediaResult>
   
   @DoNotStrip
@@ -56,6 +64,22 @@ abstract class HybridMediaToolkitSpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun compressVideo(uri: String, options: CompressVideoOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun flipVideo(uri: String, options: FlipOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun rotateVideo(uri: String, options: RotateOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun processVideo(uri: String, options: ProcessVideoOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun processImage(uri: String, options: ProcessImageOptions): Promise<MediaResult>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

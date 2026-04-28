@@ -15,11 +15,17 @@ public protocol HybridMediaToolkitSpec_protocol: HybridObject {
   // Methods
   func cropImage(uri: String, options: CropOptions) throws -> Promise<MediaResult>
   func compressImage(uri: String, options: CompressImageOptions) throws -> Promise<MediaResult>
+  func flipImage(uri: String, options: FlipOptions) throws -> Promise<MediaResult>
+  func rotateImage(uri: String, options: RotateOptions) throws -> Promise<MediaResult>
   func cropVideo(uri: String, options: VideoCropOptions) throws -> Promise<MediaResult>
   func trimVideo(uri: String, options: TrimOptions) throws -> Promise<MediaResult>
   func trimAndCropVideo(uri: String, options: TrimAndCropOptions) throws -> Promise<MediaResult>
   func getThumbnail(uri: String, options: ThumbnailOptions?) throws -> Promise<ThumbnailResult>
   func compressVideo(uri: String, options: CompressVideoOptions) throws -> Promise<MediaResult>
+  func flipVideo(uri: String, options: FlipOptions) throws -> Promise<MediaResult>
+  func rotateVideo(uri: String, options: RotateOptions) throws -> Promise<MediaResult>
+  func processVideo(uri: String, options: ProcessVideoOptions) throws -> Promise<MediaResult>
+  func processImage(uri: String, options: ProcessImageOptions) throws -> Promise<MediaResult>
 }
 
 public extension HybridMediaToolkitSpec_protocol {

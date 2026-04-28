@@ -120,6 +120,106 @@ internal object VideoProcessor {
     return runTransform(context, mediaItem, effects, out, onProgress, transmux = false)
   }
 
+  // ─── PROCESS (Trim + Crop + Flip + Rotate) ───────────────────────────────
+
+  fun processVideo(
+    context: Context,
+    uri: String,
+    startMs: Long,
+    endMs: Long,
+    cropX: Float,
+    cropY: Float,
+    cropWidth: Float,
+    cropHeight: Float,
+    flip: String?,
+    rotation: Double,
+    outputPath: String?,
+    onProgress: (Int) -> Unit
+  ): Map<String, Any> {
+    val out = outputPath ?: tempPath()
+
+    val clippingConfig = if (startMs > 0 || endMs > 0) {
+      androidx.media3.common.MediaItem.ClippingConfiguration.Builder()
+        .setStartPositionMs(startMs)
+        .setEndPositionMs(if (endMs > 0) endMs else Long.MIN_VALUE) // Using default end behavior
+        .build()
+    } else {
+      androidx.media3.common.MediaItem.ClippingConfiguration.UNSET
+    }
+
+    val mediaItem = MediaItem.Builder()
+      .setUri(toAndroidUri(uri))
+      .setClippingConfiguration(clippingConfig)
+      .build()
+
+    val effectList = mutableListOf<androidx.media3.common.Effect>()
+
+    // 1. Crop
+    if (cropWidth > 0 && cropHeight > 0) {
+      val left = cropX * 2.0f - 1.0f
+      val right = (cropX + cropWidth) * 2.0f - 1.0f
+      val top = 1.0f - cropY * 2.0f
+      val bottom = 1.0f - (cropY + cropHeight) * 2.0f
+      effectList.add(androidx.media3.effect.Crop(left, right, bottom, top))
+    }
+
+    // 2. Transform (Flip/Rotate)
+    if (!flip.isNullOrEmpty() || rotation != 0.0) {
+      val scaleX = if (flip == "horizontal") -1f else 1f
+      val scaleY = if (flip == "vertical") -1f else 1f
+      effectList.add(
+        ScaleAndRotateTransformation.Builder()
+          .setScale(scaleX, scaleY)
+          .setRotationDegrees(rotation.toFloat())
+          .build()
+      )
+    }
+
+    val effects = Effects(emptyList(), effectList)
+
+    return runTransform(context, mediaItem, effects, out, onProgress, transmux = false)
+  }
+
+  // ─── ROTATE ──────────────────────────────────────────────────────────────
+
+  fun rotateVideo(
+    context: Context,
+    uri: String,
+    degrees: Double,
+    outputPath: String?,
+    onProgress: (Int) -> Unit
+  ): Map<String, Any> {
+    val out = outputPath ?: tempPath()
+    val mediaUri = toAndroidUri(uri)
+    val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
+
+    val rotateEffect = ScaleAndRotateTransformation.Builder().setRotationDegrees(degrees.toFloat()).build()
+    val effects = Effects(emptyList(), listOf(rotateEffect))
+
+    return runTransform(context, mediaItem, effects, out, onProgress)
+  }
+
+  // ─── FLIP ────────────────────────────────────────────────────────────────
+
+  fun flipVideo(
+    context: Context,
+    uri: String,
+    direction: String,
+    outputPath: String?,
+    onProgress: (Int) -> Unit
+  ): Map<String, Any> {
+    val out = outputPath ?: tempPath()
+    val mediaUri = toAndroidUri(uri)
+    val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
+
+    val scaleX = if (direction == "horizontal") -1f else 1f
+    val scaleY = if (direction == "vertical") -1f else 1f
+    val flipEffect = ScaleAndRotateTransformation.Builder().setScale(scaleX, scaleY).build()
+    val effects = Effects(emptyList(), listOf(flipEffect))
+
+    return runTransform(context, mediaItem, effects, out, onProgress)
+  }
+
   // ─── COMPRESS ────────────────────────────────────────────────────────────
 
   fun compressVideo(

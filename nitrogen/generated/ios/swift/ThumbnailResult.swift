@@ -41,7 +41,7 @@ public extension ThumbnailResult {
   var height: Double {
     return self.__height
   }
-
+  
   @inline(__always)
   var duration: Double {
     return self.__duration

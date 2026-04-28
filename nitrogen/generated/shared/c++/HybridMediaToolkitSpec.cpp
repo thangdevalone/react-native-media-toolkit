@@ -16,11 +16,17 @@ namespace margelo::nitro::mediatoolkit {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("cropImage", &HybridMediaToolkitSpec::cropImage);
       prototype.registerHybridMethod("compressImage", &HybridMediaToolkitSpec::compressImage);
+      prototype.registerHybridMethod("flipImage", &HybridMediaToolkitSpec::flipImage);
+      prototype.registerHybridMethod("rotateImage", &HybridMediaToolkitSpec::rotateImage);
       prototype.registerHybridMethod("cropVideo", &HybridMediaToolkitSpec::cropVideo);
       prototype.registerHybridMethod("trimVideo", &HybridMediaToolkitSpec::trimVideo);
       prototype.registerHybridMethod("trimAndCropVideo", &HybridMediaToolkitSpec::trimAndCropVideo);
       prototype.registerHybridMethod("getThumbnail", &HybridMediaToolkitSpec::getThumbnail);
       prototype.registerHybridMethod("compressVideo", &HybridMediaToolkitSpec::compressVideo);
+      prototype.registerHybridMethod("flipVideo", &HybridMediaToolkitSpec::flipVideo);
+      prototype.registerHybridMethod("rotateVideo", &HybridMediaToolkitSpec::rotateVideo);
+      prototype.registerHybridMethod("processVideo", &HybridMediaToolkitSpec::processVideo);
+      prototype.registerHybridMethod("processImage", &HybridMediaToolkitSpec::processImage);
     });
   }
 

@@ -19,6 +19,10 @@ namespace margelo::nitro::mediatoolkit { struct MediaResult; }
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
 // Forward declaration of `CompressImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
+// Forward declaration of `FlipOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct FlipOptions; }
+// Forward declaration of `RotateOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct RotateOptions; }
 // Forward declaration of `VideoCropOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 // Forward declaration of `TrimOptions` to properly resolve imports.
@@ -31,12 +35,18 @@ namespace margelo::nitro::mediatoolkit { struct ThumbnailResult; }
 namespace margelo::nitro::mediatoolkit { struct ThumbnailOptions; }
 // Forward declaration of `CompressVideoOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
+// Forward declaration of `ProcessVideoOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessVideoOptions; }
+// Forward declaration of `ProcessImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
 
 #include "MediaResult.hpp"
 #include <NitroModules/Promise.hpp>
 #include <string>
 #include "CropOptions.hpp"
 #include "CompressImageOptions.hpp"
+#include "FlipOptions.hpp"
+#include "RotateOptions.hpp"
 #include "VideoCropOptions.hpp"
 #include "TrimOptions.hpp"
 #include "TrimAndCropOptions.hpp"
@@ -44,6 +54,8 @@ namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
 #include "ThumbnailOptions.hpp"
 #include <optional>
 #include "CompressVideoOptions.hpp"
+#include "ProcessVideoOptions.hpp"
+#include "ProcessImageOptions.hpp"
 
 namespace margelo::nitro::mediatoolkit {
 
@@ -78,11 +90,17 @@ namespace margelo::nitro::mediatoolkit {
       // Methods
       virtual std::shared_ptr<Promise<MediaResult>> cropImage(const std::string& uri, const CropOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> compressImage(const std::string& uri, const CompressImageOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> flipImage(const std::string& uri, const FlipOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> rotateImage(const std::string& uri, const RotateOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> cropVideo(const std::string& uri, const VideoCropOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> trimVideo(const std::string& uri, const TrimOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> trimAndCropVideo(const std::string& uri, const TrimAndCropOptions& options) = 0;
       virtual std::shared_ptr<Promise<ThumbnailResult>> getThumbnail(const std::string& uri, const std::optional<ThumbnailOptions>& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> compressVideo(const std::string& uri, const CompressVideoOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> flipVideo(const std::string& uri, const FlipOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> rotateVideo(const std::string& uri, const RotateOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> processVideo(const std::string& uri, const ProcessVideoOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> processImage(const std::string& uri, const ProcessImageOptions& options) = 0;
 
     protected:
       // Hybrid Setup

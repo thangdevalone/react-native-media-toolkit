@@ -174,6 +174,109 @@ class VideoProcessor: NSObject {
     }
   }
 
+  // ─── PROCESS (Trim + Crop + Flip + Rotate) ───────────────────────────────
+
+  @objc
+  static func processVideo(
+    uri: String,
+    startMs: Double,
+    endMs: Double,
+    cropX: Double,
+    cropY: Double,
+    cropW: Double,
+    cropH: Double,
+    flip: String?,
+    rotation: Double,
+    outputPath: String?,
+    onProgress: @escaping ProgressHandler,
+    completion: @escaping Completion
+  ) {
+    guard let asset = loadAsset(uri) else {
+      completion(nil, MediaToolkitError.invalidInput("Cannot load video: \(uri)")); return
+    }
+    guard let videoTrack = asset.tracks(withMediaType: .video).first else {
+      completion(nil, MediaToolkitError.processingFailed("No video track")); return
+    }
+
+    let out = outputPath ?? tempPath(ext: "mp4")
+    let outURL = URL(fileURLWithPath: out)
+    removeIfExists(outURL)
+
+    let mixComposition = AVMutableComposition()
+    guard let compVideoTrack = mixComposition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create track")); return
+    }
+    try? compVideoTrack.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: videoTrack, at: .zero)
+    compVideoTrack.preferredTransform = videoTrack.preferredTransform
+
+    if let audioTrack = asset.tracks(withMediaType: .audio).first,
+       let compAudioTrack = mixComposition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+      try? compAudioTrack.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: audioTrack, at: .zero)
+    }
+
+    let tfSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
+    let fw = abs(tfSize.width)
+    let fh = abs(tfSize.height)
+    
+    let isCrop = cropW > 0 && cropH > 0
+    let cX = CGFloat(cropX) * fw
+    let cY = CGFloat(cropY) * fh
+    let cW = isCrop ? CGFloat(cropW) * fw : fw
+    let cH = isCrop ? CGFloat(cropH) * fh : fh
+
+    let isHorizontal = (flip == "horizontal")
+    let isVertical = (flip == "vertical")
+    let radians = CGFloat(-rotation) * .pi / 180.0
+    
+    var finalSize = CGRect(origin: .zero, size: CGSize(width: cW, height: cH))
+        .applying(CGAffineTransform(rotationAngle: radians)).size
+    finalSize.width = abs(finalSize.width)
+    finalSize.height = abs(finalSize.height)
+
+    let videoComp = AVMutableVideoComposition(asset: mixComposition, applyingCIFiltersWithHandler: { request in
+      var img = request.sourceImage
+      
+      if isCrop {
+          let ciRect = CGRect(x: cX, y: fh - cY - cH, width: cW, height: cH)
+          img = img.cropped(to: ciRect).transformed(by: CGAffineTransform(translationX: -ciRect.origin.x, y: -ciRect.origin.y))
+      }
+      
+      img = img.transformed(by: CGAffineTransform(translationX: -cW/2, y: -cH/2))
+      if isHorizontal { img = img.transformed(by: CGAffineTransform(scaleX: -1, y: 1)) }
+      if isVertical   { img = img.transformed(by: CGAffineTransform(scaleX: 1, y: -1)) }
+      if rotation != 0 { img = img.transformed(by: CGAffineTransform(rotationAngle: radians)) }
+      img = img.transformed(by: CGAffineTransform(translationX: finalSize.width/2, y: finalSize.height/2))
+      
+      request.finish(with: img, context: nil)
+    })
+    videoComp.renderSize = finalSize
+
+    guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
+    }
+
+    session.outputFileType = .mp4
+    session.outputURL = outURL
+    session.videoComposition = videoComp
+    
+    if startMs > 0 || endMs > 0 {
+        let start = CMTime(seconds: startMs / 1000.0, preferredTimescale: 600)
+        let end   = CMTime(seconds: endMs   / 1000.0, preferredTimescale: 600)
+        session.timeRange = CMTimeRange(start: start, end: end)
+    }
+
+    pollProgress(session: session, onProgress: onProgress)
+    session.exportAsynchronously {
+      switch session.status {
+      case .completed:
+        let duration = (endMs > 0 ? endMs - startMs : asset.duration.seconds * 1000)
+        completion(videoResult(path: out, asset: asset, trimmed: duration), nil)
+      default:
+        completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
+      }
+    }
+  }
+
   // ─── CROP ────────────────────────────────────────────────────────────────
 
   @objc
@@ -286,6 +389,142 @@ class VideoProcessor: NSObject {
         completion(videoResult(path: out, asset: asset, trimmed: durationMs), nil)
       default:
         NSLog("[MediaToolkit] crop export failed: %@", session.error?.localizedDescription ?? "unknown")
+        completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
+      }
+    }
+  }
+
+  // ─── ROTATE ──────────────────────────────────────────────────────────────
+
+  @objc
+  static func rotateVideo(
+    uri: String,
+    degrees: Double,
+    outputPath: String?,
+    onProgress: @escaping ProgressHandler,
+    completion: @escaping Completion
+  ) {
+    guard let asset = loadAsset(uri) else {
+      completion(nil, MediaToolkitError.invalidInput("Cannot load video: \(uri)")); return
+    }
+    guard let videoTrack = asset.tracks(withMediaType: .video).first else {
+      completion(nil, MediaToolkitError.processingFailed("No video track")); return
+    }
+    let out = outputPath ?? tempPath(ext: "mp4")
+    let outURL = URL(fileURLWithPath: out)
+    removeIfExists(outURL)
+
+    let mixComposition = AVMutableComposition()
+    guard let compVideoTrack = mixComposition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create track")); return
+    }
+    try? compVideoTrack.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: videoTrack, at: .zero)
+    compVideoTrack.preferredTransform = videoTrack.preferredTransform
+
+    if let audioTrack = asset.tracks(withMediaType: .audio).first,
+       let compAudioTrack = mixComposition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+      try? compAudioTrack.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: audioTrack, at: .zero)
+    }
+
+    let tfSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
+    let fw = abs(tfSize.width)
+    let fh = abs(tfSize.height)
+    
+    // In CIImage, rotation is counter-clockwise. To match UI clockwise we negate
+    let radians = CGFloat(-degrees) * .pi / 180.0
+    var newSize = CGRect(origin: .zero, size: CGSize(width: fw, height: fh))
+        .applying(CGAffineTransform(rotationAngle: radians)).size
+    newSize.width = abs(newSize.width)
+    newSize.height = abs(newSize.height)
+
+    let videoComp = AVMutableVideoComposition(asset: mixComposition, applyingCIFiltersWithHandler: { request in
+        let source = request.sourceImage
+        var tx = source.transformed(by: CGAffineTransform(translationX: -fw/2, y: -fh/2))
+        tx = tx.transformed(by: CGAffineTransform(rotationAngle: radians))
+        tx = tx.transformed(by: CGAffineTransform(translationX: newSize.width/2, y: newSize.height/2))
+        request.finish(with: tx, context: nil)
+    })
+    videoComp.renderSize = newSize
+
+    guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
+    }
+    session.outputFileType = .mp4
+    session.outputURL = outURL
+    session.videoComposition = videoComp
+    pollProgress(session: session, onProgress: onProgress)
+    session.exportAsynchronously {
+      switch session.status {
+      case .completed:
+        completion(videoResult(path: out, asset: asset, trimmed: asset.duration.seconds * 1000), nil)
+      default:
+        completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
+      }
+    }
+  }
+
+  // ─── FLIP ────────────────────────────────────────────────────────────────
+
+  @objc
+  static func flipVideo(
+    uri: String,
+    direction: String,
+    outputPath: String?,
+    onProgress: @escaping ProgressHandler,
+    completion: @escaping Completion
+  ) {
+    guard let asset = loadAsset(uri) else {
+      completion(nil, MediaToolkitError.invalidInput("Cannot load video: \(uri)")); return
+    }
+    guard let videoTrack = asset.tracks(withMediaType: .video).first else {
+      completion(nil, MediaToolkitError.processingFailed("No video track")); return
+    }
+    let out = outputPath ?? tempPath(ext: "mp4")
+    let outURL = URL(fileURLWithPath: out)
+    removeIfExists(outURL)
+
+    let mixComposition = AVMutableComposition()
+    guard let compVideoTrack = mixComposition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create track")); return
+    }
+    try? compVideoTrack.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: videoTrack, at: .zero)
+    compVideoTrack.preferredTransform = videoTrack.preferredTransform
+
+    if let audioTrack = asset.tracks(withMediaType: .audio).first,
+       let compAudioTrack = mixComposition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+      try? compAudioTrack.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: audioTrack, at: .zero)
+    }
+
+    let tfSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
+    let fw = abs(tfSize.width)
+    let fh = abs(tfSize.height)
+    let isHorizontal = (direction == "horizontal")
+
+    let videoComp = AVMutableVideoComposition(asset: mixComposition, applyingCIFiltersWithHandler: { request in
+        let source = request.sourceImage
+        var tx = source.transformed(by: CGAffineTransform(translationX: -fw/2, y: -fh/2))
+        if isHorizontal {
+            tx = tx.transformed(by: CGAffineTransform(scaleX: -1, y: 1))
+        } else {
+            tx = tx.transformed(by: CGAffineTransform(scaleX: 1, y: -1))
+        }
+        tx = tx.transformed(by: CGAffineTransform(translationX: fw/2, y: fh/2))
+        request.finish(with: tx, context: nil)
+    })
+    videoComp.renderSize = CGSize(width: fw, height: fh)
+
+    guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
+    }
+    session.outputFileType = .mp4
+    session.outputURL = outURL
+    session.videoComposition = videoComp
+    pollProgress(session: session, onProgress: onProgress)
+    session.exportAsynchronously {
+      switch session.status {
+      case .completed:
+        completion(videoResult(path: out, asset: asset, trimmed: asset.duration.seconds * 1000), nil)
+      default:
         completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
       }
     }

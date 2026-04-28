@@ -125,6 +125,42 @@ export interface TrimAndCropOptions {
   outputPath?: string;
 }
 
+export interface FlipOptions {
+  /** "horizontal" or "vertical" */
+  direction: string;
+  /** Absolute output file path (optional) */
+  outputPath?: string;
+}
+
+export interface RotateOptions {
+  /** Rotation angle in degrees: 90, 180, 270 */
+  degrees: number;
+  /** Absolute output file path (optional) */
+  outputPath?: string;
+}
+
+export interface ProcessVideoOptions {
+  startTime?: number;
+  endTime?: number;
+  cropX?: number;
+  cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
+  flip?: string; // "horizontal" | "vertical"
+  rotation?: number;
+  outputPath?: string;
+}
+
+export interface ProcessImageOptions {
+  cropX?: number;
+  cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
+  flip?: string; // "horizontal" | "vertical"
+  rotation?: number;
+  outputPath?: string;
+}
+
 // ─── HybridObject spec ─────────────────────────────────────────────────────
 
 export interface MediaToolkit
@@ -135,6 +171,8 @@ export interface MediaToolkit
     uri: string,
     options: CompressImageOptions
   ): Promise<MediaResult>;
+  flipImage(uri: string, options: FlipOptions): Promise<MediaResult>;
+  rotateImage(uri: string, options: RotateOptions): Promise<MediaResult>;
 
   // ── Video ────────────────────────────────────────────────────────────────
   cropVideo(uri: string, options: VideoCropOptions): Promise<MediaResult>;
@@ -147,4 +185,11 @@ export interface MediaToolkit
     uri: string,
     options: CompressVideoOptions
   ): Promise<MediaResult>;
+  flipVideo(uri: string, options: FlipOptions): Promise<MediaResult>;
+  rotateVideo(uri: string, options: RotateOptions): Promise<MediaResult>;
+
+  /** Multi-transform video: trim, crop, flip, rotate in a single pass */
+  processVideo(uri: string, options: ProcessVideoOptions): Promise<MediaResult>;
+  /** Multi-transform image: crop, flip, rotate in a single pass */
+  processImage(uri: string, options: ProcessImageOptions): Promise<MediaResult>;
 }

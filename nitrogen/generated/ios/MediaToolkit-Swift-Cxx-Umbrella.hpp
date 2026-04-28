@@ -14,10 +14,18 @@ namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
 namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
 // Forward declaration of `CropOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
+// Forward declaration of `FlipOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct FlipOptions; }
 // Forward declaration of `HybridMediaToolkitSpec` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { class HybridMediaToolkitSpec; }
 // Forward declaration of `MediaResult` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct MediaResult; }
+// Forward declaration of `ProcessImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
+// Forward declaration of `ProcessVideoOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ProcessVideoOptions; }
+// Forward declaration of `RotateOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct RotateOptions; }
 // Forward declaration of `ThumbnailOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct ThumbnailOptions; }
 // Forward declaration of `ThumbnailResult` to properly resolve imports.
@@ -33,8 +41,12 @@ namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 #include "CompressImageOptions.hpp"
 #include "CompressVideoOptions.hpp"
 #include "CropOptions.hpp"
+#include "FlipOptions.hpp"
 #include "HybridMediaToolkitSpec.hpp"
 #include "MediaResult.hpp"
+#include "ProcessImageOptions.hpp"
+#include "ProcessVideoOptions.hpp"
+#include "RotateOptions.hpp"
 #include "ThumbnailOptions.hpp"
 #include "ThumbnailResult.hpp"
 #include "TrimAndCropOptions.hpp"

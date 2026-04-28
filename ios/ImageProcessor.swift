@@ -10,6 +10,78 @@ import UniformTypeIdentifiers
 @objc
 class ImageProcessor: NSObject {
 
+  // ─── PROCESS (Crop + Flip + Rotate) ──────────────────────────────────────
+
+  @objc
+  static func processImage(
+    uri: String,
+    cropX: Double,
+    cropY: Double,
+    cropW: Double,
+    cropH: Double,
+    flip: String?,
+    rotation: Double,
+    outputPath: String?
+  ) throws -> [String: Any] {
+    guard let image = loadImage(from: uri) else {
+      throw MediaToolkitError.invalidInput("Cannot load image at: \(uri)")
+    }
+    let normalised = normaliseOrientation(image)
+    var finalImage = normalised
+
+    // 1. Crop
+    if cropW > 0 && cropH > 0 {
+      let iw = finalImage.size.width
+      let ih = finalImage.size.height
+      let cropRect = CGRect(x: CGFloat(cropX) * iw, y: CGFloat(cropY) * ih, width: CGFloat(cropW) * iw, height: CGFloat(cropH) * ih)
+      if let cgCropped = finalImage.cgImage?.cropping(to: cropRect) {
+          finalImage = UIImage(cgImage: cgCropped)
+      }
+    }
+
+    // 2. Rotate
+    if rotation != 0 {
+      let radians = CGFloat(rotation) * .pi / 180.0
+      var newSize = CGRect(origin: .zero, size: finalImage.size)
+          .applying(CGAffineTransform(rotationAngle: radians)).size
+      newSize.width = floor(newSize.width)
+      newSize.height = floor(newSize.height)
+
+      UIGraphicsBeginImageContextWithOptions(newSize, false, finalImage.scale)
+      if let context = UIGraphicsGetCurrentContext() {
+          context.translateBy(x: newSize.width / 2, y: newSize.height / 2)
+          context.rotate(by: radians)
+          finalImage.draw(in: CGRect(x: -finalImage.size.width / 2, y: -finalImage.size.height / 2, width: finalImage.size.width, height: finalImage.size.height))
+          finalImage = UIGraphicsGetImageFromCurrentImageContext() ?? finalImage
+      }
+      UIGraphicsEndImageContext()
+    }
+
+    // 3. Flip
+    if let flipDir = flip, flipDir == "horizontal" || flipDir == "vertical" {
+      let size = finalImage.size
+      UIGraphicsBeginImageContextWithOptions(size, false, finalImage.scale)
+      if let context = UIGraphicsGetCurrentContext() {
+          if flipDir == "horizontal" {
+              context.translateBy(x: size.width, y: 0)
+              context.scaleBy(x: -1.0, y: 1.0)
+          } else {
+              context.translateBy(x: 0, y: size.height)
+              context.scaleBy(x: 1.0, y: -1.0)
+          }
+          finalImage.draw(in: CGRect(origin: .zero, size: size))
+          finalImage = UIGraphicsGetImageFromCurrentImageContext() ?? finalImage
+      }
+      UIGraphicsEndImageContext()
+    }
+
+    let out = outputPath ?? tempPath(ext: "jpg")
+    let data = finalImage.jpegData(compressionQuality: 0.9) ?? Data()
+    try data.write(to: URL(fileURLWithPath: out))
+
+    return result(path: out, image: finalImage, mime: "image/jpeg")
+  }
+
   // ─── CROP ────────────────────────────────────────────────────────────────
 
   /// Crops the image at `uri` by a relative region (x,y,w,h all 0–1).
@@ -48,6 +120,80 @@ class ImageProcessor: NSObject {
     try data.write(to: URL(fileURLWithPath: out))
 
     return result(path: out, image: cropped, mime: "image/jpeg")
+  }
+
+  // ─── ROTATE ──────────────────────────────────────────────────────────────
+
+  @objc
+  static func rotateImage(
+    uri: String,
+    degrees: Double,
+    outputPath: String?
+  ) throws -> [String: Any] {
+    guard let image = loadImage(from: uri) else {
+      throw MediaToolkitError.invalidInput("Cannot load image at: \(uri)")
+    }
+    let normalised = normaliseOrientation(image)
+    
+    let radians = CGFloat(degrees) * .pi / 180.0
+    var newSize = CGRect(origin: .zero, size: normalised.size)
+        .applying(CGAffineTransform(rotationAngle: radians)).size
+    newSize.width = floor(newSize.width)
+    newSize.height = floor(newSize.height)
+
+    UIGraphicsBeginImageContextWithOptions(newSize, false, normalised.scale)
+    guard let context = UIGraphicsGetCurrentContext() else {
+      throw MediaToolkitError.processingFailed("Context failed")
+    }
+    context.translateBy(x: newSize.width / 2, y: newSize.height / 2)
+    context.rotate(by: radians)
+    normalised.draw(in: CGRect(x: -normalised.size.width / 2, y: -normalised.size.height / 2, width: normalised.size.width, height: normalised.size.height))
+    let rotated = UIGraphicsGetImageFromCurrentImageContext() ?? normalised
+    UIGraphicsEndImageContext()
+
+    let out = outputPath ?? tempPath(ext: "jpg")
+    let data = rotated.jpegData(compressionQuality: 0.9) ?? Data()
+    try data.write(to: URL(fileURLWithPath: out))
+
+    return result(path: out, image: rotated, mime: "image/jpeg")
+  }
+
+  // ─── FLIP ────────────────────────────────────────────────────────────────
+
+  @objc
+  static func flipImage(
+    uri: String,
+    direction: String,
+    outputPath: String?
+  ) throws -> [String: Any] {
+    guard let image = loadImage(from: uri) else {
+      throw MediaToolkitError.invalidInput("Cannot load image at: \(uri)")
+    }
+    let normalised = normaliseOrientation(image)
+    let size = normalised.size
+    
+    UIGraphicsBeginImageContextWithOptions(size, false, normalised.scale)
+    guard let context = UIGraphicsGetCurrentContext() else {
+      throw MediaToolkitError.processingFailed("Context failed")
+    }
+    
+    if direction == "horizontal" {
+      context.translateBy(x: size.width, y: 0)
+      context.scaleBy(x: -1.0, y: 1.0)
+    } else { // vertical
+      context.translateBy(x: 0, y: size.height)
+      context.scaleBy(x: 1.0, y: -1.0)
+    }
+    
+    normalised.draw(in: CGRect(origin: .zero, size: size))
+    let flipped = UIGraphicsGetImageFromCurrentImageContext() ?? normalised
+    UIGraphicsEndImageContext()
+
+    let out = outputPath ?? tempPath(ext: "jpg")
+    let data = flipped.jpegData(compressionQuality: 0.9) ?? Data()
+    try data.write(to: URL(fileURLWithPath: out))
+
+    return result(path: out, image: flipped, mime: "image/jpeg")
   }
 
   // ─── COMPRESS ────────────────────────────────────────────────────────────

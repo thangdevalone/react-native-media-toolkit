@@ -13,4 +13,5 @@ export type Screen =
   | 'cropImage'
   | 'cropVideo'
   | 'trimAndCropVideo'
-  | 'recordVideo';
+  | 'recordVideo'
+  | 'multiProcess';

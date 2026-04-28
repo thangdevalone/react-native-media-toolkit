@@ -1,6 +1,6 @@
 {
   "name": "react-native-media-toolkit",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "description": "Native image/video crop, trim, and compress for React Native (New Architecture)",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -36,7 +36,7 @@
     "example": "yarn workspace react-native-media-toolkit-example",
     "clean": "del-cli lib",
     "prepare": "bob build",
-    "codegen": "nitrogen --config nitro.json",
+    "codegen": "nitrogen ./src --config nitro.json",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\""
   },
@@ -70,19 +70,19 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-ft-flow": "^3.0.11",
     "eslint-plugin-prettier": "^5.5.5",
-    "nitrogen": "^0.35.2",
+    "nitrogen": "^0.35.5",
     "prettier": "^3.8.1",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-builder-bob": "^0.41.0",
-    "react-native-nitro-modules": "^0.35.2",
+    "react-native-nitro-modules": "^0.35.5",
     "turbo": "^2.8.21",
     "typescript": "^6.0.2"
   },
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "react-native-nitro-modules": ">=0.35.2"
+    "react-native-nitro-modules": ">=0.35.5"
   },
   "workspaces": [
     "example"

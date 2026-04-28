@@ -3083,13 +3083,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@yarnpkg/lockfile@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "@yarnpkg/lockfile@npm:1.1.0"
-  checksum: 10c0/0bfa50a3d756623d1f3409bc23f225a1d069424dbc77c6fd2f14fb377390cd57ec703dc70286e081c564be9051ead9ba85d81d66a3e68eeb6eb506d4e0c0fbda
-  languageName: node
-  linkType: hard
-
 "abbrev@npm:^4.0.0":
   version: 4.0.0
   resolution: "abbrev@npm:4.0.0"
@@ -3945,7 +3938,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ci-info@npm:^3.2.0, ci-info@npm:^3.3.0, ci-info@npm:^3.7.0":
+"ci-info@npm:^3.2.0, ci-info@npm:^3.3.0":
   version: 3.9.0
   resolution: "ci-info@npm:3.9.0"
   checksum: 10c0/6f0109e36e111684291d46123d491bc4e7b7a1934c3a20dea28cba89f1d4a03acd892f5f6a81ed3855c38647e285a150e3c9ba062e38943bef57fee6c1554c3a
@@ -5363,15 +5356,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"find-yarn-workspace-root@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "find-yarn-workspace-root@npm:2.0.0"
-  dependencies:
-    micromatch: "npm:^4.0.2"
-  checksum: 10c0/b0d3843013fbdaf4e57140e0165889d09fa61745c9e85da2af86e54974f4cc9f1967e40f0d8fc36a79d53091f0829c651d06607d552582e53976f3cd8f4e5689
-  languageName: node
-  linkType: hard
-
 "flat-cache@npm:^4.0.0":
   version: 4.0.1
   resolution: "flat-cache@npm:4.0.1"
@@ -5423,17 +5407,6 @@ __metadata:
   version: 0.5.2
   resolution: "fresh@npm:0.5.2"
   checksum: 10c0/c6d27f3ed86cc5b601404822f31c900dd165ba63fff8152a3ef714e2012e7535027063bc67ded4cb5b3a49fa596495d46cacd9f47d6328459cf570f08b7d9e5a
-  languageName: node
-  linkType: hard
-
-"fs-extra@npm:^10.0.0":
-  version: 10.1.0
-  resolution: "fs-extra@npm:10.1.0"
-  dependencies:
-    graceful-fs: "npm:^4.2.0"
-    jsonfile: "npm:^6.0.1"
-    universalify: "npm:^2.0.0"
-  checksum: 10c0/5f579466e7109719d162a9249abbeffe7f426eb133ea486e020b89bc6d67a741134076bf439983f2eb79276ceaf6bd7b7c1e43c3fd67fe889863e69072fb0a5e
   languageName: node
   linkType: hard
 
@@ -5685,7 +5658,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graceful-fs@npm:^4.1.11, graceful-fs@npm:^4.1.6, graceful-fs@npm:^4.2.0, graceful-fs@npm:^4.2.4, graceful-fs@npm:^4.2.6, graceful-fs@npm:^4.2.9":
+"graceful-fs@npm:^4.1.6, graceful-fs@npm:^4.2.0, graceful-fs@npm:^4.2.4, graceful-fs@npm:^4.2.6, graceful-fs@npm:^4.2.9":
   version: 4.2.11
   resolution: "graceful-fs@npm:4.2.11"
   checksum: 10c0/386d011a553e02bc594ac2ca0bd6d9e4c22d7fa8cfbfc448a6d148c59ea881b092db9dbe3547ae4b88e55f1b01f7c4a2ecc53b310c042793e63aa44cf6c257f2
@@ -6599,19 +6572,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"json-stable-stringify@npm:^1.0.2":
-  version: 1.3.0
-  resolution: "json-stable-stringify@npm:1.3.0"
-  dependencies:
-    call-bind: "npm:^1.0.8"
-    call-bound: "npm:^1.0.4"
-    isarray: "npm:^2.0.5"
-    jsonify: "npm:^0.0.1"
-    object-keys: "npm:^1.1.1"
-  checksum: 10c0/8b3ff19e4c23c0ad591a49bc3a015d89a538db787d12fe9c4072e1d64d8cfa481f8c37719c629c3d84e848847617bf49f5fee894cf1d25959ab5b67e1c517f31
-  languageName: node
-  linkType: hard
-
 "json5@npm:^2.2.3":
   version: 2.2.3
   resolution: "json5@npm:2.2.3"
@@ -6634,13 +6594,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsonify@npm:^0.0.1":
-  version: 0.0.1
-  resolution: "jsonify@npm:0.0.1"
-  checksum: 10c0/7f5499cdd59a0967ed35bda48b7cec43d850bbc8fb955cdd3a1717bb0efadbe300724d5646de765bb7a99fc1c3ab06eb80d93503c6faaf99b4ff50a3326692f6
-  languageName: node
-  linkType: hard
-
 "jsx-ast-utils@npm:^2.4.1 || ^3.0.0":
   version: 3.3.5
   resolution: "jsx-ast-utils@npm:3.3.5"
@@ -6659,15 +6612,6 @@ __metadata:
   dependencies:
     json-buffer: "npm:3.0.1"
   checksum: 10c0/aa52f3c5e18e16bb6324876bb8b59dd02acf782a4b789c7b2ae21107fab95fab3890ed448d4f8dba80ce05391eeac4bfabb4f02a20221342982f806fa2cf271e
-  languageName: node
-  linkType: hard
-
-"klaw-sync@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "klaw-sync@npm:6.0.0"
-  dependencies:
-    graceful-fs: "npm:^4.1.11"
-  checksum: 10c0/00d8e4c48d0d699b743b3b028e807295ea0b225caf6179f51029e19783a93ad8bb9bccde617d169659fbe99559d73fb35f796214de031d0023c26b906cecd70a
   languageName: node
   linkType: hard
 
@@ -7464,7 +7408,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"micromatch@npm:^4.0.2, micromatch@npm:^4.0.4, micromatch@npm:^4.0.8":
+"micromatch@npm:^4.0.4, micromatch@npm:^4.0.8":
   version: 4.0.8
   resolution: "micromatch@npm:4.0.8"
   dependencies:
@@ -7556,7 +7500,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimist@npm:^1.2.0, minimist@npm:^1.2.6":
+"minimist@npm:^1.2.0":
   version: 1.2.8
   resolution: "minimist@npm:1.2.8"
   checksum: 10c0/19d3fcdca050087b84c2029841a093691a91259a47def2f18222f41e7645a0b7c44ef4b40e88a1e58a40c84d2ef0ee6047c55594d298146d0eb3f6b737c20ce6
@@ -7717,18 +7661,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nitrogen@npm:^0.35.2":
-  version: 0.35.2
-  resolution: "nitrogen@npm:0.35.2"
+"nitrogen@npm:^0.35.5":
+  version: 0.35.5
+  resolution: "nitrogen@npm:0.35.5"
   dependencies:
     chalk: "npm:^5.3.0"
-    react-native-nitro-modules: "npm:^0.35.2"
+    react-native-nitro-modules: "npm:^0.35.5"
     ts-morph: "npm:^27.0.0"
     yargs: "npm:^18.0.0"
     zod: "npm:^4.0.5"
   bin:
     nitrogen: lib/index.js
-  checksum: 10c0/a470f9e9e35b0ed636c553f401957ffb768c1015cb2e134232b7f0db72d78e014ee36dba413b55dabfa19cf7c09d251e896f4fb68e321defdd5b9c20bdbd97f2
+  checksum: 10c0/16e668a6b588d3b34303e50b6bfaa3048cf668df6ef89e6997fb43468f1c8e57bfe5a089522c19172cc23bc7d20152c79c6d69d5313946d44a7af2bf488b1f80
   languageName: node
   linkType: hard
 
@@ -7986,7 +7930,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"open@npm:^7.0.3, open@npm:^7.4.2":
+"open@npm:^7.0.3":
   version: 7.4.2
   resolution: "open@npm:7.4.2"
   dependencies:
@@ -8118,30 +8062,6 @@ __metadata:
   version: 1.3.3
   resolution: "parseurl@npm:1.3.3"
   checksum: 10c0/90dd4760d6f6174adb9f20cf0965ae12e23879b5f5464f38e92fce8073354341e4b3b76fa3d878351efe7d01e617121955284cfd002ab087fba1a0726ec0b4f5
-  languageName: node
-  linkType: hard
-
-"patch-package@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "patch-package@npm:8.0.1"
-  dependencies:
-    "@yarnpkg/lockfile": "npm:^1.1.0"
-    chalk: "npm:^4.1.2"
-    ci-info: "npm:^3.7.0"
-    cross-spawn: "npm:^7.0.3"
-    find-yarn-workspace-root: "npm:^2.0.0"
-    fs-extra: "npm:^10.0.0"
-    json-stable-stringify: "npm:^1.0.2"
-    klaw-sync: "npm:^6.0.0"
-    minimist: "npm:^1.2.6"
-    open: "npm:^7.4.2"
-    semver: "npm:^7.5.3"
-    slash: "npm:^2.0.0"
-    tmp: "npm:^0.2.4"
-    yaml: "npm:^2.2.2"
-  bin:
-    patch-package: index.js
-  checksum: 10c0/6dd7cdd8b814902f1a66bc9082bd5a5a484956563538a694ff1de2e7f4cc14a13480739f5f04e0d1747395d6f1b651eb1ddbc39687ce5ff8a3927f212cffd2ac
   languageName: node
   linkType: hard
 
@@ -8537,16 +8457,15 @@ __metadata:
     expo-status-bar: "npm:~3.0.9"
     expo-video: "patch:expo-video@npm%3A3.0.16#~/.yarn/patches/expo-video-npm-3.0.16-8037695497.patch"
     expo-video-thumbnails: "npm:~10.0.8"
-    patch-package: "npm:^8.0.1"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
     react-native: "npm:0.81.5"
     react-native-builder-bob: "npm:^0.41.0"
     react-native-monorepo-config: "npm:^0.3.3"
-    react-native-nitro-image: "npm:^0.13.1"
-    react-native-nitro-modules: "npm:^0.35.2"
+    react-native-nitro-image: "npm:^0.14.0"
+    react-native-nitro-modules: "npm:^0.35.5"
     react-native-safe-area-context: "npm:~5.6.0"
-    react-native-vision-camera: "npm:^5.0.6"
+    react-native-vision-camera: "npm:5.0.7"
     react-native-web: "npm:~0.21.0"
   languageName: unknown
   linkType: soft
@@ -8566,18 +8485,18 @@ __metadata:
     eslint-config-prettier: "npm:^10.1.8"
     eslint-plugin-ft-flow: "npm:^3.0.11"
     eslint-plugin-prettier: "npm:^5.5.5"
-    nitrogen: "npm:^0.35.2"
+    nitrogen: "npm:^0.35.5"
     prettier: "npm:^3.8.1"
     react: "npm:19.1.0"
     react-native: "npm:0.81.5"
     react-native-builder-bob: "npm:^0.41.0"
-    react-native-nitro-modules: "npm:^0.35.2"
+    react-native-nitro-modules: "npm:^0.35.5"
     turbo: "npm:^2.8.21"
     typescript: "npm:^6.0.2"
   peerDependencies:
     react: "*"
     react-native: "*"
-    react-native-nitro-modules: ">=0.35.2"
+    react-native-nitro-modules: ">=0.35.5"
   languageName: unknown
   linkType: soft
 
@@ -8591,24 +8510,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-nitro-image@npm:^0.13.1":
-  version: 0.13.1
-  resolution: "react-native-nitro-image@npm:0.13.1"
+"react-native-nitro-image@npm:^0.14.0":
+  version: 0.14.0
+  resolution: "react-native-nitro-image@npm:0.14.0"
   peerDependencies:
     react: "*"
     react-native: "*"
     react-native-nitro-modules: "*"
-  checksum: 10c0/cbbc736b89249aeb2edc59ec928adb6becf5b9efd056e4de10ea6f3277365a889bfdb32a52cdc19bbfca4edaacdc47e7fa8a15209de8c24ae49c557f5b1b500b
+  checksum: 10c0/5bd4d553acb354cfdbaec2a40d34285cc96b67a3ad045e77f11f24762a0028b3259c8464d546d1aad7bd5fee418673f7e0bfcd1ec61484a9ed7fb524da8a08c5
   languageName: node
   linkType: hard
 
-"react-native-nitro-modules@npm:^0.35.2":
-  version: 0.35.2
-  resolution: "react-native-nitro-modules@npm:0.35.2"
+"react-native-nitro-modules@npm:^0.35.5":
+  version: 0.35.5
+  resolution: "react-native-nitro-modules@npm:0.35.5"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10c0/6136f36ac1dc01dface7a4765b3258c8c8c766bc77c53765dfa6a29ff9f2091b13ce3e2a8a651e515cda045d125fc6fdd4f450cb4aabb0ab94c3d6b4b7b55b77
+  checksum: 10c0/fa6869f50345a33597b9c15aee4fa5a1c65794166946d470fad6d02d77bf467cc414934890e4e44644f2338303a4ec7b5127bf21824473e86e347aef83d20101
   languageName: node
   linkType: hard
 
@@ -8622,15 +8541,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-vision-camera@npm:^5.0.6":
-  version: 5.0.6
-  resolution: "react-native-vision-camera@npm:5.0.6"
+"react-native-vision-camera@npm:5.0.7":
+  version: 5.0.7
+  resolution: "react-native-vision-camera@npm:5.0.7"
   peerDependencies:
     react: "*"
     react-native: "*"
     react-native-nitro-image: "*"
     react-native-nitro-modules: "*"
-  checksum: 10c0/26fd3bd61f5d879da903d2dd5b3e8fe2b8d3527ce3e9ab48b492a4267786ee570862dd67f4b77d8862006a87359ae85816c43e259c5800f5b56b58ffe40fae5e
+  checksum: 10c0/9b4ed724c63ebdefd17815da617effb2081251d03699c5cfa4385c8bebdf20f8476ddd769889c08539f49336228feb88808c3632401aa3a6773b299a5dd9d5dd
   languageName: node
   linkType: hard
 
@@ -9039,7 +8958,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.1.3, semver@npm:^7.3.5, semver@npm:^7.5.3, semver@npm:^7.5.4, semver@npm:^7.6.0, semver@npm:^7.7.3":
+"semver@npm:^7.1.3, semver@npm:^7.3.5, semver@npm:^7.5.4, semver@npm:^7.6.0, semver@npm:^7.7.3":
   version: 7.7.4
   resolution: "semver@npm:7.7.4"
   bin:
@@ -9232,13 +9151,6 @@ __metadata:
   version: 1.0.5
   resolution: "sisteransi@npm:1.0.5"
   checksum: 10c0/230ac975cca485b7f6fe2b96a711aa62a6a26ead3e6fb8ba17c5a00d61b8bed0d7adc21f5626b70d7c33c62ff4e63933017a6462942c719d1980bb0b1207ad46
-  languageName: node
-  linkType: hard
-
-"slash@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "slash@npm:2.0.0"
-  checksum: 10c0/f83dbd3cb62c41bb8fcbbc6bf5473f3234b97fa1d008f571710a9d3757a28c7169e1811cad1554ccb1cc531460b3d221c9a7b37f549398d9a30707f0a5af9193
   languageName: node
   linkType: hard
 
@@ -9705,13 +9617,6 @@ __metadata:
     fdir: "npm:^6.5.0"
     picomatch: "npm:^4.0.3"
   checksum: 10c0/869c31490d0d88eedb8305d178d4c75e7463e820df5a9b9d388291daf93e8b1eb5de1dad1c1e139767e4269fe75f3b10d5009b2cc14db96ff98986920a186844
-  languageName: node
-  linkType: hard
-
-"tmp@npm:^0.2.4":
-  version: 0.2.5
-  resolution: "tmp@npm:0.2.5"
-  checksum: 10c0/cee5bb7d674bb4ba3ab3f3841c2ca7e46daeb2109eec395c1ec7329a91d52fcb21032b79ac25161a37b2565c4858fefab927af9735926a113ef7bac9091a6e0e
   languageName: node
   linkType: hard
 
@@ -10354,7 +10259,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yaml@npm:^2.2.2, yaml@npm:^2.6.1":
+"yaml@npm:^2.6.1":
   version: 2.8.3
   resolution: "yaml@npm:2.8.3"
   bin:

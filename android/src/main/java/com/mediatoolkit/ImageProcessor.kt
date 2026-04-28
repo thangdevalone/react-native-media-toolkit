@@ -16,6 +16,69 @@ import java.util.UUID
  */
 internal object ImageProcessor {
 
+  // ─── PROCESS (Crop + Flip + Rotate) ──────────────────────────────────────
+
+  fun processImage(
+    uri: String,
+    cropX: Double,
+    cropY: Double,
+    cropWidth: Double,
+    cropHeight: Double,
+    flip: String?,
+    rotation: Double,
+    outputPath: String?
+  ): Map<String, Any> {
+    val path = uriToPath(uri)
+    var bmp = BitmapFactory.decodeFile(path)
+      ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
+
+    bmp = fixExifOrientation(bmp, path)
+
+    // 1. Crop
+    if (cropWidth > 0 && cropHeight > 0) {
+      val iw = bmp.width
+      val ih = bmp.height
+      val px = (cropX * iw).toInt().coerceIn(0, iw - 1)
+      val py = (cropY * ih).toInt().coerceIn(0, ih - 1)
+      val pw = (cropWidth * iw).toInt().coerceIn(1, iw - px)
+      val ph = (cropHeight * ih).toInt().coerceIn(1, ih - py)
+      val cropped = Bitmap.createBitmap(bmp, px, py, pw, ph)
+      if (cropped !== bmp) {
+          bmp.recycle()
+          bmp = cropped
+      }
+    }
+
+    // 2. Transform (Flip / Rotate)
+    if (!flip.isNullOrEmpty() || rotation != 0.0) {
+      val matrix = Matrix()
+      if (flip == "horizontal") {
+          matrix.postScale(-1f, 1f, bmp.width / 2f, bmp.height / 2f)
+      } else if (flip == "vertical") {
+          matrix.postScale(1f, -1f, bmp.width / 2f, bmp.height / 2f)
+      }
+      if (rotation != 0.0) {
+          matrix.postRotate(rotation.toFloat())
+      }
+      val transformed = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+      if (transformed !== bmp) {
+          bmp.recycle()
+          bmp = transformed
+      }
+    }
+
+    val out = outputPath ?: tempPath("jpg")
+    val written = FileOutputStream(out).use { fos ->
+      bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+    }
+    if (!written) {
+        bmp.recycle()
+        throw MediaToolkitException.ProcessingFailed("Could not encode processed image")
+    }
+
+    return buildResult(out, bmp, "image/jpeg", 0)
+  }
+
   // ─── CROP ────────────────────────────────────────────────────────────────
 
   fun cropImage(
@@ -51,6 +114,64 @@ internal object ImageProcessor {
     if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode cropped image")
 
     return buildResult(out, cropped, "image/jpeg", 0)
+  }
+
+  // ─── ROTATE ──────────────────────────────────────────────────────────────
+
+  fun rotateImage(
+    uri: String,
+    degrees: Double,
+    outputPath: String?
+  ): Map<String, Any> {
+    val path = uriToPath(uri)
+    var bmp = BitmapFactory.decodeFile(path)
+      ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
+
+    bmp = fixExifOrientation(bmp, path)
+
+    val matrix = Matrix()
+    matrix.postRotate(degrees.toFloat())
+    val rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+    if (rotated !== bmp) bmp.recycle()
+
+    val out = outputPath ?: tempPath("jpg")
+    val written = FileOutputStream(out).use { fos ->
+      rotated.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+    }
+    if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode rotated image")
+
+    return buildResult(out, rotated, "image/jpeg", 0)
+  }
+
+  // ─── FLIP ────────────────────────────────────────────────────────────────
+
+  fun flipImage(
+    uri: String,
+    direction: String,
+    outputPath: String?
+  ): Map<String, Any> {
+    val path = uriToPath(uri)
+    var bmp = BitmapFactory.decodeFile(path)
+      ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
+
+    bmp = fixExifOrientation(bmp, path)
+
+    val matrix = Matrix()
+    if (direction == "horizontal") {
+      matrix.postScale(-1f, 1f, bmp.width / 2f, bmp.height / 2f)
+    } else {
+      matrix.postScale(1f, -1f, bmp.width / 2f, bmp.height / 2f)
+    }
+    val flipped = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+    if (flipped !== bmp) bmp.recycle()
+
+    val out = outputPath ?: tempPath("jpg")
+    val written = FileOutputStream(out).use { fos ->
+      flipped.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+    }
+    if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode flipped image")
+
+    return buildResult(out, flipped, "image/jpeg", 0)
   }
 
   // ─── COMPRESS ────────────────────────────────────────────────────────────

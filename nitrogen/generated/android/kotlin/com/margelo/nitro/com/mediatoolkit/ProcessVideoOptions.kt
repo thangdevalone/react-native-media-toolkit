@@ -9,7 +9,6 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
-import java.util.Objects
 
 
 /**
@@ -47,34 +46,6 @@ data class ProcessVideoOptions(
   val outputPath: String?
 ) {
   /* primary constructor */
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (other !is ProcessVideoOptions) return false
-    return Objects.deepEquals(this.startTime, other.startTime)
-      && Objects.deepEquals(this.endTime, other.endTime)
-      && Objects.deepEquals(this.cropX, other.cropX)
-      && Objects.deepEquals(this.cropY, other.cropY)
-      && Objects.deepEquals(this.cropWidth, other.cropWidth)
-      && Objects.deepEquals(this.cropHeight, other.cropHeight)
-      && Objects.deepEquals(this.flip, other.flip)
-      && Objects.deepEquals(this.rotation, other.rotation)
-      && Objects.deepEquals(this.outputPath, other.outputPath)
-  }
-
-  override fun hashCode(): Int {
-    return arrayOf(
-      startTime,
-      endTime,
-      cropX,
-      cropY,
-      cropWidth,
-      cropHeight,
-      flip,
-      rotation,
-      outputPath
-    ).contentDeepHashCode()
-  }
 
   companion object {
     /**

@@ -38,6 +38,16 @@ namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
 namespace margelo::nitro::mediatoolkit { struct ProcessVideoOptions; }
 // Forward declaration of `ProcessImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
+// Forward declaration of `SpeedOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct SpeedOptions; }
+// Forward declaration of `ExtractAudioOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ExtractAudioOptions; }
+// Forward declaration of `GeneratePreviewOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct GeneratePreviewOptions; }
+// Forward declaration of `MediaMetadata` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
+// Forward declaration of `LocationData` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct LocationData; }
 
 #include "MediaResult.hpp"
 #include <NitroModules/Promise.hpp>
@@ -55,6 +65,11 @@ namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
 #include "CompressVideoOptions.hpp"
 #include "ProcessVideoOptions.hpp"
 #include "ProcessImageOptions.hpp"
+#include "SpeedOptions.hpp"
+#include "ExtractAudioOptions.hpp"
+#include "GeneratePreviewOptions.hpp"
+#include "MediaMetadata.hpp"
+#include "LocationData.hpp"
 
 #include "MediaToolkit-Swift-Cxx-Umbrella.hpp"
 
@@ -204,6 +219,38 @@ namespace margelo::nitro::mediatoolkit {
     }
     inline std::shared_ptr<Promise<MediaResult>> processImage(const std::string& uri, const ProcessImageOptions& options) override {
       auto __result = _swiftPart.processImage(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> changeVideoSpeed(const std::string& uri, const SpeedOptions& options) override {
+      auto __result = _swiftPart.changeVideoSpeed(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> extractAudio(const std::string& uri, const ExtractAudioOptions& options) override {
+      auto __result = _swiftPart.extractAudio(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaResult>> generateVideoPreview(const std::string& uri, const GeneratePreviewOptions& options) override {
+      auto __result = _swiftPart.generateVideoPreview(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MediaMetadata>> getMediaMetadata(const std::string& uri) override {
+      auto __result = _swiftPart.getMediaMetadata(uri);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

@@ -17,6 +17,46 @@ export interface MediaResult {
   mime: string;
 }
 
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+}
+
+export interface MediaMetadata {
+  /** 'image' or 'video' */
+  type: string;
+  /** Width in pixels */
+  width: number;
+  /** Height in pixels */
+  height: number;
+  /** File size in bytes */
+  size: number;
+  /** Duration in milliseconds (0 for images) */
+  duration: number;
+  /** File extension or MIME type */
+  mime: string;
+
+  /** Camera Maker (e.g., Apple) */
+  make?: string;
+  /** Camera Model (e.g., iPhone 15 Pro) */
+  model?: string;
+  /** Creation or capture date */
+  datetime?: string;
+  
+  /** Location data if available */
+  location?: LocationData;
+
+  // --- Photo Specific EXIF ---
+  /** F-number (Aperture) */
+  aperture?: number;
+  /** Exposure time in seconds */
+  exposureTime?: number;
+  /** ISO speed rating */
+  iso?: number;
+  /** Focal length in mm */
+  focalLength?: number;
+}
+
 // ─── Options types ─────────────────────────────────────────────────────────
 
 export interface CropOptions {
@@ -139,6 +179,31 @@ export interface RotateOptions {
   outputPath?: string;
 }
 
+export interface SpeedOptions {
+  /** Speed multiplier: 0.25 to 4.0 */
+  speed: number;
+  /** Absolute output file path (optional) */
+  outputPath?: string;
+}
+
+export interface ExtractAudioOptions {
+  /** Absolute output file path (optional) */
+  outputPath?: string;
+}
+
+export interface GeneratePreviewOptions {
+  /** Frames per second for the preview (default: 5) */
+  fps?: number;
+  /** Duration in milliseconds to capture from the start (default: 3000) */
+  durationMs?: number;
+  /** Maximum width of the preview (aspect ratio preserved, default: 0 = full size) */
+  maxWidth?: number;
+  /** Quality 0-100 (default: 80) */
+  quality?: number;
+  /** Absolute output file path (optional) */
+  outputPath?: string;
+}
+
 export interface ProcessVideoOptions {
   startTime?: number;
   endTime?: number;
@@ -192,4 +257,13 @@ export interface MediaToolkit
   processVideo(uri: string, options: ProcessVideoOptions): Promise<MediaResult>;
   /** Multi-transform image: crop, flip, rotate in a single pass */
   processImage(uri: string, options: ProcessImageOptions): Promise<MediaResult>;
+  /** Change video playback speed (0.25x - 4.0x) */
+  changeVideoSpeed(uri: string, options: SpeedOptions): Promise<MediaResult>;
+  /** Extract audio track from video as m4a/mp4 */
+  extractAudio(uri: string, options: ExtractAudioOptions): Promise<MediaResult>;
+  /** Generate an animated GIF preview from the video */
+  generateVideoPreview(uri: string, options: GeneratePreviewOptions): Promise<MediaResult>;
+  
+  /** Get unified metadata (EXIF for images, MediaMetadata for videos) */
+  getMediaMetadata(uri: string): Promise<MediaMetadata>;
 }

@@ -370,4 +370,80 @@ open class HybridMediaToolkitSpec_cxx {
       return bridge.create_Result_std__shared_ptr_Promise_MediaResult___(__exceptionPtr)
     }
   }
+  
+  @inline(__always)
+  public final func changeVideoSpeed(uri: std.string, options: SpeedOptions) -> bridge.Result_std__shared_ptr_Promise_MediaResult___ {
+    do {
+      let __result = try self.__implementation.changeVideoSpeed(uri: String(uri), options: options)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MediaResult__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MediaResult__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MediaResult__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaResult___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaResult___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func extractAudio(uri: std.string, options: ExtractAudioOptions) -> bridge.Result_std__shared_ptr_Promise_MediaResult___ {
+    do {
+      let __result = try self.__implementation.extractAudio(uri: String(uri), options: options)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MediaResult__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MediaResult__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MediaResult__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaResult___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaResult___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func generateVideoPreview(uri: std.string, options: GeneratePreviewOptions) -> bridge.Result_std__shared_ptr_Promise_MediaResult___ {
+    do {
+      let __result = try self.__implementation.generateVideoPreview(uri: String(uri), options: options)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MediaResult__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MediaResult__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MediaResult__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaResult___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaResult___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func getMediaMetadata(uri: std.string) -> bridge.Result_std__shared_ptr_Promise_MediaMetadata___ {
+    do {
+      let __result = try self.__implementation.getMediaMetadata(uri: String(uri))
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MediaMetadata__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MediaMetadata__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MediaMetadata__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaMetadata___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MediaMetadata___(__exceptionPtr)
+    }
+  }
 }

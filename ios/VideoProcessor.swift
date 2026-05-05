@@ -3,6 +3,8 @@ import AVFoundation
 import CoreImage
 import CoreGraphics
 import UIKit
+import MobileCoreServices
+import UniformTypeIdentifiers
 
 /// Handles video trim, crop, compress on iOS using AVFoundation.
 /// All operations are async (AVAssetExportSession) and call back via progressHandler.
@@ -11,6 +13,7 @@ class VideoProcessor: NSObject {
 
   typealias ProgressHandler = (_ progress: Float) -> Void
   typealias Completion = (_ result: [String: Any]?, _ error: Error?) -> Void
+  private static let maxGifTotalPixels = 40_000_000.0
 
   // ─── TRIM ────────────────────────────────────────────────────────────────
 
@@ -530,6 +533,195 @@ class VideoProcessor: NSObject {
     }
   }
 
+  // ─── CHANGE SPEED ────────────────────────────────────────────────────────
+
+  @objc
+  static func changeVideoSpeed(
+    uri: String,
+    speed: Double,
+    outputPath: String?,
+    onProgress: @escaping ProgressHandler,
+    completion: @escaping Completion
+  ) {
+    guard let asset = loadAsset(uri) else {
+      completion(nil, MediaToolkitError.invalidInput("Cannot load video: \(uri)")); return
+    }
+    let out = outputPath ?? tempPath(ext: "mp4")
+    let outURL = URL(fileURLWithPath: out)
+    removeIfExists(outURL)
+
+    let mixComposition = AVMutableComposition()
+    let timeRange = CMTimeRange(start: .zero, duration: asset.duration)
+    
+    // Calculate new duration
+    let originalDuration = asset.duration
+    let newDuration = CMTimeMultiplyByFloat64(originalDuration, multiplier: 1.0 / speed)
+
+    if let videoTrack = asset.tracks(withMediaType: .video).first,
+       let compVideoTrack = mixComposition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) {
+      try? compVideoTrack.insertTimeRange(timeRange, of: videoTrack, at: .zero)
+      compVideoTrack.preferredTransform = videoTrack.preferredTransform
+      compVideoTrack.scaleTimeRange(timeRange, toDuration: newDuration)
+    }
+
+    if let audioTrack = asset.tracks(withMediaType: .audio).first,
+       let compAudioTrack = mixComposition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+      try? compAudioTrack.insertTimeRange(timeRange, of: audioTrack, at: .zero)
+      compAudioTrack.scaleTimeRange(timeRange, toDuration: newDuration)
+    }
+
+    guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
+    }
+    session.outputFileType = .mp4
+    session.outputURL = outURL
+    pollProgress(session: session, onProgress: onProgress)
+    session.exportAsynchronously {
+      switch session.status {
+      case .completed:
+        completion(videoResult(path: out, asset: mixComposition, trimmed: newDuration.seconds * 1000), nil)
+      default:
+        completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
+      }
+    }
+  }
+
+  // ─── EXTRACT AUDIO ───────────────────────────────────────────────────────
+
+  @objc
+  static func extractAudio(
+    uri: String,
+    outputPath: String?,
+    onProgress: @escaping ProgressHandler,
+    completion: @escaping Completion
+  ) {
+    guard let asset = loadAsset(uri) else {
+      completion(nil, MediaToolkitError.invalidInput("Cannot load video: \(uri)")); return
+    }
+    let out = outputPath ?? tempPath(ext: "m4a")
+    let outURL = URL(fileURLWithPath: out)
+    removeIfExists(outURL)
+
+    guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
+    }
+    session.outputFileType = .m4a
+    session.outputURL = outURL
+    pollProgress(session: session, onProgress: onProgress)
+    session.exportAsynchronously {
+      switch session.status {
+      case .completed:
+        completion(videoResult(path: out, asset: asset, trimmed: 0, mime: "audio/m4a"), nil)
+      default:
+        completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
+      }
+    }
+  }
+
+  // ─── GENERATE PREVIEW (GIF) ──────────────────────────────────────────────
+
+  @objc
+  static func generateVideoPreview(
+    uri: String,
+    fps: Int,
+    durationMs: Int,
+    maxWidth: Int,
+    quality: Int,
+    outputPath: String?,
+    completion: @escaping Completion
+  ) {
+    guard let asset = loadAsset(uri) else {
+      completion(nil, MediaToolkitError.invalidInput("Cannot load video: \(uri)")); return
+    }
+    
+    let actualDuration = asset.duration.seconds * 1000.0
+    let captureDuration = min(actualDuration, Double(durationMs))
+    let framesToCapture = Int((captureDuration / 1000.0) * Double(fps))
+    let sourceSize = videoDisplaySize(asset: asset)
+    
+    if framesToCapture <= 0 {
+      completion(nil, MediaToolkitError.processingFailed("Video is too short")); return
+    }
+
+    let plannedSize = scaledSize(width: sourceSize.width, height: sourceSize.height, maxWidth: Double(maxWidth))
+    let totalPixels = plannedSize.width * plannedSize.height * Double(framesToCapture)
+    if plannedSize.width > 0, plannedSize.height > 0, totalPixels > maxGifTotalPixels {
+      completion(nil, MediaToolkitError.invalidInput("GIF is too large: \(Int(plannedSize.width))x\(Int(plannedSize.height)) x \(framesToCapture) frames. Use maxWidth 320/540/720 or a shorter duration."))
+      return
+    }
+
+    let out = outputPath ?? tempPath(ext: "gif")
+    let outURL = URL(fileURLWithPath: out)
+    removeIfExists(outURL)
+    
+    guard let destination = CGImageDestinationCreateWithURL(outURL as CFURL, UTType.gif.identifier as CFString, framesToCapture, nil) else {
+      completion(nil, MediaToolkitError.processingFailed("Failed to create GIF destination")); return
+    }
+    
+    let loopProperties = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]]
+    CGImageDestinationSetProperties(destination, loopProperties as CFDictionary)
+    
+    let delayTime = 1.0 / Double(fps)
+    let frameProperties = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: delayTime]]
+    
+    let gen = AVAssetImageGenerator(asset: asset)
+    gen.appliesPreferredTrackTransform = true
+    gen.requestedTimeToleranceBefore = .zero
+    gen.requestedTimeToleranceAfter = .zero
+    if maxWidth > 0 {
+      gen.maximumSize = CGSize(width: CGFloat(maxWidth), height: CGFloat(maxWidth))
+    }
+
+    DispatchQueue.global(qos: .userInitiated).async {
+      var outWidth = 0.0
+      var outHeight = 0.0
+      
+      for i in 0..<framesToCapture {
+        let timeMs = (Double(i) / Double(fps)) * 1000.0
+        let cmTime = CMTime(seconds: timeMs / 1000.0, preferredTimescale: 600)
+        
+        do {
+          let cgImage = try gen.copyCGImage(at: cmTime, actualTime: nil)
+          // For GIF we don't strictly apply quality 0-100 to standard CGImageDestination,
+          // but we can scale dimensions. We already use maximumSize on generator.
+          if outWidth == 0 {
+             outWidth = Double(cgImage.width)
+             outHeight = Double(cgImage.height)
+          }
+          CGImageDestinationAddImage(destination, cgImage, frameProperties as CFDictionary)
+        } catch {
+          // ignore missed frames
+        }
+      }
+      
+      if CGImageDestinationFinalize(destination) {
+        if outWidth == 0 || outHeight == 0,
+           let source = CGImageSourceCreateWithURL(outURL as CFURL, nil),
+           let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] {
+          outWidth = props[kCGImagePropertyPixelWidth as String] as? Double ?? outWidth
+          outHeight = props[kCGImagePropertyPixelHeight as String] as? Double ?? outHeight
+        }
+        if outWidth == 0 || outHeight == 0 {
+          let scaled = scaledSize(width: sourceSize.width, height: sourceSize.height, maxWidth: Double(maxWidth))
+          outWidth = scaled.width
+          outHeight = scaled.height
+        }
+        let fileSize = (try? FileManager.default.attributesOfItem(atPath: out)[.size] as? Int) ?? 0
+        let result: [String: Any] = [
+          "uri": "file://" + out,
+          "size": fileSize,
+          "width": outWidth,
+          "height": outHeight,
+          "duration": captureDuration,
+          "mime": "image/gif"
+        ]
+        DispatchQueue.main.async { completion(result, nil) }
+      } else {
+        DispatchQueue.main.async { completion(nil, MediaToolkitError.processingFailed("Failed to finalize GIF")) }
+      }
+    }
+  }
+
   // ─── COMPRESS ────────────────────────────────────────────────────────────
 
   @objc
@@ -725,7 +917,7 @@ class VideoProcessor: NSObject {
     try? FileManager.default.removeItem(at: url)
   }
 
-  private static func videoResult(path: String, asset: AVAsset, trimmed: Double) -> [String: Any] {
+  private static func videoResult(path: String, asset: AVAsset, trimmed: Double, mime: String? = nil) -> [String: Any] {
     // Read file size WITHOUT loading entire file into memory
     let fileSize: Int
     if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
@@ -757,7 +949,26 @@ class VideoProcessor: NSObject {
       "width":    w,
       "height":   h,
       "duration": actualDurationMs,
-      "mime":     "video/mp4",
+      "mime":     mime ?? "video/mp4",
     ]
+  }
+
+  private static func videoDisplaySize(asset: AVAsset) -> (width: Double, height: Double) {
+    guard let track = asset.tracks(withMediaType: .video).first else {
+      return (0, 0)
+    }
+    let size = track.naturalSize.applying(track.preferredTransform)
+    return (Double(abs(size.width)), Double(abs(size.height)))
+  }
+
+  private static func scaledSize(width: Double, height: Double, maxWidth: Double) -> (width: Double, height: Double) {
+    guard width > 0, height > 0 else {
+      return (0, 0)
+    }
+    guard maxWidth > 0, width > maxWidth else {
+      return (width.rounded(), height.rounded())
+    }
+    let scale = maxWidth / width
+    return (maxWidth.rounded(), (height * scale).rounded())
   }
 }

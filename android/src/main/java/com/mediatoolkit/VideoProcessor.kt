@@ -14,6 +14,8 @@ import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.ScaleAndRotateTransformation
+import androidx.media3.effect.SpeedChangeEffect
+import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import java.io.File
 import java.util.UUID
@@ -25,6 +27,7 @@ import java.util.concurrent.CountDownLatch
  */
 @UnstableApi
 internal object VideoProcessor {
+  private const val MAX_GIF_TOTAL_PIXELS = 40_000_000L
 
   // ─── TRIM ────────────────────────────────────────────────────────────────
 
@@ -220,6 +223,148 @@ internal object VideoProcessor {
     return runTransform(context, mediaItem, effects, out, onProgress)
   }
 
+  // ─── CHANGE SPEED ────────────────────────────────────────────────────────
+  fun changeVideoSpeed(
+    context: Context,
+    uri: String,
+    speed: Double,
+    outputPath: String?,
+    onProgress: (Int) -> Unit
+  ): Map<String, Any> {
+    val out = outputPath ?: tempPath()
+    val mediaUri = toAndroidUri(uri)
+    val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
+
+    val sonicAudioProcessor = SonicAudioProcessor()
+    sonicAudioProcessor.setSpeed(speed.toFloat())
+    sonicAudioProcessor.setPitch(1.0f)
+
+    val speedEffect = SpeedChangeEffect(speed.toFloat())
+    val effects = Effects(listOf(sonicAudioProcessor), listOf(speedEffect))
+
+    return runTransform(context, mediaItem, effects, out, onProgress)
+  }
+
+  // ─── EXTRACT AUDIO ───────────────────────────────────────────────────────
+  fun extractAudio(
+    context: Context,
+    uri: String,
+    outputPath: String?,
+    onProgress: (Int) -> Unit
+  ): Map<String, Any> {
+    val out = outputPath ?: tempPath("m4a")
+    val mediaUri = toAndroidUri(uri)
+    val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
+
+    return runTransform(context, mediaItem, Effects.EMPTY, out, onProgress, removeVideo = true)
+  }
+
+  // ─── GENERATE PREVIEW (GIF) ──────────────────────────────────────────────
+  fun generateVideoPreview(
+    context: Context,
+    uri: String,
+    fps: Int,
+    durationMs: Int,
+    maxWidth: Int,
+    quality: Int,
+    outputPath: String?
+  ): Map<String, Any> {
+    val retriever = android.media.MediaMetadataRetriever()
+    try {
+      retriever.setDataSource(context, toAndroidUri(uri))
+      
+      val actualDuration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+      val captureDuration = minOf(actualDuration, durationMs.toLong())
+      var sourceWidth = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+      var sourceHeight = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+      val sourceRotation = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+      if (sourceRotation == 90 || sourceRotation == 270) {
+        val tmp = sourceWidth
+        sourceWidth = sourceHeight
+        sourceHeight = tmp
+      }
+      
+      val framesToCapture = (captureDuration / 1000.0 * fps).toInt()
+      if (framesToCapture <= 0) throw MediaToolkitException.ProcessingFailed("Video is too short for preview")
+
+      val plannedSize = scaledSize(sourceWidth, sourceHeight, maxWidth)
+      val totalPixels = plannedSize.first.toLong() * plannedSize.second.toLong() * framesToCapture.toLong()
+      if (plannedSize.first > 0 && plannedSize.second > 0 && totalPixels > MAX_GIF_TOTAL_PIXELS) {
+        throw MediaToolkitException.InvalidInput(
+          "GIF is too large: ${plannedSize.first}x${plannedSize.second} x $framesToCapture frames. Use maxWidth 320/540/720 or a shorter duration."
+        )
+      }
+
+      val out = outputPath ?: tempPath("gif")
+      
+      val encoder = AnimatedGifEncoder()
+      encoder.start(out)
+      encoder.setDelay(1000 / fps)
+      encoder.setRepeat(0) // 0 = infinite loop
+      
+      // Quality mapping: 1 is best, 20 is fast/lower. Default is 10.
+      val q = quality.coerceIn(0, 100)
+      val mappedQuality = maxOf(1, 21 - (q / 5)) 
+      encoder.setQuality(mappedQuality)
+
+      var outWidth = 0
+      var outHeight = 0
+      
+      for (i in 0 until framesToCapture) {
+        val timeMs = (i.toDouble() / fps * 1000.0).toLong()
+        val bitmap = retriever.getFrameAtTime(timeMs * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        if (bitmap != null) {
+          val scaledBitmap = if (maxWidth > 0 && bitmap.width > maxWidth) {
+            val scale = maxWidth.toFloat() / bitmap.width
+            val newH = (bitmap.height * scale).toInt()
+            android.graphics.Bitmap.createScaledBitmap(bitmap, maxWidth, newH, true)
+              .also { if (it !== bitmap) bitmap.recycle() }
+          } else bitmap
+
+          if (outWidth == 0) {
+             outWidth = scaledBitmap.width
+             outHeight = scaledBitmap.height
+          }
+          encoder.addFrame(scaledBitmap)
+          scaledBitmap.recycle()
+        }
+      }
+      encoder.finish()
+
+      if (outWidth == 0 || outHeight == 0) {
+        val bounds = android.graphics.BitmapFactory.Options().apply {
+          inJustDecodeBounds = true
+        }
+        android.graphics.BitmapFactory.decodeFile(out, bounds)
+        if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+          outWidth = bounds.outWidth
+          outHeight = bounds.outHeight
+        }
+      }
+
+      if (outWidth == 0 || outHeight == 0) {
+        val scaled = scaledSize(sourceWidth, sourceHeight, maxWidth)
+        outWidth = scaled.first
+        outHeight = scaled.second
+      }
+      
+      val outFile = File(out)
+      return mapOf(
+        "uri"      to "file://$out",
+        "size"     to outFile.length(),
+        "width"    to outWidth,
+        "height"   to outHeight,
+        "duration" to captureDuration,
+        "mime"     to "image/gif"
+      )
+    } catch (e: Exception) {
+      if (e is MediaToolkitException) throw e
+      throw MediaToolkitException.ProcessingFailed("Failed to generate preview: ${e.message}")
+    } finally {
+      retriever.release()
+    }
+  }
+
   // ─── COMPRESS ────────────────────────────────────────────────────────────
 
   fun compressVideo(
@@ -384,7 +529,8 @@ internal object VideoProcessor {
     onProgress: (Int) -> Unit,
     transmux: Boolean = false,
     targetBitrate: Int = 0,        // 0 = let Media3 decide
-    removeAudio: Boolean = false   // true = strip audio track (Locket upload)
+    removeAudio: Boolean = false,  // true = strip audio track
+    removeVideo: Boolean = false   // true = strip video track
   ): Map<String, Any> {
     val outFile = File(outputPath)
     outFile.parentFile?.mkdirs()
@@ -397,6 +543,9 @@ internal object VideoProcessor {
       .setEffects(effects)
     if (removeAudio) {
       editedItemBuilder.setRemoveAudio(true)
+    }
+    if (removeVideo) {
+      editedItemBuilder.setRemoveVideo(true)
     }
     val editedItem = editedItemBuilder.build()
 
@@ -548,10 +697,10 @@ internal object VideoProcessor {
     if (uri.startsWith("file://") || uri.startsWith("content://")) Uri.parse(uri)
     else Uri.fromFile(File(uri))
 
-  fun tempPath(): String {
+  fun tempPath(ext: String = "mp4"): String {
     val dir = System.getProperty("java.io.tmpdir") ?: "/data/local/tmp"
     File(dir).mkdirs()
-    return "$dir/${UUID.randomUUID()}.mp4"
+    return "$dir/${UUID.randomUUID()}.$ext"
   }
 
   private fun buildResult(path: String, durationMs: Long): Map<String, Any> {
@@ -585,5 +734,12 @@ internal object VideoProcessor {
       "duration" to duration,
       "mime"     to "video/mp4"
     )
+  }
+
+  private fun scaledSize(width: Int, height: Int, maxWidth: Int): Pair<Int, Int> {
+    if (width <= 0 || height <= 0) return 0 to 0
+    if (maxWidth <= 0 || width <= maxWidth) return width to height
+    val scale = maxWidth.toDouble() / width.toDouble()
+    return maxWidth to (height * scale).toInt()
   }
 }

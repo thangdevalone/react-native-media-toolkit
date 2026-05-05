@@ -38,6 +38,14 @@ namespace margelo::nitro::mediatoolkit::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void(const MediaMetadata& /* result */)>
+  Func_void_MediaMetadata create_Func_void_MediaMetadata(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = MediaToolkit::Func_void_MediaMetadata::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MediaMetadata& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridMediaToolkitSpec>
   std::shared_ptr<HybridMediaToolkitSpec> create_std__shared_ptr_HybridMediaToolkitSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     MediaToolkit::HybridMediaToolkitSpec_cxx swiftPart = MediaToolkit::HybridMediaToolkitSpec_cxx::fromUnsafe(swiftUnsafePointer);

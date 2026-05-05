@@ -9,7 +9,6 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
-import java.util.Objects
 
 
 /**
@@ -35,26 +34,6 @@ data class CompressImageOptions(
   val outputPath: String?
 ) {
   /* primary constructor */
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (other !is CompressImageOptions) return false
-    return Objects.deepEquals(this.quality, other.quality)
-      && Objects.deepEquals(this.maxWidth, other.maxWidth)
-      && Objects.deepEquals(this.maxHeight, other.maxHeight)
-      && Objects.deepEquals(this.format, other.format)
-      && Objects.deepEquals(this.outputPath, other.outputPath)
-  }
-
-  override fun hashCode(): Int {
-    return arrayOf(
-      quality,
-      maxWidth,
-      maxHeight,
-      format,
-      outputPath
-    ).contentDeepHashCode()
-  }
 
   companion object {
     /**

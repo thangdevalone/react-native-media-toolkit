@@ -28,8 +28,8 @@ Xây dựng trên **Nitro Modules** (JSI), dùng `AVFoundation` trên iOS và **
 | Expo với Dev Client / Custom Build | Có |
 | Expo Go | Không hỗ trợ (yêu cầu native build) |
 | React Native | 0.75+ (bắt buộc New Architecture) |
-| iOS | 15.1+ |
-| Android | API 24+ (Android 7.0) |
+| iOS | 16.0+ |
+| Android | API 24+ (Android 7.0) / Đã hỗ trợ Android 15 (16 KB Page Size) |
 
 > **Lưu ý Expo:** Thư viện yêu cầu native build. Không thể dùng với Expo Go.  
 > Dùng `expo run:ios` hoặc `expo run:android` thay thế.
@@ -241,6 +241,33 @@ const result = await MediaToolkit.processVideo(videoUri, {
 });
 ```
 
+### Thay đổi tốc độ video
+
+```typescript
+const result = await MediaToolkit.changeVideoSpeed(videoUri, {
+  speed: 2.0, // 0.25x đến 4.0x
+});
+```
+
+### Trích xuất âm thanh
+
+Trích xuất track âm thanh từ một video và lưu dưới dạng file `m4a`.
+```typescript
+const audio = await MediaToolkit.extractAudio(videoUri, {});
+// audio.uri -> file:///.../audio.m4a
+```
+
+### Tạo ảnh GIF xem trước (Video Preview)
+
+Tạo ảnh động GIF xem trước từ các khung hình video 100% Native không cần FFmpeg.
+```typescript
+const preview = await MediaToolkit.generateVideoPreview(videoUri, {
+  durationMs: 3000, // Thời lượng muốn cắt (mặc định 3000ms)
+  fps: 5,           // Số khung hình trên giây (mặc định 5)
+  maxWidth: 0,      // 0 = giữ chiều rộng gốc; đặt ví dụ 320 để giảm kích thước
+});
+```
+
 ---
 
 ## API Reference
@@ -380,6 +407,37 @@ Nếu không truyền gì cả, thư viện mặc định dùng `quality: 'mediu
 | `maxWidth` | `number` | gốc | Chiều rộng thumbnail tối đa (px, giữ tỉ lệ) |
 | `outputPath` | `string` | file tạm | Đường dẫn tuyệt đối file JPEG output |
 
+### `changeVideoSpeed(uri, options): Promise<MediaResult>`
+
+| Option | Kiểu | Mặc định | Mô tả |
+|---|---|---|---|
+| `speed` | `number` | **Bắt buộc** | Hệ số nhân tốc độ (ví dụ: 0.5 là nửa tốc độ, 2.0 là nhân đôi tốc độ). Hỗ trợ từ 0.25 đến 4.0. |
+| `outputPath` | `string` | file tạm | **Tuỳ chọn.** Đường dẫn tuyệt đối file output. |
+
+### `extractAudio(uri, options): Promise<MediaResult>`
+
+| Option | Kiểu | Mặc định | Mô tả |
+|---|---|---|---|
+| `outputPath` | `string` | file tạm | **Tuỳ chọn.** Đường dẫn tuyệt đối file âm thanh `.m4a` output. |
+
+### `generateVideoPreview(uri, options): Promise<MediaResult>`
+
+Tạo ảnh GIF động 100% Native.
+
+| Option | Kiểu | Mặc định | Mô tả |
+|---|---|---|---|
+| `fps` | `number` | `5` | **Tuỳ chọn.** Số khung hình trên giây (Frames per second). |
+| `durationMs` | `number` | `3000` | **Tuỳ chọn.** Khoảng thời gian muốn trích xuất tính từ đầu video (milliseconds). |
+| `maxWidth` | `number` | `0` | **Tuỳ chọn.** Chiều rộng tối đa của ảnh xuất ra (giữ nguyên tỉ lệ gốc). Dùng `0` để giữ kích thước gốc. |
+| `quality` | `number` | `80` | **Tuỳ chọn.** Chất lượng ảnh 0-100 (được ánh xạ tự động vào cấu hình encoder nội bộ). |
+| `outputPath` | `string` | file tạm | **Tuỳ chọn.** Đường dẫn tuyệt đối file `.gif` output. |
+
+### `getMediaMetadata(uri): Promise<MediaMetadata>`
+
+Trích xuất siêu dữ liệu (Metadata) đồng nhất và nhanh chóng. Với ảnh, hàm sẽ lấy sâu vào các thẻ EXIF/TIFF/GPS. Với video, hàm sẽ lấy kích thước track, thông tin định vị và thông tin khởi tạo hoàn toàn Native.
+
+* Không cần tham số `options`. Tự động nhận diện định dạng file (ảnh/video).
+
 ### Kiểu trả về
 
 ```typescript
@@ -390,6 +448,25 @@ interface MediaResult {
   height: number;   // chiều cao output (pixels)
   duration: number; // thời lượng (ms, bằng 0 với ảnh)
   mime: string;     // MIME type, ví dụ 'video/mp4'
+}
+
+interface MediaMetadata {
+  type: string;     // 'image' | 'video'
+  width: number;
+  height: number;
+  size: number;
+  duration: number; // bằng 0 với ảnh
+  mime: string;
+  make?: string;    // Hãng máy ảnh (ví dụ: Apple)
+  model?: string;   // Dòng máy ảnh
+  datetime?: string;
+  location?: { latitude: number; longitude: number };
+  
+  // Dành riêng cho ảnh (EXIF)
+  aperture?: number;     // Khẩu độ
+  exposureTime?: number; // Thời gian phơi sáng
+  iso?: number;          // ISO
+  focalLength?: number;  // Tiêu cự
 }
 
 interface ThumbnailResult {

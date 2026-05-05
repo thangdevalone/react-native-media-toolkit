@@ -12,9 +12,14 @@ export type {
   ThumbnailResult,
   FlipOptions,
   RotateOptions,
+  SpeedOptions,
+  ExtractAudioOptions,
+  GeneratePreviewOptions,
   ProcessVideoOptions,
   ProcessImageOptions,
   MediaResult,
+  MediaMetadata,
+  LocationData,
 } from './MediaToolkit.nitro';
 
 // ─── Re-export ProgressEvent for backwards compatibility ──────────────────────
@@ -101,6 +106,27 @@ export const MediaToolkit = {
    * Run multiple transformations (crop, flip, rotate) on an image.
    */
   processImage: native.processImage.bind(native),
+
+  /**
+   * Change video playback speed (e.g. 0.5x, 2.0x).
+   */
+  changeVideoSpeed: native.changeVideoSpeed.bind(native),
+
+  /**
+   * Extract audio track from a video file.
+   */
+  extractAudio: native.extractAudio.bind(native),
+
+  /**
+   * Generate an animated GIF preview from the video.
+   */
+  generateVideoPreview: native.generateVideoPreview.bind(native),
+
+  /**
+   * Get unified metadata (EXIF for images, Track metadata for videos)
+   * Super fast, no memory bloat.
+   */
+  getMediaMetadata: native.getMediaMetadata.bind(native),
 };
 
 export default MediaToolkit;

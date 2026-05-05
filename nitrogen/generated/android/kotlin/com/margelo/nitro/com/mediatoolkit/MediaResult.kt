@@ -9,7 +9,6 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
-import java.util.Objects
 
 
 /**
@@ -38,28 +37,6 @@ data class MediaResult(
   val mime: String
 ) {
   /* primary constructor */
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (other !is MediaResult) return false
-    return Objects.deepEquals(this.uri, other.uri)
-      && Objects.deepEquals(this.size, other.size)
-      && Objects.deepEquals(this.width, other.width)
-      && Objects.deepEquals(this.height, other.height)
-      && Objects.deepEquals(this.duration, other.duration)
-      && Objects.deepEquals(this.mime, other.mime)
-  }
-
-  override fun hashCode(): Int {
-    return arrayOf(
-      uri,
-      size,
-      width,
-      height,
-      duration,
-      mime
-    ).contentDeepHashCode()
-  }
 
   companion object {
     /**

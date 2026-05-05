@@ -26,6 +26,10 @@ public protocol HybridMediaToolkitSpec_protocol: HybridObject {
   func rotateVideo(uri: String, options: RotateOptions) throws -> Promise<MediaResult>
   func processVideo(uri: String, options: ProcessVideoOptions) throws -> Promise<MediaResult>
   func processImage(uri: String, options: ProcessImageOptions) throws -> Promise<MediaResult>
+  func changeVideoSpeed(uri: String, options: SpeedOptions) throws -> Promise<MediaResult>
+  func extractAudio(uri: String, options: ExtractAudioOptions) throws -> Promise<MediaResult>
+  func generateVideoPreview(uri: String, options: GeneratePreviewOptions) throws -> Promise<MediaResult>
+  func getMediaMetadata(uri: String) throws -> Promise<MediaMetadata>
 }
 
 public extension HybridMediaToolkitSpec_protocol {

@@ -67,6 +67,10 @@ namespace margelo::nitro::mediatoolkit {
     std::shared_ptr<Promise<MediaResult>> rotateVideo(const std::string& uri, const RotateOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> processVideo(const std::string& uri, const ProcessVideoOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> processImage(const std::string& uri, const ProcessImageOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> changeVideoSpeed(const std::string& uri, const SpeedOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> extractAudio(const std::string& uri, const ExtractAudioOptions& options) override;
+    std::shared_ptr<Promise<MediaResult>> generateVideoPreview(const std::string& uri, const GeneratePreviewOptions& options) override;
+    std::shared_ptr<Promise<MediaMetadata>> getMediaMetadata(const std::string& uri) override;
 
   private:
     jni::global_ref<JHybridMediaToolkitSpec::JavaPart> _javaPart;

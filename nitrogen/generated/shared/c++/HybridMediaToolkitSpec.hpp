@@ -39,6 +39,14 @@ namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
 namespace margelo::nitro::mediatoolkit { struct ProcessVideoOptions; }
 // Forward declaration of `ProcessImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
+// Forward declaration of `SpeedOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct SpeedOptions; }
+// Forward declaration of `ExtractAudioOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ExtractAudioOptions; }
+// Forward declaration of `GeneratePreviewOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct GeneratePreviewOptions; }
+// Forward declaration of `MediaMetadata` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
 
 #include "MediaResult.hpp"
 #include <NitroModules/Promise.hpp>
@@ -56,6 +64,10 @@ namespace margelo::nitro::mediatoolkit { struct ProcessImageOptions; }
 #include "CompressVideoOptions.hpp"
 #include "ProcessVideoOptions.hpp"
 #include "ProcessImageOptions.hpp"
+#include "SpeedOptions.hpp"
+#include "ExtractAudioOptions.hpp"
+#include "GeneratePreviewOptions.hpp"
+#include "MediaMetadata.hpp"
 
 namespace margelo::nitro::mediatoolkit {
 
@@ -101,6 +113,10 @@ namespace margelo::nitro::mediatoolkit {
       virtual std::shared_ptr<Promise<MediaResult>> rotateVideo(const std::string& uri, const RotateOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> processVideo(const std::string& uri, const ProcessVideoOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> processImage(const std::string& uri, const ProcessImageOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> changeVideoSpeed(const std::string& uri, const SpeedOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> extractAudio(const std::string& uri, const ExtractAudioOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaResult>> generateVideoPreview(const std::string& uri, const GeneratePreviewOptions& options) = 0;
+      virtual std::shared_ptr<Promise<MediaMetadata>> getMediaMetadata(const std::string& uri) = 0;
 
     protected:
       // Hybrid Setup

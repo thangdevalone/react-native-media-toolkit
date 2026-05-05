@@ -17,6 +17,9 @@ add_library(MediaToolkit SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/cpp-adapter.cpp
 )
 
+# Android 15 (API 35+) requires 16 KB page size support for NDK libraries
+target_link_options(MediaToolkit PRIVATE "-Wl,-z,max-page-size=16384")
+
 # ── Include nitrogen autolinking (adds sources, headers, link libs) ───────────
 # This adds: MediaToolkitOnLoad.cpp, JHybridMediaToolkitSpec.cpp,
 #            HybridMediaToolkitSpec.cpp + include dirs + link libraries

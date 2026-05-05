@@ -10,6 +10,10 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridMediaToolkitSpec` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { class HybridMediaToolkitSpec; }
+// Forward declaration of `LocationData` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct LocationData; }
+// Forward declaration of `MediaMetadata` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
 // Forward declaration of `MediaResult` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct MediaResult; }
 // Forward declaration of `ThumbnailOptions` to properly resolve imports.
@@ -23,6 +27,8 @@ namespace MediaToolkit { class HybridMediaToolkitSpec_cxx; }
 
 // Include C++ defined types
 #include "HybridMediaToolkitSpec.hpp"
+#include "LocationData.hpp"
+#include "MediaMetadata.hpp"
 #include "MediaResult.hpp"
 #include "ThumbnailOptions.hpp"
 #include "ThumbnailResult.hpp"
@@ -191,6 +197,55 @@ namespace margelo::nitro::mediatoolkit::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::optional<LocationData>
+  /**
+   * Specialized version of `std::optional<LocationData>`.
+   */
+  using std__optional_LocationData_ = std::optional<LocationData>;
+  inline std::optional<LocationData> create_std__optional_LocationData_(const LocationData& value) noexcept {
+    return std::optional<LocationData>(value);
+  }
+  inline bool has_value_std__optional_LocationData_(const std::optional<LocationData>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline LocationData get_std__optional_LocationData_(const std::optional<LocationData>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<MediaMetadata>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<MediaMetadata>>`.
+   */
+  using std__shared_ptr_Promise_MediaMetadata__ = std::shared_ptr<Promise<MediaMetadata>>;
+  inline std::shared_ptr<Promise<MediaMetadata>> create_std__shared_ptr_Promise_MediaMetadata__() noexcept {
+    return Promise<MediaMetadata>::create();
+  }
+  inline PromiseHolder<MediaMetadata> wrap_std__shared_ptr_Promise_MediaMetadata__(std::shared_ptr<Promise<MediaMetadata>> promise) noexcept {
+    return PromiseHolder<MediaMetadata>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const MediaMetadata& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const MediaMetadata&)>`.
+   */
+  using Func_void_MediaMetadata = std::function<void(const MediaMetadata& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MediaMetadata& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_MediaMetadata_Wrapper final {
+  public:
+    explicit Func_void_MediaMetadata_Wrapper(std::function<void(const MediaMetadata& /* result */)>&& func): _function(std::make_unique<std::function<void(const MediaMetadata& /* result */)>>(std::move(func))) {}
+    inline void call(MediaMetadata result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MediaMetadata& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MediaMetadata create_Func_void_MediaMetadata(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MediaMetadata_Wrapper wrap_Func_void_MediaMetadata(Func_void_MediaMetadata value) noexcept {
+    return Func_void_MediaMetadata_Wrapper(std::move(value));
+  }
+  
   // pragma MARK: std::shared_ptr<HybridMediaToolkitSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridMediaToolkitSpec>`.
@@ -219,6 +274,15 @@ namespace margelo::nitro::mediatoolkit::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_ThumbnailResult___ create_Result_std__shared_ptr_Promise_ThumbnailResult___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<ThumbnailResult>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<MediaMetadata>>>
+  using Result_std__shared_ptr_Promise_MediaMetadata___ = Result<std::shared_ptr<Promise<MediaMetadata>>>;
+  inline Result_std__shared_ptr_Promise_MediaMetadata___ create_Result_std__shared_ptr_Promise_MediaMetadata___(const std::shared_ptr<Promise<MediaMetadata>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<MediaMetadata>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_MediaMetadata___ create_Result_std__shared_ptr_Promise_MediaMetadata___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<MediaMetadata>>>::withError(error);
   }
 
 } // namespace margelo::nitro::mediatoolkit::bridge::swift

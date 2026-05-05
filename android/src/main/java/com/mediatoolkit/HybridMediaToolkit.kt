@@ -12,14 +12,23 @@ import com.margelo.nitro.com.mediatoolkit.FlipOptions
 import com.margelo.nitro.com.mediatoolkit.ProcessImageOptions
 import com.margelo.nitro.com.mediatoolkit.ProcessVideoOptions
 import com.margelo.nitro.com.mediatoolkit.RotateOptions
+import com.margelo.nitro.com.mediatoolkit.SpeedOptions
+import com.margelo.nitro.com.mediatoolkit.ExtractAudioOptions
+import com.margelo.nitro.com.mediatoolkit.GeneratePreviewOptions
 import com.margelo.nitro.com.mediatoolkit.ThumbnailOptions
 import com.margelo.nitro.com.mediatoolkit.ThumbnailResult
 import com.margelo.nitro.com.mediatoolkit.TrimAndCropOptions
 import com.margelo.nitro.com.mediatoolkit.VideoCropOptions
+import com.margelo.nitro.com.mediatoolkit.MediaMetadata
+import com.margelo.nitro.com.mediatoolkit.LocationData
 import com.margelo.nitro.core.Promise
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import android.media.ExifInterface
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import java.io.File
 
 /**
  * Nitro HybridObject implementation for MediaToolkit on Android.
@@ -210,6 +219,54 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
     }
   }
 
+  override fun changeVideoSpeed(uri: String, options: SpeedOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = VideoProcessor.changeVideoSpeed(
+        ctx,
+        uri,
+        options.speed,
+        options.outputPath
+      ) { /* progress ignored */ }
+      raw.toMediaResult()
+    }
+  }
+
+  override fun extractAudio(uri: String, options: ExtractAudioOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = VideoProcessor.extractAudio(
+        ctx,
+        uri,
+        options.outputPath
+      ) { /* progress ignored */ }
+      
+      // Override mime if not already set, since we extracted audio
+      val result = raw.toMediaResult()
+      MediaResult(
+        uri = result.uri,
+        size = result.size,
+        width = result.width,
+        height = result.height,
+        duration = result.duration,
+        mime = "audio/m4a"
+      )
+    }
+  }
+
+  override fun generateVideoPreview(uri: String, options: GeneratePreviewOptions): Promise<MediaResult> {
+    return Promise.async(scope) {
+      val raw = VideoProcessor.generateVideoPreview(
+        ctx,
+        uri,
+        options.fps?.toInt() ?: 5,
+        options.durationMs?.toInt() ?: 3000,
+        options.maxWidth?.toInt() ?: 0,
+        options.quality?.toInt() ?: 80,
+        options.outputPath
+      )
+      raw.toMediaResult()
+    }
+  }
+
   override fun getThumbnail(uri: String, options: ThumbnailOptions?): Promise<ThumbnailResult> {
     return Promise.async(scope) {
       val timeMs   = options?.timeMs?.toLong() ?: 0L
@@ -223,6 +280,120 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         height   = (raw["height"]   as? Number)?.toDouble() ?: 0.0,
         duration = (raw["duration"] as? Number)?.toDouble() ?: 0.0
       )
+    }
+  }
+
+  override fun getMediaMetadata(uri: String): Promise<MediaMetadata> {
+    return Promise.async(scope) {
+      val parsedUri = if (uri.startsWith("file://") || uri.startsWith("content://")) Uri.parse(uri)
+                      else Uri.fromFile(File(uri))
+      
+      val isVideo = uri.lowercase().endsWith(".mp4") || uri.lowercase().endsWith(".mov") || uri.lowercase().endsWith(".m4a")
+
+      if (isVideo) {
+        val retriever = MediaMetadataRetriever()
+        try {
+          retriever.setDataSource(ctx, parsedUri)
+          
+          val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toDoubleOrNull() ?: 0.0
+          val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toDoubleOrNull() ?: 0.0
+          val rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+          
+          var finalW = width
+          var finalH = height
+          if (rotation == 90 || rotation == 270) {
+            finalW = height
+            finalH = width
+          }
+          
+          val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toDoubleOrNull() ?: 0.0
+          val mime = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE) ?: "video/mp4"
+          val datetime = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE) ?: ""
+          
+          val locationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
+          var locationData: LocationData? = null
+          if (!locationStr.isNullOrEmpty()) {
+             val locMatch = Regex("([+-][0-9.]+)([+-][0-9.]+)").find(locationStr)
+             if (locMatch != null) {
+                 locationData = LocationData(locMatch.groupValues[1].toDouble(), locMatch.groupValues[2].toDouble())
+             }
+          }
+
+          val file = File(parsedUri.path ?: "")
+          val size = if (file.exists()) file.length().toDouble() else 0.0
+
+          MediaMetadata(
+            type = "video",
+            width = finalW,
+            height = finalH,
+            size = size,
+            duration = duration,
+            mime = mime,
+            make = null,
+            model = null,
+            datetime = datetime,
+            location = locationData,
+            aperture = null,
+            exposureTime = null,
+            iso = null,
+            focalLength = null
+          )
+        } finally {
+          retriever.release()
+        }
+      } else {
+        val stream = ctx.contentResolver.openInputStream(parsedUri)
+                     ?: throw Exception("Cannot open stream for URI: $uri")
+        
+        stream.use { s -> 
+          val exif = ExifInterface(s)
+          var width = exif.getAttributeInt(ExifInterface.TAG_IMAGE_WIDTH, 0).toDouble()
+          var height = exif.getAttributeInt(ExifInterface.TAG_IMAGE_LENGTH, 0).toDouble()
+          val rotation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+          
+          if (rotation == ExifInterface.ORIENTATION_ROTATE_90 || rotation == ExifInterface.ORIENTATION_ROTATE_270) {
+              val tmp = width
+              width = height
+              height = tmp
+          }
+          
+          val make = exif.getAttribute(ExifInterface.TAG_MAKE) ?: ""
+          val model = exif.getAttribute(ExifInterface.TAG_MODEL) ?: ""
+          val datetime = exif.getAttribute(ExifInterface.TAG_DATETIME) ?: ""
+          
+          val latLong = FloatArray(2)
+          var locationData: LocationData? = null
+          if (exif.getLatLong(latLong)) {
+              locationData = LocationData(latLong[0].toDouble(), latLong[1].toDouble())
+          }
+          
+          val aperture = exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0.0)
+          val exposure = exif.getAttributeDouble(ExifInterface.TAG_EXPOSURE_TIME, 0.0)
+          val isoStr = exif.getAttribute("ISOSpeedRatings")
+          val iso = isoStr?.toDoubleOrNull() ?: 0.0
+          val focalLength = exif.getAttributeDouble(ExifInterface.TAG_FOCAL_LENGTH, 0.0)
+
+          val file = File(parsedUri.path ?: "")
+          val size = if (file.exists()) file.length().toDouble() else 0.0
+          
+          MediaMetadata(
+              type = "image",
+              width = width,
+              height = height,
+              size = size,
+              duration = 0.0,
+              mime = "image/jpeg",
+              make = make,
+              model = model,
+              datetime = datetime,
+              location = locationData,
+              aperture = if (aperture > 0) aperture else null,
+              exposureTime = if (exposure > 0) exposure else null,
+              iso = if (iso > 0) iso else null,
+              focalLength = if (focalLength > 0) focalLength else null
+          )
+        }
+      }
     }
   }
 }

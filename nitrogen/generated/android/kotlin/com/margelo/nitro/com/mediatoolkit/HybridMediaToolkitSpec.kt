@@ -80,6 +80,22 @@ abstract class HybridMediaToolkitSpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun processImage(uri: String, options: ProcessImageOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun changeVideoSpeed(uri: String, options: SpeedOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun extractAudio(uri: String, options: ExtractAudioOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun generateVideoPreview(uri: String, options: GeneratePreviewOptions): Promise<MediaResult>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun getMediaMetadata(uri: String): Promise<MediaMetadata>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

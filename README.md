@@ -28,8 +28,8 @@ Built on **Nitro Modules** (JSI), using `AVFoundation` on iOS and **Jetpack Medi
 | Expo with Dev Client / Custom Build | Supported |
 | Expo Go | Not supported (requires native build) |
 | React Native | 0.75+ (New Architecture required) |
-| iOS | 15.1+ |
-| Android | API 24+ (Android 7.0) |
+| iOS | 16.0+ |
+| Android | API 24+ (Android 7.0) / Android 15 (16 KB Page Size) Ready |
 
 > **Expo note:** This library requires a native build. It cannot run in Expo Go.  
 > Use `expo run:ios` or `expo run:android` instead.
@@ -241,6 +241,33 @@ const result = await MediaToolkit.processVideo(videoUri, {
 });
 ```
 
+### Change video speed
+
+```typescript
+const result = await MediaToolkit.changeVideoSpeed(videoUri, {
+  speed: 2.0, // 0.25x to 4.0x
+});
+```
+
+### Extract audio
+
+Extracts the audio track from a video and saves it as an `m4a` file.
+```typescript
+const audio = await MediaToolkit.extractAudio(videoUri, {});
+// audio.uri -> file:///.../audio.m4a
+```
+
+### Generate video preview (GIF)
+
+Generates an animated GIF preview from the video frames natively without FFmpeg.
+```typescript
+const preview = await MediaToolkit.generateVideoPreview(videoUri, {
+  durationMs: 3000, // Duration to capture (default 3000ms)
+  fps: 5,           // Frames per second (default 5)
+  maxWidth: 0,      // 0 = full source width; set e.g. 320 to downscale
+});
+```
+
 ---
 
 ## API Reference
@@ -380,6 +407,37 @@ If none of the three are passed, the library falls back to `quality: 'medium'`.
 | `maxWidth` | `number` | original | Max thumbnail width in px (aspect ratio preserved) |
 | `outputPath` | `string` | temp file | Absolute path for the output JPEG |
 
+### `changeVideoSpeed(uri, options): Promise<MediaResult>`
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `speed` | `number` | **Required** | Speed multiplier (e.g. 0.5 for half speed, 2.0 for double speed). Supported range: 0.25 to 4.0. |
+| `outputPath` | `string` | temp file | **Optional.** Absolute path for the output file. |
+
+### `extractAudio(uri, options): Promise<MediaResult>`
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `outputPath` | `string` | temp file | **Optional.** Absolute path for the output `.m4a` file. |
+
+### `generateVideoPreview(uri, options): Promise<MediaResult>`
+
+Generates an animated GIF natively.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `fps` | `number` | `5` | **Optional.** Frames per second for the preview. |
+| `durationMs` | `number` | `3000` | **Optional.** Duration in milliseconds to capture from the start. |
+| `maxWidth` | `number` | `0` | **Optional.** Maximum width of the preview (aspect ratio preserved). Use `0` for full source size. |
+| `quality` | `number` | `80` | **Optional.** Quality 0-100 (mapped to internal encoder settings). |
+| `outputPath` | `string` | temp file | **Optional.** Absolute path for the output `.gif` file. |
+
+### `getMediaMetadata(uri): Promise<MediaMetadata>`
+
+Gets unified metadata directly from the native source. For images, extracts deep EXIF/TIFF/GPS data. For videos, extracts track sizes, location, and creation info natively without bloated parsing.
+
+* No options required. It automatically sniffs the file type.
+
 ### Return types
 
 ```typescript
@@ -390,6 +448,25 @@ interface MediaResult {
   height: number;   // output height in pixels
   duration: number; // duration in ms (0 for images)
   mime: string;     // MIME type, e.g. 'video/mp4'
+}
+
+interface MediaMetadata {
+  type: string;     // 'image' | 'video'
+  width: number;
+  height: number;
+  size: number;
+  duration: number; // 0 for images
+  mime: string;
+  make?: string;    // Camera Make (e.g. Apple)
+  model?: string;   // Camera Model
+  datetime?: string;
+  location?: { latitude: number; longitude: number };
+  
+  // EXIF specific (Images only)
+  aperture?: number;
+  exposureTime?: number;
+  iso?: number;
+  focalLength?: number;
 }
 
 interface ThumbnailResult {

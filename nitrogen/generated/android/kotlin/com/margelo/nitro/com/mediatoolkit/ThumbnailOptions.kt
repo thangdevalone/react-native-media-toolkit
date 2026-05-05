@@ -9,7 +9,6 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
-import java.util.Objects
 
 
 /**
@@ -32,24 +31,6 @@ data class ThumbnailOptions(
   val outputPath: String?
 ) {
   /* primary constructor */
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (other !is ThumbnailOptions) return false
-    return Objects.deepEquals(this.timeMs, other.timeMs)
-      && Objects.deepEquals(this.quality, other.quality)
-      && Objects.deepEquals(this.maxWidth, other.maxWidth)
-      && Objects.deepEquals(this.outputPath, other.outputPath)
-  }
-
-  override fun hashCode(): Int {
-    return arrayOf(
-      timeMs,
-      quality,
-      maxWidth,
-      outputPath
-    ).contentDeepHashCode()
-  }
 
   companion object {
     /**

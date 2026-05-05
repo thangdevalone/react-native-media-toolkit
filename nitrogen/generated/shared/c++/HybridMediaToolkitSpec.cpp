@@ -27,6 +27,10 @@ namespace margelo::nitro::mediatoolkit {
       prototype.registerHybridMethod("rotateVideo", &HybridMediaToolkitSpec::rotateVideo);
       prototype.registerHybridMethod("processVideo", &HybridMediaToolkitSpec::processVideo);
       prototype.registerHybridMethod("processImage", &HybridMediaToolkitSpec::processImage);
+      prototype.registerHybridMethod("changeVideoSpeed", &HybridMediaToolkitSpec::changeVideoSpeed);
+      prototype.registerHybridMethod("extractAudio", &HybridMediaToolkitSpec::extractAudio);
+      prototype.registerHybridMethod("generateVideoPreview", &HybridMediaToolkitSpec::generateVideoPreview);
+      prototype.registerHybridMethod("getMediaMetadata", &HybridMediaToolkitSpec::getMediaMetadata);
     });
   }
 

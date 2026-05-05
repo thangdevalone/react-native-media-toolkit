@@ -9,7 +9,6 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
-import java.util.Objects
 
 
 /**
@@ -41,30 +40,6 @@ data class CompressVideoOptions(
   val outputPath: String?
 ) {
   /* primary constructor */
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (other !is CompressVideoOptions) return false
-    return Objects.deepEquals(this.targetSizeInMB, other.targetSizeInMB)
-      && Objects.deepEquals(this.minResolution, other.minResolution)
-      && Objects.deepEquals(this.quality, other.quality)
-      && Objects.deepEquals(this.bitrate, other.bitrate)
-      && Objects.deepEquals(this.width, other.width)
-      && Objects.deepEquals(this.muteAudio, other.muteAudio)
-      && Objects.deepEquals(this.outputPath, other.outputPath)
-  }
-
-  override fun hashCode(): Int {
-    return arrayOf(
-      targetSizeInMB,
-      minResolution,
-      quality,
-      bitrate,
-      width,
-      muteAudio,
-      outputPath
-    ).contentDeepHashCode()
-  }
 
   companion object {
     /**

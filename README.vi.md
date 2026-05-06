@@ -529,8 +529,8 @@ Hàm `compressVideo` hỗ trợ chiến lược encode động thông qua tham s
 | Thư viện | Engine Native | JS Bridge | Hỗ trợ Ảnh | Hỗ trợ Video | Trim không re-encode | Xử lý đa tác vụ (1-pass) |
 |---|---|---|---|---|---|---|
 | **react-native-media-toolkit** | AVFoundation / Media3 | **JSI (Nitro)** | **Có** (Chống OOM) | **Có** | **Có** | **Có** |
-| `react-native-compressor` | AVFoundation / MediaCodec | Bridge | Có | Có | Không | Không |
-| `react-native-video-trim` | AVFoundation / FFmpegKit | Bridge | Không | Có (Kèm UI) | Chỉ iOS | Không |
+| `react-native-compressor` | Custom AVFoundation / MediaCodec | Bridge | Có | Có | Không | Không |
+| `react-native-video-trim` | FFmpegKit (+30MB size) | Bridge | Không | Có (Kèm UI) | Có | Có |
 
 ---
 

@@ -531,8 +531,8 @@ The `compressVideo` API provides a dynamically balanced encoding strategy via th
 | Library | Native Engine | JS Bridge | Image Support | Video Support | Trim (no re-encode) | Multi-transform (1-pass) |
 |---|---|---|---|---|---|---|
 | **react-native-media-toolkit** | AVFoundation / Media3 | **JSI (Nitro)** | **Yes** (OOM-free) | **Yes** | **Yes** | **Yes** |
-| `react-native-compressor` | AVFoundation / MediaCodec | Bridge | Yes | Yes | No | No |
-| `react-native-video-trim` | AVFoundation / FFmpegKit | Bridge | No | Yes (UI included) | iOS only | No |
+| `react-native-compressor` | Custom AVFoundation / MediaCodec | Bridge | Yes | Yes | No | No |
+| `react-native-video-trim` | FFmpegKit (+30MB size) | Bridge | No | Yes (UI included) | Yes | Yes |
 
 ---
 

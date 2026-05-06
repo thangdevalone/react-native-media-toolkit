@@ -50,7 +50,8 @@
           }
         }
       ],
-      "./plugins/withMediaToolkitAndroid"
+      "./plugins/withMediaToolkitAndroid",
+      "expo-font"
     ]
   }
 }

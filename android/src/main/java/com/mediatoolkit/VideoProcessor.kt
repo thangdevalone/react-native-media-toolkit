@@ -397,6 +397,22 @@ internal object VideoProcessor {
         if (f.exists()) origSizeMB = f.length() / (1024.0 * 1024.0)
         
         if (mediaUri.scheme == "content") {
+            try {
+                context.contentResolver.query(mediaUri, null, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                        if (sizeIndex != -1) {
+                            val size = cursor.getLong(sizeIndex)
+                            if (size > 0) origSizeMB = size / (1024.0 * 1024.0)
+                        }
+                    }
+                }
+                if (origSizeMB <= 0) {
+                    context.contentResolver.openFileDescriptor(mediaUri, "r")?.use { pfd ->
+                        origSizeMB = pfd.statSize / (1024.0 * 1024.0)
+                    }
+                }
+            } catch (ignored: Exception) {}
             retriever.setDataSource(context, mediaUri)
         } else {
             retriever.setDataSource(pathStr)
@@ -428,23 +444,8 @@ internal object VideoProcessor {
 
     if (targetSizeInMB > 0 && durationMs > 0) {
         val durationSecs = durationMs / 1000.0
-
-        // Determine final resolution
-        var optimalRes = 480.0
-        if (targetSizeInMB > 0) {
-            val targetBits = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
-            optimalRes = when {
-                targetBits > 3_000_000 -> 1080.0
-                targetBits > 1_500_000 -> 720.0
-                targetBits > 800_000 -> 540.0
-                else -> 480.0
-            }
-        }
-        val finalResTarget = if (minResolution > 0) minResolution else optimalRes
         val shortEdge = minOf(videoW, videoH).toDouble()
-        
-        android.util.Log.d("VideoProcessor", "Resolution Check: optimal=\${optimalRes}, finalResTarget=\${finalResTarget}, shortEdge=\${shortEdge}")
-        
+
         // --- Impossible Compression Rejection Logic ---
         val minRequiredBitrate = 400_000 + if (muteAudio) 0 else 96_000
         val minRequiredMB = (durationSecs * minRequiredBitrate) / (8.0 * 1024 * 1024)
@@ -452,49 +453,79 @@ internal object VideoProcessor {
             val reqMBStr = String.format("%.1f", minRequiredMB)
             throw MediaToolkitException.InvalidInput("Target size (${targetSizeInMB}MB) is impossible for a ${durationSecs.toInt()}s video. Minimum required limit is ~${reqMBStr}MB to prevent corruption.")
         }
+        if (origSizeMB > 0 && targetSizeInMB >= origSizeMB) {
+            val reqMBStr = String.format("%.1f", origSizeMB)
+            throw MediaToolkitException.InvalidInput("Target size (${targetSizeInMB}MB) must be smaller than the original video size (${reqMBStr}MB).")
+        }
         if (origSizeMB > 0 && targetSizeInMB < (origSizeMB * 0.05)) {
             throw MediaToolkitException.InvalidInput("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it.")
         }
         // ----------------------------------------------
-        
-        if (shortEdge > finalResTarget) {
-            val scale = finalResTarget / shortEdge
-            finalWidth = (videoW * scale).toInt()
-            finalHeight = (videoH * scale).toInt()
-            if (finalWidth % 2 != 0) finalWidth -= 1
-            if (finalHeight % 2 != 0) finalHeight -= 1
-        }
-        
-        android.util.Log.d("VideoProcessor", "Effect Dimensions: finalW=\${finalWidth}, finalH=\${finalHeight}")
 
-        if (origSizeMB > 0 && targetSizeInMB >= origSizeMB) {
-            // File is already under target size. 
-            // Varry the compression purely based on the resolution reduction!
-            val pixelRatio = (finalWidth.toDouble() * finalHeight) / maxOf(1, videoW * videoH)
-            // Bitrate scales down roughly with sqrt of pixel reduction, capped at 90% of original
-            val bitScale = minOf(0.90, Math.max(0.3, Math.sqrt(pixelRatio)))
-            computedBitrate = (origBitrate * bitScale).toInt()
-            if (computedBitrate < 400_000) computedBitrate = 400_000 // absolute floor
-        } else {
-            // File is OVER target size. Squeeze it strictly into target bounds.
-            // Apply a 90% safety margin to account for VBR (Variable Bitrate) overshoot and MP4 container overhead
-            var targetBits = ((targetSizeInMB * 0.90) * 1024 * 1024 * 8) / durationSecs
-            if (!muteAudio) { targetBits -= 128_000 } // audio reserve (128kbps)
-            computedBitrate = targetBits.toInt()
+        // Calculate exact target pixels based on standard encoder bits-per-pixel-per-sec (BPPPS)
+        // Android H.264 hardware encoders typically output ~4.0 to 5.0 bits/pixel/sec.
+        val TARGET_BPPPS = 4.5
+        var targetBitsPerSec = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
+        if (!muteAudio) { targetBitsPerSec -= 128_000 }
+        if (targetBitsPerSec < 100_000) targetBitsPerSec = 100_000.0
+
+        val targetPixels = targetBitsPerSec / TARGET_BPPPS
+        val currentPixels = videoW.toDouble() * videoH.toDouble()
+
+        var scale = Math.sqrt(targetPixels / currentPixels)
+        if (scale > 1.0) scale = 1.0 // Never upscale
+
+        var computedShortEdge = shortEdge * scale
+
+        if (minResolution > 0 && minResolution > shortEdge) {
+            throw MediaToolkitException.InvalidInput("minResolution (${minResolution.toInt()}p) exceeds video's actual resolution (${shortEdge.toInt()}p). Cannot upscale beyond original.")
         }
+
+        // Calculate a safe minimum resolution floor to prevent extreme pixelation.
+        // We ensure resolution never drops below ~33% of original, with a hard floor of 240p.
+        val autoMinRes = maxOf(240.0, shortEdge * 0.33)
         
-        // Prevent extreme bitrates that cause java.lang.OutOfMemoryError (e.g. short video, high target)
+        // Use user's minResolution if valid, otherwise use the safe auto floor.
+        val effectiveMinRes = if (minResolution > 0) minResolution.toDouble() else minOf(autoMinRes, shortEdge)
+
+        if (computedShortEdge < effectiveMinRes) {
+            if (minResolution > 0) {
+                // The user explicitly requested a minimum resolution that physically conflicts with the requested target size.
+                // Instead of silently forcing the resolution (which inflates the file size) or silently shrinking it (which ruins quality),
+                // we throw an error to let the developer know they asked for the impossible.
+                throw MediaToolkitException.InvalidInput("Conflict: To reach target size ${targetSizeInMB}MB, resolution must drop to ~${computedShortEdge.toInt()}p, which violates your minResolution (${minResolution}p). Please increase targetSize or decrease minResolution.")
+            } else {
+                // No minResolution was explicitly provided, so we just use the safe auto floor to avoid extreme blurriness.
+                android.util.Log.w("VideoProcessor", "Target size ${targetSizeInMB}MB requires ${computedShortEdge.toInt()}p, but capping at auto safe minimum ${effectiveMinRes.toInt()}p. File may overshoot target size.")
+                computedShortEdge = effectiveMinRes
+                scale = computedShortEdge / shortEdge
+            }
+        }
+
+        finalWidth = (videoW * scale).toInt()
+        finalHeight = (videoH * scale).toInt()
+        if (finalWidth % 2 != 0) finalWidth -= 1
+        if (finalHeight % 2 != 0) finalHeight -= 1
+
+        android.util.Log.d("VideoProcessor", "Mathematical Prediction: scale=${String.format("%.3f", scale)}, res=${finalWidth}x${finalHeight}")
+
+        // Use 65% margin for setBitrate since hardware encoders overshoot
+        var targetBits = ((targetSizeInMB * 0.65) * 1024 * 1024 * 8) / durationSecs
+        if (!muteAudio) { targetBits -= 128_000 }
+        computedBitrate = targetBits.toInt()
+
         if (computedBitrate > 20_000_000) computedBitrate = 20_000_000
-        
-        if (origBitrate > 0 && computedBitrate > origBitrate) {
-            computedBitrate = origBitrate
+        if (computedBitrate < 200_000) computedBitrate = 200_000
+
+        if (origBitrate > 0 && computedBitrate > (origBitrate * 0.70).toInt()) {
+            computedBitrate = (origBitrate * 0.70).toInt()
         }
     } else {
         computedBitrate = when {
-          bitrate > 0 -> bitrate           // explicit override wins
+          bitrate > 0 -> bitrate
           quality == "low"  -> 1_000_000
           quality == "high" -> 8_000_000
-          else              -> 4_000_000   // medium
+          else              -> 4_000_000
         }
     }
 
@@ -506,17 +537,40 @@ internal object VideoProcessor {
         if (finalHeight % 2 != 0) finalHeight -= 1
     }
 
+    android.util.Log.d("VideoProcessor", "Smart Compress: target=${targetSizeInMB}MB, computedBitrate=${computedBitrate}, finalRes=${finalWidth}x${finalHeight}")
+
     val effects: Effects = if (finalWidth != videoW || finalHeight != videoH) {
-      val presentation = Presentation.createForWidthAndHeight(
-        finalWidth, finalHeight,
-        Presentation.LAYOUT_SCALE_TO_FIT
-      )
+      val presentation = Presentation.createForWidthAndHeight(finalWidth, finalHeight, Presentation.LAYOUT_SCALE_TO_FIT)
       Effects(emptyList(), listOf(presentation))
     } else {
       Effects.EMPTY
     }
 
-    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = computedBitrate, removeAudio = muteAudio)
+    val result = runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = computedBitrate, removeAudio = muteAudio)
+
+    // Fallback: If hardware encoder inflates the file (e.g. because minResolution forced a high resolution),
+    // and no audio stripping was requested, revert to the original file to prevent size inflation.
+    if (origSizeMB > 0 && !muteAudio) {
+        val outFile = File(out)
+        if (outFile.exists()) {
+            val finalSizeMB = outFile.length() / (1024.0 * 1024.0)
+            if (finalSizeMB > origSizeMB) {
+                android.util.Log.w("VideoProcessor", "Hardware encoder inflated file from ${origSizeMB}MB to ${finalSizeMB}MB. Reverting to original file.")
+                if (mediaUri.scheme == "content") {
+                    context.contentResolver.openInputStream(mediaUri)?.use { input ->
+                        outFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                } else {
+                    val srcPath: String = if (mediaUri.scheme == "file") mediaUri.path ?: uri else uri
+                    java.io.File(srcPath).copyTo(outFile, overwrite = true)
+                }
+            }
+        }
+    }
+
+    return result
   }
 
   // ─── Core ────────────────────────────────────────────────────────────────
@@ -572,7 +626,8 @@ internal object VideoProcessor {
             .setRequestedVideoEncoderSettings(videoSettings)
             .build()
         transformerBuilder.setEncoderFactory(encoderFactory)
-        transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H265) // Use HEVC for high compression Smart Compress
+        // Use H.264: more mature encoders on Android, better bitrate compliance than HEVC.
+        transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
       } else {
         transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
       }

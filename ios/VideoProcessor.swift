@@ -764,6 +764,13 @@ class VideoProcessor: NSObject {
              let size = attr[.size] as? Int64 {
               origSizeMB = Double(size) / (1024.0 * 1024.0)
           }
+          
+          if origSizeMB > 0 && targetSizeInMB >= origSizeMB {
+              let reqMBStr = String(format: "%.1f", origSizeMB)
+              completion(nil, MediaToolkitError.invalidInput("Target size (\(targetSizeInMB)MB) must be smaller than the original video size (\(reqMBStr)MB)."))
+              return
+          }
+          
           if origSizeMB > 0 && targetSizeInMB < (origSizeMB * 0.05) {
               completion(nil, MediaToolkitError.invalidInput("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it."))
               return
@@ -773,15 +780,42 @@ class VideoProcessor: NSObject {
           var targetBitrate = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
           if !muteAudio { targetBitrate -= 128_000 }
           
-          var optimalRes: CGFloat = 480
-          if targetBitrate > 3_000_000 { optimalRes = 1080 }
-          else if targetBitrate > 1_500_000 { optimalRes = 720 }
-          else if targetBitrate > 800_000 { optimalRes = 540 }
+          let displaySize = videoDisplaySize(asset: asset)
+          let shortEdge = CGFloat(min(displaySize.width, displaySize.height))
+
+          // Calculate exact target pixels based on standard encoder bits-per-pixel-per-sec
+          let TARGET_BPPPS: Double = 4.5
+          let targetPixels = targetBitrate / TARGET_BPPPS
+          let currentPixels = Double(displaySize.width * displaySize.height)
           
-          let finalRes = minResolution > 0 ? CGFloat(minResolution) : optimalRes
-          if finalRes >= 1080 { preset = AVAssetExportPreset1920x1080 }
-          else if finalRes >= 720 { preset = AVAssetExportPreset1280x720 }
-          else if finalRes >= 540 { preset = AVAssetExportPreset960x540 }
+          var scale = sqrt(targetPixels / currentPixels)
+          if scale > 1.0 { scale = 1.0 } // Never upscale
+          
+          if minResolution > 0 && CGFloat(minResolution) > shortEdge {
+              completion(nil, MediaToolkitError.invalidInput("minResolution (\(minResolution)p) exceeds video's actual resolution (\(Int(shortEdge))p). Cannot upscale beyond original."))
+              return
+          }
+          
+          var computedShortEdge = shortEdge * CGFloat(scale)
+          
+          // Calculate a safe minimum resolution floor to prevent extreme pixelation (e.g. min 33% of orig)
+          let autoMinRes = max(CGFloat(240.0), shortEdge * 0.33)
+          
+          // Use user's minResolution if valid, otherwise use safe auto floor.
+          let effectiveMinRes = minResolution > 0 ? CGFloat(minResolution) : min(autoMinRes, shortEdge)
+          
+          if computedShortEdge < effectiveMinRes {
+              if minResolution > 0 {
+                  completion(nil, MediaToolkitError.invalidInput("Conflict: To reach target size \(targetSizeInMB)MB, resolution must drop to ~\(Int(computedShortEdge))p, which violates your minResolution (\(minResolution)p). Please increase targetSize or decrease minResolution."))
+                  return
+              } else {
+                  computedShortEdge = effectiveMinRes
+              }
+          }
+
+          if computedShortEdge >= 1080 { preset = AVAssetExportPreset1920x1080 }
+          else if computedShortEdge >= 720 { preset = AVAssetExportPreset1280x720 }
+          else if computedShortEdge >= 540 { preset = AVAssetExportPreset960x540 }
           else { preset = AVAssetExportPreset640x480 }
       } else {
           preset = AVAssetExportPresetHighestQuality

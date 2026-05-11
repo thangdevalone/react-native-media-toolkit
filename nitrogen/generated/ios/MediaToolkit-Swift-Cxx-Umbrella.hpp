@@ -36,6 +36,8 @@ namespace margelo::nitro::mediatoolkit { struct ProcessVideoOptions; }
 namespace margelo::nitro::mediatoolkit { struct RotateOptions; }
 // Forward declaration of `SpeedOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct SpeedOptions; }
+// Forward declaration of `SplitImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct SplitImageOptions; }
 // Forward declaration of `ThumbnailOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct ThumbnailOptions; }
 // Forward declaration of `ThumbnailResult` to properly resolve imports.
@@ -62,6 +64,7 @@ namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 #include "ProcessVideoOptions.hpp"
 #include "RotateOptions.hpp"
 #include "SpeedOptions.hpp"
+#include "SplitImageOptions.hpp"
 #include "ThumbnailOptions.hpp"
 #include "ThumbnailResult.hpp"
 #include "TrimAndCropOptions.hpp"
@@ -73,6 +76,7 @@ namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 // C++ helpers for Swift
 #include "MediaToolkit-Swift-Cxx-Bridge.hpp"

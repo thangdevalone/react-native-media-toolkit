@@ -103,6 +103,19 @@ const result = await MediaToolkit.compressImage(imageUri, {
 });
 ```
 
+### Chia ảnh theo lưới
+
+```typescript
+const parts = await MediaToolkit.splitImage(imageUri, {
+  rows: 3,
+  columns: 4,
+  quality: 100, // tuỳ chọn, mặc định 100 với format lossy
+});
+
+console.log(parts.length); // 12
+console.log(parts[0].uri, parts[0].width, parts[0].height);
+```
+
 ### Lật ảnh
 
 ```typescript
@@ -295,6 +308,19 @@ Tất cả options đều là tuỳ chọn. Có thể truyền object rỗng `{}
 | `maxHeight` | `number` | gốc | Chiều cao tối đa output (px, giữ tỉ lệ) |
 | `format` | `string` | `'jpeg'` | Định dạng output: `'jpeg'` \| `'png'` \| `'webp'` |
 | `outputPath` | `string` | file tạm | Đường dẫn tuyệt đối file output |
+
+### `splitImage(uri, options): Promise<MediaResult[]>`
+
+Chia ảnh nguồn thành lưới `rows x columns` theo đúng pixel gốc, không resize từng mảnh. Nếu không truyền `format`, native sẽ giữ format nguồn khi hỗ trợ; trên iOS sẽ fallback sang PNG nếu format nguồn không encode lại được như WebP.
+
+| Option | Kiểu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| `rows` | `number` | **Bắt buộc** | Số hàng đầu ra |
+| `columns` | `number` | **Bắt buộc** | Số cột đầu ra |
+| `format` | `string` | Tuỳ chọn | Ép định dạng output: `'jpeg'` \| `'png'` \| `'webp'` |
+| `quality` | `number` | Tuỳ chọn | Chất lượng encode lossy (0–100). Mặc định `100` |
+| `outputDir` | `string` | Tuỳ chọn | Thư mục output tuyệt đối cho các tile |
+| `prefix` | `string` | Tuỳ chọn | Tiền tố tên file cho các tile |
 
 ### `flipImage(uri, options): Promise<MediaResult>`
 ### `flipVideo(uri, options): Promise<MediaResult>`

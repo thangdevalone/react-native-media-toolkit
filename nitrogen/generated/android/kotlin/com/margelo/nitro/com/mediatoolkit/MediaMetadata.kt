@@ -9,6 +9,7 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
+import java.util.Objects
 
 
 /**
@@ -61,6 +62,44 @@ data class MediaMetadata(
   val focalLength: Double?
 ) {
   /* primary constructor */
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is MediaMetadata) return false
+    return Objects.deepEquals(this.type, other.type)
+      && Objects.deepEquals(this.width, other.width)
+      && Objects.deepEquals(this.height, other.height)
+      && Objects.deepEquals(this.size, other.size)
+      && Objects.deepEquals(this.duration, other.duration)
+      && Objects.deepEquals(this.mime, other.mime)
+      && Objects.deepEquals(this.make, other.make)
+      && Objects.deepEquals(this.model, other.model)
+      && Objects.deepEquals(this.datetime, other.datetime)
+      && Objects.deepEquals(this.location, other.location)
+      && Objects.deepEquals(this.aperture, other.aperture)
+      && Objects.deepEquals(this.exposureTime, other.exposureTime)
+      && Objects.deepEquals(this.iso, other.iso)
+      && Objects.deepEquals(this.focalLength, other.focalLength)
+  }
+
+  override fun hashCode(): Int {
+    return arrayOf(
+      type,
+      width,
+      height,
+      size,
+      duration,
+      mime,
+      make,
+      model,
+      datetime,
+      location,
+      aperture,
+      exposureTime,
+      iso,
+      focalLength
+    ).contentDeepHashCode()
+  }
 
   companion object {
     /**

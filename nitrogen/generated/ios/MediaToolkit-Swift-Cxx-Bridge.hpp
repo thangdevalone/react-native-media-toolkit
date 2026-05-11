@@ -40,6 +40,7 @@ namespace MediaToolkit { class HybridMediaToolkitSpec_cxx; }
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 /**
  * Contains specialized versions of C++ templated types so they can be accessed from Swift,
@@ -131,6 +132,51 @@ namespace margelo::nitro::mediatoolkit::bridge::swift {
   }
   inline double get_std__optional_double_(const std::optional<double>& optional) noexcept {
     return optional.value();
+  }
+  
+  // pragma MARK: std::vector<MediaResult>
+  /**
+   * Specialized version of `std::vector<MediaResult>`.
+   */
+  using std__vector_MediaResult_ = std::vector<MediaResult>;
+  inline std::vector<MediaResult> create_std__vector_MediaResult_(size_t size) noexcept {
+    std::vector<MediaResult> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<std::vector<MediaResult>>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<std::vector<MediaResult>>>`.
+   */
+  using std__shared_ptr_Promise_std__vector_MediaResult___ = std::shared_ptr<Promise<std::vector<MediaResult>>>;
+  inline std::shared_ptr<Promise<std::vector<MediaResult>>> create_std__shared_ptr_Promise_std__vector_MediaResult___() noexcept {
+    return Promise<std::vector<MediaResult>>::create();
+  }
+  inline PromiseHolder<std::vector<MediaResult>> wrap_std__shared_ptr_Promise_std__vector_MediaResult___(std::shared_ptr<Promise<std::vector<MediaResult>>> promise) noexcept {
+    return PromiseHolder<std::vector<MediaResult>>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<MediaResult>& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const std::vector<MediaResult>&)>`.
+   */
+  using Func_void_std__vector_MediaResult_ = std::function<void(const std::vector<MediaResult>& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::vector<MediaResult>& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__vector_MediaResult__Wrapper final {
+  public:
+    explicit Func_void_std__vector_MediaResult__Wrapper(std::function<void(const std::vector<MediaResult>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::vector<MediaResult>& /* result */)>>(std::move(func))) {}
+    inline void call(std::vector<MediaResult> result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::vector<MediaResult>& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__vector_MediaResult_ create_Func_void_std__vector_MediaResult_(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__vector_MediaResult__Wrapper wrap_Func_void_std__vector_MediaResult_(Func_void_std__vector_MediaResult_ value) noexcept {
+    return Func_void_std__vector_MediaResult__Wrapper(std::move(value));
   }
   
   // pragma MARK: std::shared_ptr<Promise<ThumbnailResult>>
@@ -265,6 +311,15 @@ namespace margelo::nitro::mediatoolkit::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_MediaResult___ create_Result_std__shared_ptr_Promise_MediaResult___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<MediaResult>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<std::vector<MediaResult>>>>
+  using Result_std__shared_ptr_Promise_std__vector_MediaResult____ = Result<std::shared_ptr<Promise<std::vector<MediaResult>>>>;
+  inline Result_std__shared_ptr_Promise_std__vector_MediaResult____ create_Result_std__shared_ptr_Promise_std__vector_MediaResult____(const std::shared_ptr<Promise<std::vector<MediaResult>>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<MediaResult>>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_std__vector_MediaResult____ create_Result_std__shared_ptr_Promise_std__vector_MediaResult____(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<MediaResult>>>>::withError(error);
   }
   
   // pragma MARK: Result<std::shared_ptr<Promise<ThumbnailResult>>>

@@ -127,6 +127,7 @@ export default function App() {
 
   // ── Result & UI state ────────────────────────────────────────────────────
   const [result, setResult] = useState<MediaResult | null>(null);
+  const [splitResults, setSplitResults] = useState<MediaResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [opLabel, setOpLabel] = useState('');
@@ -137,6 +138,8 @@ export default function App() {
   const [muteAudio, setMuteAudio] = useState(false);
   const [imgQuality, setImgQuality] = useState('80');
   const [imgMaxWidth, setImgMaxWidth] = useState('1080');
+  const [splitRows, setSplitRows] = useState('2');
+  const [splitColumns, setSplitColumns] = useState('2');
   const [gifMaxWidth, setGifMaxWidth] = useState('0');
 
   const srcPlayer = useVideoPlayer(srcUri, (player) => {
@@ -189,6 +192,7 @@ export default function App() {
 
       setLoading(true);
       setResult(null);
+      setSplitResults([]);
       setOpLabel(label);
       try {
         const r = await fn();
@@ -224,6 +228,7 @@ export default function App() {
         height: a.height,
       });
       setResult(null);
+      setSplitResults([]);
       setCrop(DEF_CROP);
       addLog(`📷 ${a.fileName ?? 'image'}`);
     }
@@ -241,6 +246,7 @@ export default function App() {
       setSrcUri(a.uri);
       setSrcType('video');
       setResult(null);
+      setSplitResults([]);
       setSrcMeta({
         fileName: a.fileName,
         fileSize: a.fileSize,
@@ -266,6 +272,7 @@ export default function App() {
     setSrcUri(uri);
     setSrcType('video');
     setResult(null);
+    setSplitResults([]);
     setVcrop(DEF_CROP);
     setVidNat({ w: 0, h: 0 });
     setVidDur(durationMs > 0 ? durationMs : 30000);
@@ -375,6 +382,36 @@ export default function App() {
         format: 'jpeg',
       })
     );
+  };
+
+  const splitImageGrid = async () => {
+    setScreen('home');
+    const rows = parseInt(splitRows, 10);
+    const columns = parseInt(splitColumns, 10);
+    if (!rows || !columns || rows < 1 || columns < 1) {
+      Alert.alert('Invalid grid', 'Rows and columns must be greater than 0.');
+      return;
+    }
+
+    setLoading(true);
+    setResult(null);
+    setSplitResults([]);
+    setOpLabel('Split Image');
+    try {
+      const parts = await MediaToolkit.splitImage(srcUri!, {
+        rows,
+        columns,
+        quality: 100,
+      });
+      setSplitResults(parts);
+      addLog(`✅ Split Image → ${parts.length} tiles`);
+    } catch (e: any) {
+      addLog(`❌ Split Image: ${e?.message ?? e}`);
+      Alert.alert('Split Image failed', e?.message ?? String(e));
+    } finally {
+      setLoading(false);
+      setOpLabel('');
+    }
   };
 
   const compressVid = () => {
@@ -740,6 +777,47 @@ export default function App() {
                   icon="crop"
                   color={T.teal}
                   onPress={() => setScreen('cropImage')}
+                  disabled={loading}
+                />
+              </View>
+              <View style={h.divider} />
+              <View style={[h.opRow, { alignItems: 'flex-start' }]}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={h.opTitle}>Image Splitter</Text>
+                  <Text style={h.opHint}>
+                    Split by rows and columns without resizing source pixels
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[h.opHint, { marginBottom: 6 }]}>Rows</Text>
+                      <TextInput
+                        style={h.input}
+                        value={splitRows}
+                        onChangeText={setSplitRows}
+                        keyboardType="number-pad"
+                        placeholder="2"
+                        placeholderTextColor={T.textMuted}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[h.opHint, { marginBottom: 6 }]}>Columns</Text>
+                      <TextInput
+                        style={h.input}
+                        value={splitColumns}
+                        onChangeText={setSplitColumns}
+                        keyboardType="number-pad"
+                        placeholder="2"
+                        placeholderTextColor={T.textMuted}
+                      />
+                    </View>
+                  </View>
+                </View>
+                <ActionBtn
+                  label="Split"
+                  icon="grid"
+                  color={T.orange}
+                  onPress={splitImageGrid}
                   disabled={loading}
                 />
               </View>
@@ -1178,6 +1256,46 @@ export default function App() {
               >
                 {opLabel || 'Processing...'}
               </Text>
+            </View>
+          )}
+
+          {splitResults.length > 0 && (
+            <View style={[h.card, { borderColor: T.orange + '44' }]}>
+              <Text style={[h.lbl, { color: T.orange }]}>SPLIT RESULT</Text>
+              <Text style={[h.opHint, { marginBottom: 12 }]}>
+                {splitResults.length} tiles generated
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                {splitResults.map((item, index) => (
+                  <View
+                    key={item.uri}
+                    style={{
+                      width: '47%',
+                      backgroundColor: T.card,
+                      borderRadius: 10,
+                      padding: 8,
+                      borderWidth: 1,
+                      borderColor: T.border,
+                    }}
+                  >
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={{
+                        width: '100%',
+                        height: 110,
+                        borderRadius: 8,
+                        marginBottom: 8,
+                      }}
+                      resizeMode="contain"
+                    />
+                    <Text style={h.metaV} numberOfLines={1}>
+                      Tile {index + 1}
+                    </Text>
+                    <Text style={h.opHint}>{`${item.width}×${item.height}`}</Text>
+                    <Text style={h.opHint}>{fmtSize(item.size)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 

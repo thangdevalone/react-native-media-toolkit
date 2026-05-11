@@ -9,6 +9,7 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
+import java.util.Objects
 
 
 /**
@@ -40,6 +41,30 @@ data class TrimAndCropOptions(
   val outputPath: String?
 ) {
   /* primary constructor */
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is TrimAndCropOptions) return false
+    return Objects.deepEquals(this.startTime, other.startTime)
+      && Objects.deepEquals(this.endTime, other.endTime)
+      && Objects.deepEquals(this.x, other.x)
+      && Objects.deepEquals(this.y, other.y)
+      && Objects.deepEquals(this.width, other.width)
+      && Objects.deepEquals(this.height, other.height)
+      && Objects.deepEquals(this.outputPath, other.outputPath)
+  }
+
+  override fun hashCode(): Int {
+    return arrayOf(
+      startTime,
+      endTime,
+      x,
+      y,
+      width,
+      height,
+      outputPath
+    ).contentDeepHashCode()
+  }
 
   companion object {
     /**

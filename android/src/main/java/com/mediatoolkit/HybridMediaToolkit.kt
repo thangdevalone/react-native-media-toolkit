@@ -15,6 +15,7 @@ import com.margelo.nitro.com.mediatoolkit.RotateOptions
 import com.margelo.nitro.com.mediatoolkit.SpeedOptions
 import com.margelo.nitro.com.mediatoolkit.ExtractAudioOptions
 import com.margelo.nitro.com.mediatoolkit.GeneratePreviewOptions
+import com.margelo.nitro.com.mediatoolkit.SplitImageOptions
 import com.margelo.nitro.com.mediatoolkit.ThumbnailOptions
 import com.margelo.nitro.com.mediatoolkit.ThumbnailResult
 import com.margelo.nitro.com.mediatoolkit.TrimAndCropOptions
@@ -71,6 +72,20 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         options.outputPath
       )
       raw.toMediaResult()
+    }
+  }
+
+  override fun splitImage(uri: String, options: SplitImageOptions): Promise<Array<MediaResult>> {
+    return Promise.async(scope) {
+      ImageProcessor.splitImage(
+        uri,
+        options.rows.toInt(),
+        options.columns.toInt(),
+        options.format,
+        (options.quality ?: 100.0).toInt(),
+        options.outputDir,
+        options.prefix
+      ).map { it.toMediaResult() }.toTypedArray()
     }
   }
 

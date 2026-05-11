@@ -256,6 +256,69 @@ class ImageProcessor: NSObject {
     return result(path: out, image: resized, mime: mime)
   }
 
+  @objc
+  static func splitImage(
+    uri: String,
+    rows: Double,
+    columns: Double,
+    format: String?,
+    quality: Double,
+    outputDir: String?,
+    prefix: String?
+  ) throws -> [[String: Any]] {
+    let rowCount = Int(rows)
+    let columnCount = Int(columns)
+    guard rowCount > 0, columnCount > 0 else {
+      throw MediaToolkitError.invalidInput("rows and columns must be greater than 0")
+    }
+
+    let path = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
+    let url = URL(fileURLWithPath: path)
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+      throw MediaToolkitError.invalidInput("Cannot load image source at: \(uri)")
+    }
+    guard let image = loadImage(from: uri) else {
+      throw MediaToolkitError.invalidInput("Cannot load image at: \(uri)")
+    }
+
+    let normalised = normaliseOrientation(image)
+    guard let cgImage = normalised.cgImage else {
+      throw MediaToolkitError.processingFailed("Could not access CGImage backing store")
+    }
+
+    let encoding = resolveSplitEncoding(requestedFormat: format, source: source)
+    let directory = try resolveOutputDirectory(outputDir)
+    let basePrefix = prefix?.isEmpty == false ? prefix! : "split_\(UUID().uuidString)"
+    let clampedQuality = max(0, min(100, quality)) / 100.0
+    var results: [[String: Any]] = []
+
+    for row in 0..<rowCount {
+      let top = cgImage.height * row / rowCount
+      let bottom = cgImage.height * (row + 1) / rowCount
+      let tileHeight = max(1, bottom - top)
+
+      for column in 0..<columnCount {
+        let left = cgImage.width * column / columnCount
+        let right = cgImage.width * (column + 1) / columnCount
+        let tileWidth = max(1, right - left)
+        let cropRect = CGRect(x: left, y: top, width: tileWidth, height: tileHeight)
+
+        guard let tileCGImage = cgImage.cropping(to: cropRect) else {
+          throw MediaToolkitError.processingFailed("Failed to crop split tile at row \(row + 1), column \(column + 1)")
+        }
+
+        let tileImage = UIImage(cgImage: tileCGImage, scale: normalised.scale, orientation: .up)
+        let fileName = "\(basePrefix)_r\(row + 1)_c\(column + 1).\(encoding.ext)"
+        let outputURL = directory.appendingPathComponent(fileName)
+        let data = try encodeSplitImage(tileImage, encoding: encoding, quality: clampedQuality)
+        try data.write(to: outputURL)
+        results.append(result(path: outputURL.path, image: tileImage, mime: encoding.mime))
+      }
+    }
+
+    return results
+  }
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   private static func loadImage(from uri: String) -> UIImage? {
@@ -297,6 +360,71 @@ class ImageProcessor: NSObject {
   static func tempPath(ext: String) -> String {
     let name = UUID().uuidString + "." + ext
     return (NSTemporaryDirectory() as NSString).appendingPathComponent(name)
+  }
+
+  private struct SplitImageEncoding {
+    let ext: String
+    let mime: String
+    let kind: String
+  }
+
+  private static func resolveSplitEncoding(
+    requestedFormat: String?,
+    source: CGImageSource
+  ) -> SplitImageEncoding {
+    let normalized = requestedFormat?.lowercased()
+    if normalized == "png" {
+      return SplitImageEncoding(ext: "png", mime: "image/png", kind: "png")
+    }
+    if normalized == "jpeg" || normalized == "jpg" {
+      return SplitImageEncoding(ext: "jpg", mime: "image/jpeg", kind: "jpeg")
+    }
+    if normalized == "webp" {
+      return SplitImageEncoding(ext: "png", mime: "image/png", kind: "png")
+    }
+
+    let sourceType = CGImageSourceGetType(source) as String?
+    if let sourceType, let utType = UTType(sourceType) {
+      if utType.conforms(to: .png) {
+        return SplitImageEncoding(ext: "png", mime: "image/png", kind: "png")
+      }
+      if utType.conforms(to: .jpeg) {
+        return SplitImageEncoding(ext: "jpg", mime: "image/jpeg", kind: "jpeg")
+      }
+    }
+
+    return SplitImageEncoding(ext: "jpg", mime: "image/jpeg", kind: "jpeg")
+  }
+
+  private static func resolveOutputDirectory(_ outputDir: String?) throws -> URL {
+    if let outputDir, !outputDir.isEmpty {
+      let url = URL(fileURLWithPath: outputDir, isDirectory: true)
+      try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+      return url
+    }
+
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    return dir
+  }
+
+  private static func encodeSplitImage(
+    _ image: UIImage,
+    encoding: SplitImageEncoding,
+    quality: Double
+  ) throws -> Data {
+    switch encoding.kind {
+    case "png":
+      if let data = image.pngData() {
+        return data
+      }
+    default:
+      if let data = image.jpegData(compressionQuality: quality) {
+        return data
+      }
+    }
+
+    throw MediaToolkitError.processingFailed("Could not encode split image")
   }
 
   private static func result(path: String, image: UIImage, mime: String) -> [String: Any] {

@@ -15,6 +15,7 @@ public protocol HybridMediaToolkitSpec_protocol: HybridObject {
   // Methods
   func cropImage(uri: String, options: CropOptions) throws -> Promise<MediaResult>
   func compressImage(uri: String, options: CompressImageOptions) throws -> Promise<MediaResult>
+  func splitImage(uri: String, options: SplitImageOptions) throws -> Promise<[MediaResult]>
   func flipImage(uri: String, options: FlipOptions) throws -> Promise<MediaResult>
   func rotateImage(uri: String, options: RotateOptions) throws -> Promise<MediaResult>
   func cropVideo(uri: String, options: VideoCropOptions) throws -> Promise<MediaResult>

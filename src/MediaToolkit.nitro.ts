@@ -85,6 +85,21 @@ export interface CompressImageOptions {
   outputPath?: string;
 }
 
+export interface SplitImageOptions {
+  /** Number of rows to split the image into */
+  rows: number;
+  /** Number of columns to split the image into */
+  columns: number;
+  /** Force output format: "jpeg" | "png" | "webp". Defaults to source format when supported. */
+  format?: string;
+  /** Output quality 0â€“100 for lossy formats. Defaults to 100. */
+  quality?: number;
+  /** Absolute output directory path (optional) */
+  outputDir?: string;
+  /** Output filename prefix (optional) */
+  prefix?: string;
+}
+
 export interface TrimOptions {
   /** Trim start in milliseconds */
   startTime: number;
@@ -236,6 +251,7 @@ export interface MediaToolkit
     uri: string,
     options: CompressImageOptions
   ): Promise<MediaResult>;
+  splitImage(uri: string, options: SplitImageOptions): Promise<MediaResult[]>;
   flipImage(uri: string, options: FlipOptions): Promise<MediaResult>;
   rotateImage(uri: string, options: RotateOptions): Promise<MediaResult>;
 

@@ -9,6 +9,7 @@ package com.margelo.nitro.com.mediatoolkit
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
+import java.util.Objects
 
 
 /**
@@ -25,6 +26,20 @@ data class SpeedOptions(
   val outputPath: String?
 ) {
   /* primary constructor */
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is SpeedOptions) return false
+    return Objects.deepEquals(this.speed, other.speed)
+      && Objects.deepEquals(this.outputPath, other.outputPath)
+  }
+
+  override fun hashCode(): Int {
+    return arrayOf(
+      speed,
+      outputPath
+    ).contentDeepHashCode()
+  }
 
   companion object {
     /**

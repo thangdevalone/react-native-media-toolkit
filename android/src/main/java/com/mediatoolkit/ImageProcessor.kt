@@ -9,6 +9,7 @@ import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import java.util.Locale
 
 /**
  * Image crop and compress using Android Bitmap API.
@@ -237,6 +238,56 @@ internal object ImageProcessor {
     return buildResult(out, bmp, mime, 0)
   }
 
+  fun splitImage(
+    uri: String,
+    rows: Int,
+    columns: Int,
+    format: String?,
+    quality: Int,
+    outputDir: String?,
+    prefix: String?
+  ): List<Map<String, Any>> {
+    if (rows <= 0 || columns <= 0) {
+      throw MediaToolkitException.InvalidInput("rows and columns must be greater than 0")
+    }
+
+    val path = uriToPath(uri)
+    var bmp = BitmapFactory.decodeFile(path)
+      ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
+
+    bmp = fixExifOrientation(bmp, path)
+
+    try {
+      val resolvedFormat = resolveImageFormat(format, path)
+      val targetDir = resolveOutputDirectory(outputDir)
+      val filePrefix = prefix?.takeIf { it.isNotBlank() } ?: "split_${UUID.randomUUID()}"
+      val qualityValue = quality.coerceIn(0, 100)
+      val results = mutableListOf<Map<String, Any>>()
+
+      for (row in 0 until rows) {
+        val top = bmp.height * row / rows
+        val bottom = bmp.height * (row + 1) / rows
+        val tileHeight = (bottom - top).coerceAtLeast(1)
+
+        for (column in 0 until columns) {
+          val left = bmp.width * column / columns
+          val right = bmp.width * (column + 1) / columns
+          val tileWidth = (right - left).coerceAtLeast(1)
+          val tile = Bitmap.createBitmap(bmp, left, top, tileWidth, tileHeight)
+          val out = File(targetDir, "${filePrefix}_r${row + 1}_c${column + 1}.${resolvedFormat.ext}").absolutePath
+
+          writeBitmap(tile, out, resolvedFormat, qualityValue)
+          results.add(buildResult(out, tile, resolvedFormat.mime, 0))
+          tile.recycle()
+        }
+      }
+
+      return results
+    } finally {
+      bmp.recycle()
+    }
+  }
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   fun uriToPath(uri: String): String =
@@ -246,6 +297,65 @@ internal object ImageProcessor {
     val dir = System.getProperty("java.io.tmpdir") ?: "/data/local/tmp"
     File(dir).mkdirs()
     return "$dir/${UUID.randomUUID()}.$ext"
+  }
+
+  private data class EncodedImageFormat(
+    val ext: String,
+    val mime: String,
+    val compressFormat: Bitmap.CompressFormat
+  )
+
+  private fun resolveImageFormat(requestedFormat: String?, path: String): EncodedImageFormat {
+    return when ((requestedFormat?.lowercase(Locale.US) ?: inferSourceFormat(path))) {
+      "png" -> EncodedImageFormat("png", "image/png", Bitmap.CompressFormat.PNG)
+      "webp" -> EncodedImageFormat(
+        "webp",
+        "image/webp",
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+          Bitmap.CompressFormat.WEBP_LOSSLESS
+        } else {
+          Bitmap.CompressFormat.WEBP
+        }
+      )
+      "jpg", "jpeg" -> EncodedImageFormat("jpg", "image/jpeg", Bitmap.CompressFormat.JPEG)
+      else -> EncodedImageFormat("jpg", "image/jpeg", Bitmap.CompressFormat.JPEG)
+    }
+  }
+
+  private fun inferSourceFormat(path: String): String {
+    val ext = path.substringAfterLast('.', "").lowercase(Locale.US)
+    return when (ext) {
+      "png" -> "png"
+      "webp" -> "webp"
+      "jpg", "jpeg" -> "jpeg"
+      else -> "jpeg"
+    }
+  }
+
+  private fun resolveOutputDirectory(outputDir: String?): File {
+    val dir = if (outputDir.isNullOrBlank()) {
+      File(System.getProperty("java.io.tmpdir") ?: "/data/local/tmp")
+    } else {
+      File(outputDir)
+    }
+    if (!dir.exists()) {
+      dir.mkdirs()
+    }
+    return dir
+  }
+
+  private fun writeBitmap(
+    bmp: Bitmap,
+    path: String,
+    format: EncodedImageFormat,
+    quality: Int
+  ) {
+    val written = FileOutputStream(path).use { fos ->
+      bmp.compress(format.compressFormat, quality, fos)
+    }
+    if (!written) {
+      throw MediaToolkitException.ProcessingFailed("Could not encode split image")
+    }
   }
 
   private fun fixExifOrientation(bmp: Bitmap, path: String): Bitmap {

@@ -4,6 +4,7 @@ import type { MediaToolkit as MediaToolkitSpec } from './MediaToolkit.nitro';
 export type {
   CropOptions,
   CompressImageOptions,
+  SplitImageOptions,
   TrimOptions,
   TrimAndCropOptions,
   VideoCropOptions,
@@ -46,6 +47,11 @@ export const MediaToolkit = {
    * Compress (resize + quality reduce) an image.
    */
   compressImage: native.compressImage.bind(native),
+
+  /**
+   * Split an image into a rows x columns grid without resizing the source pixels.
+   */
+  splitImage: native.splitImage.bind(native),
 
   /**
    * Flip an image horizontally or vertically.

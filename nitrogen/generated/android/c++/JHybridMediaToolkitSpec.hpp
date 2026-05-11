@@ -56,6 +56,7 @@ namespace margelo::nitro::mediatoolkit {
     // Methods
     std::shared_ptr<Promise<MediaResult>> cropImage(const std::string& uri, const CropOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> compressImage(const std::string& uri, const CompressImageOptions& options) override;
+    std::shared_ptr<Promise<std::vector<MediaResult>>> splitImage(const std::string& uri, const SplitImageOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> flipImage(const std::string& uri, const FlipOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> rotateImage(const std::string& uri, const RotateOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> cropVideo(const std::string& uri, const VideoCropOptions& options) override;

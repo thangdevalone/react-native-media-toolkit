@@ -42,6 +42,21 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
     }
   }
 
+  func splitImage(uri: String, options: SplitImageOptions) throws -> Promise<[MediaResult]> {
+    return Promise.parallel(queue) {
+      let raw = try ImageProcessor.splitImage(
+        uri: uri,
+        rows: options.rows,
+        columns: options.columns,
+        format: options.format,
+        quality: options.quality ?? 100,
+        outputDir: options.outputDir,
+        prefix: options.prefix
+      )
+      return raw.map(makeMediaResult)
+    }
+  }
+
   func flipImage(uri: String, options: FlipOptions) throws -> Promise<MediaResult> {
     return Promise.parallel(queue) {
       let raw = try ImageProcessor.flipImage(

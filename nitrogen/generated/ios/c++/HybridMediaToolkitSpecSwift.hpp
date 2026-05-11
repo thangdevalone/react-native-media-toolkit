@@ -18,6 +18,8 @@ namespace margelo::nitro::mediatoolkit { struct MediaResult; }
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
 // Forward declaration of `CompressImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
+// Forward declaration of `SplitImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct SplitImageOptions; }
 // Forward declaration of `FlipOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct FlipOptions; }
 // Forward declaration of `RotateOptions` to properly resolve imports.
@@ -57,6 +59,8 @@ namespace margelo::nitro::mediatoolkit { struct LocationData; }
 #include "CropOptions.hpp"
 #include <optional>
 #include "CompressImageOptions.hpp"
+#include <vector>
+#include "SplitImageOptions.hpp"
 #include "FlipOptions.hpp"
 #include "RotateOptions.hpp"
 #include "VideoCropOptions.hpp"
@@ -135,6 +139,14 @@ namespace margelo::nitro::mediatoolkit {
     }
     inline std::shared_ptr<Promise<MediaResult>> compressImage(const std::string& uri, const CompressImageOptions& options) override {
       auto __result = _swiftPart.compressImage(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<std::vector<MediaResult>>> splitImage(const std::string& uri, const SplitImageOptions& options) override {
+      auto __result = _swiftPart.splitImage(uri, std::forward<decltype(options)>(options));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

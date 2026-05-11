@@ -21,6 +21,8 @@ namespace margelo::nitro::mediatoolkit { struct LocationData; }
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
 // Forward declaration of `CompressImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
+// Forward declaration of `SplitImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct SplitImageOptions; }
 // Forward declaration of `FlipOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct FlipOptions; }
 // Forward declaration of `RotateOptions` to properly resolve imports.
@@ -51,6 +53,7 @@ namespace margelo::nitro::mediatoolkit { struct GeneratePreviewOptions; }
 #include <NitroModules/JPromise.hpp>
 #include "JMediaResult.hpp"
 #include <string>
+#include <vector>
 #include "ThumbnailResult.hpp"
 #include "JThumbnailResult.hpp"
 #include "ConcatResult.hpp"
@@ -64,6 +67,8 @@ namespace margelo::nitro::mediatoolkit { struct GeneratePreviewOptions; }
 #include "JCropOptions.hpp"
 #include "CompressImageOptions.hpp"
 #include "JCompressImageOptions.hpp"
+#include "SplitImageOptions.hpp"
+#include "JSplitImageOptions.hpp"
 #include "FlipOptions.hpp"
 #include "JFlipOptions.hpp"
 #include "RotateOptions.hpp"
@@ -147,6 +152,31 @@ namespace margelo::nitro::mediatoolkit {
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
         auto __result = jni::static_ref_cast<JMediaResult>(__boxedResult);
         __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<std::vector<MediaResult>>> JHybridMediaToolkitSpec::splitImage(const std::string& uri, const SplitImageOptions& options) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* uri */, jni::alias_ref<JSplitImageOptions> /* options */)>("splitImage");
+    auto __result = method(_javaPart, jni::make_jstring(uri), JSplitImageOptions::fromCpp(options));
+    return [&]() {
+      auto __promise = Promise<std::vector<MediaResult>>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<jni::JArrayClass<JMediaResult>>(__boxedResult);
+        __promise->resolve([&]() {
+          size_t __size = __result->size();
+          std::vector<MediaResult> __vector;
+          __vector.reserve(__size);
+          for (size_t __i = 0; __i < __size; __i++) {
+            auto __element = __result->getElement(__i);
+            __vector.push_back(__element->toCpp());
+          }
+          return __vector;
+        }());
       });
       __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
         jni::JniException __jniError(__throwable);

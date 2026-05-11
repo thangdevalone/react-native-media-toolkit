@@ -19,6 +19,8 @@ namespace margelo::nitro::mediatoolkit { struct MediaResult; }
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
 // Forward declaration of `CompressImageOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
+// Forward declaration of `SplitImageOptions` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct SplitImageOptions; }
 // Forward declaration of `FlipOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct FlipOptions; }
 // Forward declaration of `RotateOptions` to properly resolve imports.
@@ -55,6 +57,8 @@ namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
 #include <string>
 #include "CropOptions.hpp"
 #include "CompressImageOptions.hpp"
+#include <vector>
+#include "SplitImageOptions.hpp"
 #include "FlipOptions.hpp"
 #include "RotateOptions.hpp"
 #include "VideoCropOptions.hpp"
@@ -106,6 +110,7 @@ namespace margelo::nitro::mediatoolkit {
       // Methods
       virtual std::shared_ptr<Promise<MediaResult>> cropImage(const std::string& uri, const CropOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> compressImage(const std::string& uri, const CompressImageOptions& options) = 0;
+      virtual std::shared_ptr<Promise<std::vector<MediaResult>>> splitImage(const std::string& uri, const SplitImageOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> flipImage(const std::string& uri, const FlipOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> rotateImage(const std::string& uri, const RotateOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> cropVideo(const std::string& uri, const VideoCropOptions& options) = 0;

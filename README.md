@@ -103,6 +103,19 @@ const result = await MediaToolkit.compressImage(imageUri, {
 });
 ```
 
+### Split image into grid
+
+```typescript
+const parts = await MediaToolkit.splitImage(imageUri, {
+  rows: 3,
+  columns: 4,
+  quality: 100, // optional, defaults to 100 for lossy formats
+});
+
+console.log(parts.length); // 12
+console.log(parts[0].uri, parts[0].width, parts[0].height);
+```
+
 ### Flip image
 
 ```typescript
@@ -314,6 +327,19 @@ All options are optional. Pass an empty object `{}` to use all defaults.
 | `maxHeight` | `number` | original | Max output height in px (aspect ratio preserved) |
 | `format` | `string` | `'jpeg'` | Output format: `'jpeg'` \| `'png'` \| `'webp'` |
 | `outputPath` | `string` | temp file | Absolute path for the output file |
+
+### `splitImage(uri, options): Promise<MediaResult[]>`
+
+Splits the source image into a `rows x columns` grid using original pixel dimensions. Tiles are not resized. When format is omitted, the native layer keeps the source format when supported; iOS falls back to PNG for unsupported source encoders such as WebP.
+
+| Option | Type | Required | Description |
+|---|---|---|---|
+| `rows` | `number` | **Required** | Number of output rows |
+| `columns` | `number` | **Required** | Number of output columns |
+| `format` | `string` | Optional | Force output format: `'jpeg'` \| `'png'` \| `'webp'` |
+| `quality` | `number` | Optional | Lossy encode quality (0â€“100). Defaults to `100` |
+| `outputDir` | `string` | Optional | Absolute output directory for generated tiles |
+| `prefix` | `string` | Optional | Filename prefix for generated tiles |
 
 ### `flipImage(uri, options): Promise<MediaResult>`
 ### `flipVideo(uri, options): Promise<MediaResult>`

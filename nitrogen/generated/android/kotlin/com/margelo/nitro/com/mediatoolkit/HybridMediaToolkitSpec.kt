@@ -39,6 +39,10 @@ abstract class HybridMediaToolkitSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
+  abstract fun splitImage(uri: String, options: SplitImageOptions): Promise<Array<MediaResult>>
+  
+  @DoNotStrip
+  @Keep
   abstract fun flipImage(uri: String, options: FlipOptions): Promise<MediaResult>
   
   @DoNotStrip

@@ -44,6 +44,8 @@ namespace margelo::nitro::mediatoolkit { struct SpeedOptions; }
 namespace margelo::nitro::mediatoolkit { struct ExtractAudioOptions; }
 // Forward declaration of `GeneratePreviewOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct GeneratePreviewOptions; }
+// Forward declaration of `ConcatResult` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ConcatResult; }
 // Forward declaration of `MediaMetadata` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
 // Forward declaration of `LocationData` to properly resolve imports.
@@ -68,6 +70,8 @@ namespace margelo::nitro::mediatoolkit { struct LocationData; }
 #include "SpeedOptions.hpp"
 #include "ExtractAudioOptions.hpp"
 #include "GeneratePreviewOptions.hpp"
+#include "ConcatResult.hpp"
+#include <vector>
 #include "MediaMetadata.hpp"
 #include "LocationData.hpp"
 
@@ -243,6 +247,14 @@ namespace margelo::nitro::mediatoolkit {
     }
     inline std::shared_ptr<Promise<MediaResult>> generateVideoPreview(const std::string& uri, const GeneratePreviewOptions& options) override {
       auto __result = _swiftPart.generateVideoPreview(uri, std::forward<decltype(options)>(options));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<ConcatResult>> concatVideos(const std::vector<std::string>& clipPaths, const std::string& outputPath) override {
+      auto __result = _swiftPart.concatVideos(clipPaths, outputPath);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

@@ -29,6 +29,7 @@ public protocol HybridMediaToolkitSpec_protocol: HybridObject {
   func changeVideoSpeed(uri: String, options: SpeedOptions) throws -> Promise<MediaResult>
   func extractAudio(uri: String, options: ExtractAudioOptions) throws -> Promise<MediaResult>
   func generateVideoPreview(uri: String, options: GeneratePreviewOptions) throws -> Promise<MediaResult>
+  func concatVideos(clipPaths: [String], outputPath: String) throws -> Promise<ConcatResult>
   func getMediaMetadata(uri: String) throws -> Promise<MediaMetadata>
 }
 

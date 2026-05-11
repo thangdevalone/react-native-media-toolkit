@@ -29,6 +29,9 @@ import TrimAndCropVideoScreen from './screens/TrimAndCropVideoScreen';
 import TrimVideoScreen from './screens/TrimVideoScreen';
 import RecordVideoScreen from './screens/RecordVideoScreen';
 import MultiProcessScreen from './screens/MultiProcessScreen';
+import ConcatVideosScreen, {
+  type ConcatClip,
+} from './screens/ConcatVideosScreen';
 import { T, fmtMs, fmtSize } from './theme';
 import { DEF_CROP, type CropBox, type Screen } from './types';
 
@@ -460,6 +463,49 @@ export default function App() {
     doOp('Extract Audio', () => MediaToolkit.extractAudio(srcUri!, {}));
   };
 
+  const applyConcat = (clips: ConcatClip[]) => {
+    setScreen('home');
+    doOp('Concat Videos', async () => {
+      // Strip audio from any clip the user flagged. We re-encode via
+      // compressVideo({muteAudio:true}) since there's no passthrough
+      // remove-audio primitive exposed. This is what produces the
+      // heterogeneous-track input that exercises Media3's
+      // EditedMediaItemSequence track-type matching on Android.
+      setOpLabel('Preparing clips...');
+      const prepared: string[] = [];
+      for (let i = 0; i < clips.length; i++) {
+        const c = clips[i]!;
+        if (c.stripAudio) {
+          const muted = await MediaToolkit.compressVideo(c.uri, {
+            muteAudio: true,
+          });
+          prepared.push(muted.uri);
+        } else {
+          prepared.push(c.uri);
+        }
+      }
+
+      // Derive an output path from the first clip's directory. Image-picker
+      // places assets in the app's tmp/cache dir which is writable.
+      const firstPath = prepared[0]!.replace(/^file:\/\//, '');
+      const dir = firstPath.replace(/\/[^/]+$/, '');
+      const outputPath = `${dir}/concat-${Date.now()}.mov`;
+
+      setOpLabel('Concatenating...');
+      await MediaToolkit.concatVideos(prepared, outputPath);
+
+      const meta = await MediaToolkit.getMediaMetadata(outputPath);
+      return {
+        uri: `file://${outputPath}`,
+        size: meta.size,
+        width: meta.width,
+        height: meta.height,
+        duration: meta.duration,
+        mime: meta.mime,
+      };
+    });
+  };
+
   const generatePreview = () => {
     const maxWidth = parseInt(gifMaxWidth, 10) || 0;
     const durationMs = vidDur > 0 ? vidDur : 3000;
@@ -580,6 +626,17 @@ export default function App() {
         onNatSize={(w, h) => setTcVidNat({ w, h })}
         onCropCommit={setTcCrop}
         getContainRect={getContainRect}
+      />
+    );
+  }
+
+  if (screen === 'concatVideos') {
+    return (
+      <ConcatVideosScreen
+        loading={loading}
+        opLabel={opLabel}
+        onBack={() => setScreen('home')}
+        onApply={applyConcat}
       />
     );
   }
@@ -724,6 +781,28 @@ export default function App() {
                 </Text>
               </View>
             )}
+          </View>
+
+          {/* Batch ops (no source needed) */}
+          <View style={h.card}>
+            <Text style={h.lbl}>BATCH OPS</Text>
+            <View style={h.opRow}>
+              <Ionicons name="git-merge-outline" size={20} color={T.teal} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={h.opTitle}>Concat Videos</Text>
+                <Text style={h.opHint}>
+                  Pick 2+ clips · passthrough join · per-clip mute toggle to
+                  test heterogeneous tracks
+                </Text>
+              </View>
+              <ActionBtn
+                label="Open"
+                icon="layers"
+                color={T.teal}
+                onPress={() => setScreen('concatVideos')}
+                disabled={loading}
+              />
+            </View>
           </View>
 
           {/* Image ops */}

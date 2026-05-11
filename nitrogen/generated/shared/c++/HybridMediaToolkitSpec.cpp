@@ -30,6 +30,7 @@ namespace margelo::nitro::mediatoolkit {
       prototype.registerHybridMethod("changeVideoSpeed", &HybridMediaToolkitSpec::changeVideoSpeed);
       prototype.registerHybridMethod("extractAudio", &HybridMediaToolkitSpec::extractAudio);
       prototype.registerHybridMethod("generateVideoPreview", &HybridMediaToolkitSpec::generateVideoPreview);
+      prototype.registerHybridMethod("concatVideos", &HybridMediaToolkitSpec::concatVideos);
       prototype.registerHybridMethod("getMediaMetadata", &HybridMediaToolkitSpec::getMediaMetadata);
     });
   }

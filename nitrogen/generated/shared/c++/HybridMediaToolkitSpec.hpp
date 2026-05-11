@@ -45,6 +45,8 @@ namespace margelo::nitro::mediatoolkit { struct SpeedOptions; }
 namespace margelo::nitro::mediatoolkit { struct ExtractAudioOptions; }
 // Forward declaration of `GeneratePreviewOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct GeneratePreviewOptions; }
+// Forward declaration of `ConcatResult` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ConcatResult; }
 // Forward declaration of `MediaMetadata` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
 
@@ -67,6 +69,8 @@ namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
 #include "SpeedOptions.hpp"
 #include "ExtractAudioOptions.hpp"
 #include "GeneratePreviewOptions.hpp"
+#include "ConcatResult.hpp"
+#include <vector>
 #include "MediaMetadata.hpp"
 
 namespace margelo::nitro::mediatoolkit {
@@ -116,6 +120,7 @@ namespace margelo::nitro::mediatoolkit {
       virtual std::shared_ptr<Promise<MediaResult>> changeVideoSpeed(const std::string& uri, const SpeedOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> extractAudio(const std::string& uri, const ExtractAudioOptions& options) = 0;
       virtual std::shared_ptr<Promise<MediaResult>> generateVideoPreview(const std::string& uri, const GeneratePreviewOptions& options) = 0;
+      virtual std::shared_ptr<Promise<ConcatResult>> concatVideos(const std::vector<std::string>& clipPaths, const std::string& outputPath) = 0;
       virtual std::shared_ptr<Promise<MediaMetadata>> getMediaMetadata(const std::string& uri) = 0;
 
     protected:

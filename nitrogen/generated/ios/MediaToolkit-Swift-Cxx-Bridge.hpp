@@ -8,6 +8,8 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `ConcatResult` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ConcatResult; }
 // Forward declaration of `HybridMediaToolkitSpec` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { class HybridMediaToolkitSpec; }
 // Forward declaration of `LocationData` to properly resolve imports.
@@ -26,6 +28,7 @@ namespace margelo::nitro::mediatoolkit { struct ThumbnailResult; }
 namespace MediaToolkit { class HybridMediaToolkitSpec_cxx; }
 
 // Include C++ defined types
+#include "ConcatResult.hpp"
 #include "HybridMediaToolkitSpec.hpp"
 #include "LocationData.hpp"
 #include "MediaMetadata.hpp"
@@ -40,6 +43,7 @@ namespace MediaToolkit { class HybridMediaToolkitSpec_cxx; }
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 /**
  * Contains specialized versions of C++ templated types so they can be accessed from Swift,
@@ -197,6 +201,51 @@ namespace margelo::nitro::mediatoolkit::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::shared_ptr<Promise<ConcatResult>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<ConcatResult>>`.
+   */
+  using std__shared_ptr_Promise_ConcatResult__ = std::shared_ptr<Promise<ConcatResult>>;
+  inline std::shared_ptr<Promise<ConcatResult>> create_std__shared_ptr_Promise_ConcatResult__() noexcept {
+    return Promise<ConcatResult>::create();
+  }
+  inline PromiseHolder<ConcatResult> wrap_std__shared_ptr_Promise_ConcatResult__(std::shared_ptr<Promise<ConcatResult>> promise) noexcept {
+    return PromiseHolder<ConcatResult>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const ConcatResult& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const ConcatResult&)>`.
+   */
+  using Func_void_ConcatResult = std::function<void(const ConcatResult& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const ConcatResult& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_ConcatResult_Wrapper final {
+  public:
+    explicit Func_void_ConcatResult_Wrapper(std::function<void(const ConcatResult& /* result */)>&& func): _function(std::make_unique<std::function<void(const ConcatResult& /* result */)>>(std::move(func))) {}
+    inline void call(ConcatResult result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const ConcatResult& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_ConcatResult create_Func_void_ConcatResult(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_ConcatResult_Wrapper wrap_Func_void_ConcatResult(Func_void_ConcatResult value) noexcept {
+    return Func_void_ConcatResult_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::vector<std::string>
+  /**
+   * Specialized version of `std::vector<std::string>`.
+   */
+  using std__vector_std__string_ = std::vector<std::string>;
+  inline std::vector<std::string> create_std__vector_std__string_(size_t size) noexcept {
+    std::vector<std::string> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
   // pragma MARK: std::optional<LocationData>
   /**
    * Specialized version of `std::optional<LocationData>`.
@@ -274,6 +323,15 @@ namespace margelo::nitro::mediatoolkit::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_ThumbnailResult___ create_Result_std__shared_ptr_Promise_ThumbnailResult___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<ThumbnailResult>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<ConcatResult>>>
+  using Result_std__shared_ptr_Promise_ConcatResult___ = Result<std::shared_ptr<Promise<ConcatResult>>>;
+  inline Result_std__shared_ptr_Promise_ConcatResult___ create_Result_std__shared_ptr_Promise_ConcatResult___(const std::shared_ptr<Promise<ConcatResult>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<ConcatResult>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_ConcatResult___ create_Result_std__shared_ptr_Promise_ConcatResult___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<ConcatResult>>>::withError(error);
   }
   
   // pragma MARK: Result<std::shared_ptr<Promise<MediaMetadata>>>

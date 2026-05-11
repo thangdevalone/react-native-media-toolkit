@@ -4,6 +4,7 @@ import androidx.media3.common.util.UnstableApi
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.com.mediatoolkit.CompressImageOptions
 import com.margelo.nitro.com.mediatoolkit.CompressVideoOptions
+import com.margelo.nitro.com.mediatoolkit.ConcatResult
 import com.margelo.nitro.com.mediatoolkit.CropOptions
 import com.margelo.nitro.com.mediatoolkit.HybridMediaToolkitSpec
 import com.margelo.nitro.com.mediatoolkit.MediaResult
@@ -249,6 +250,13 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         duration = result.duration,
         mime = "audio/m4a"
       )
+    }
+  }
+
+  override fun concatVideos(clipPaths: Array<String>, outputPath: String): Promise<ConcatResult> {
+    return Promise.async(scope) {
+      val durationSec = VideoProcessor.concatVideos(ctx, clipPaths, outputPath)
+      ConcatResult(durationSec = durationSec)
     }
   }
 

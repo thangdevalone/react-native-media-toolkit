@@ -573,6 +573,121 @@ internal object VideoProcessor {
     return result
   }
 
+  // ─── CONCAT (passthrough, no re-encode) ─────────────────────────────────
+
+  /**
+   * Concatenate multiple local video files into a single output. Builds a
+   * Media3 [Composition] with no effects so the Transformer takes the
+   * passthrough path (no re-encode), the Android counterpart of
+   * AVAssetExportPresetPassthrough on iOS.
+   *
+   * Returns the sum of input durations in seconds. Audio tracks are
+   * carried through silently if missing on a clip.
+   */
+  fun concatVideos(
+    context: Context,
+    clipPaths: Array<String>,
+    outputPath: String
+  ): Double {
+    if (clipPaths.isEmpty()) {
+      throw MediaToolkitException.InvalidInput("concatVideos: clipPaths is empty")
+    }
+
+    val outFile = File(outputPath)
+    outFile.parentFile?.mkdirs()
+    if (outFile.exists()) outFile.delete()
+
+    data class ClipMeta(val durationMs: Long, val hasAudio: Boolean)
+    val clipMetas = ArrayList<ClipMeta>(clipPaths.size)
+    var totalDurationMs = 0L
+
+    val retriever = android.media.MediaMetadataRetriever()
+    try {
+      for (path in clipPaths) {
+        val normalized = if (path.startsWith("file://")) path.removePrefix("file://") else path
+        val file = File(normalized)
+        if (!file.exists()) {
+          throw MediaToolkitException.InvalidInput("concatVideos: file not found: $path")
+        }
+        try {
+          retriever.setDataSource(normalized)
+        } catch (e: Exception) {
+          throw MediaToolkitException.InvalidInput("concatVideos: cannot read $path: ${e.message}")
+        }
+        val durationMs = retriever
+          .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+          ?.toLongOrNull()
+          ?: throw MediaToolkitException.InvalidInput("concatVideos: cannot read duration: $path")
+        if (durationMs <= 0) {
+          throw MediaToolkitException.InvalidInput("concatVideos: invalid duration for: $path")
+        }
+        val hasAudio = retriever.extractMetadata(
+          android.media.MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO
+        ) != null
+        totalDurationMs += durationMs
+        clipMetas.add(ClipMeta(durationMs, hasAudio))
+      }
+    } finally {
+      retriever.release()
+    }
+
+    // EditedMediaItemSequence requires all items to share the same track layout.
+    // Strip audio from every clip when any clip lacks an audio track so the
+    // sequence is homogeneous.
+    val stripAudio = clipMetas.any { !it.hasAudio }
+
+    val editedItems = ArrayList<EditedMediaItem>(clipPaths.size)
+    for (path in clipPaths) {
+      val mediaItem = MediaItem.Builder()
+        .setUri(toAndroidUri(path))
+        .build()
+      // No effects -> Media3 picks passthrough automatically.
+      val itemBuilder = EditedMediaItem.Builder(mediaItem)
+      if (stripAudio) itemBuilder.setRemoveAudio(true)
+      editedItems.add(itemBuilder.build())
+    }
+
+    val sequence = EditedMediaItemSequence.Builder(editedItems).build()
+    val composition = Composition.Builder(listOf(sequence)).build()
+
+    val latch = CountDownLatch(1)
+    var exportError: Exception? = null
+
+    val transformer = Transformer.Builder(context)
+      .addListener(object : Transformer.Listener {
+        override fun onCompleted(composition: Composition, result: ExportResult) {
+          latch.countDown()
+        }
+        override fun onError(
+          composition: Composition,
+          result: ExportResult,
+          exception: ExportException
+        ) {
+          exportError = exception
+          latch.countDown()
+        }
+      })
+      .build()
+
+    val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    mainHandler.post {
+      try {
+        transformer.start(composition, outputPath)
+      } catch (e: Exception) {
+        exportError = e
+        latch.countDown()
+      }
+    }
+
+    latch.await()
+
+    exportError?.let {
+      throw MediaToolkitException.ProcessingFailed("concatVideos failed: ${it.message}")
+    }
+
+    return totalDurationMs / 1000.0
+  }
+
   // ─── Core ────────────────────────────────────────────────────────────────
 
   private fun runTransform(

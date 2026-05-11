@@ -70,6 +70,7 @@ namespace margelo::nitro::mediatoolkit {
     std::shared_ptr<Promise<MediaResult>> changeVideoSpeed(const std::string& uri, const SpeedOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> extractAudio(const std::string& uri, const ExtractAudioOptions& options) override;
     std::shared_ptr<Promise<MediaResult>> generateVideoPreview(const std::string& uri, const GeneratePreviewOptions& options) override;
+    std::shared_ptr<Promise<ConcatResult>> concatVideos(const std::vector<std::string>& clipPaths, const std::string& outputPath) override;
     std::shared_ptr<Promise<MediaMetadata>> getMediaMetadata(const std::string& uri) override;
 
   private:

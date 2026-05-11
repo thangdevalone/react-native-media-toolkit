@@ -429,6 +429,25 @@ open class HybridMediaToolkitSpec_cxx {
   }
   
   @inline(__always)
+  public final func concatVideos(clipPaths: bridge.std__vector_std__string_, outputPath: std.string) -> bridge.Result_std__shared_ptr_Promise_ConcatResult___ {
+    do {
+      let __result = try self.__implementation.concatVideos(clipPaths: clipPaths.map({ __item in String(__item) }), outputPath: String(outputPath))
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_ConcatResult__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_ConcatResult__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_ConcatResult__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_ConcatResult___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_ConcatResult___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
   public final func getMediaMetadata(uri: std.string) -> bridge.Result_std__shared_ptr_Promise_MediaMetadata___ {
     do {
       let __result = try self.__implementation.getMediaMetadata(uri: String(uri))

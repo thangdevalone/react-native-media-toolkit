@@ -216,6 +216,11 @@ export interface ProcessVideoOptions {
   outputPath?: string;
 }
 
+export interface ConcatResult {
+  /** Total duration of the concatenated output in seconds */
+  durationSec: number;
+}
+
 export interface ProcessImageOptions {
   cropX?: number;
   cropY?: number;
@@ -263,7 +268,15 @@ export interface MediaToolkit
   extractAudio(uri: string, options: ExtractAudioOptions): Promise<MediaResult>;
   /** Generate an animated GIF preview from the video */
   generateVideoPreview(uri: string, options: GeneratePreviewOptions): Promise<MediaResult>;
-  
+
+  /**
+   * Concatenate multiple local video clips into a single file using
+   * AVFoundation passthrough (iOS) / Media3 passthrough Transformer (Android).
+   * No re-encode — frame-accurate, near-instant joining of compatible clips.
+   * Resolves with the sum of input durations in seconds.
+   */
+  concatVideos(clipPaths: string[], outputPath: string): Promise<ConcatResult>;
+
   /** Get unified metadata (EXIF for images, MediaMetadata for videos) */
   getMediaMetadata(uri: string): Promise<MediaMetadata>;
 }

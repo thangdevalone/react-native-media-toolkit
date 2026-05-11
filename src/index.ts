@@ -123,6 +123,14 @@ export const MediaToolkit = {
   generateVideoPreview: native.generateVideoPreview.bind(native),
 
   /**
+   * Concatenate multiple local video clips into a single file using AVFoundation
+   * passthrough (iOS) / Media3 passthrough Transformer (Android). No re-encode —
+   * frame-accurate, near-instant joining of compatible clips. Resolves with the
+   * sum of input durations in seconds.
+   */
+  concatVideos: native.concatVideos.bind(native),
+
+  /**
    * Get unified metadata (EXIF for images, Track metadata for videos)
    * Super fast, no memory bloat.
    */

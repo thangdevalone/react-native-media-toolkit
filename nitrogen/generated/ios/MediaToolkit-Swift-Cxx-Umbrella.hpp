@@ -12,6 +12,8 @@
 namespace margelo::nitro::mediatoolkit { struct CompressImageOptions; }
 // Forward declaration of `CompressVideoOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CompressVideoOptions; }
+// Forward declaration of `ConcatResult` to properly resolve imports.
+namespace margelo::nitro::mediatoolkit { struct ConcatResult; }
 // Forward declaration of `CropOptions` to properly resolve imports.
 namespace margelo::nitro::mediatoolkit { struct CropOptions; }
 // Forward declaration of `ExtractAudioOptions` to properly resolve imports.
@@ -50,6 +52,7 @@ namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 // Include C++ defined types
 #include "CompressImageOptions.hpp"
 #include "CompressVideoOptions.hpp"
+#include "ConcatResult.hpp"
 #include "CropOptions.hpp"
 #include "ExtractAudioOptions.hpp"
 #include "FlipOptions.hpp"
@@ -73,6 +76,7 @@ namespace margelo::nitro::mediatoolkit { struct VideoCropOptions; }
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 // C++ helpers for Swift
 #include "MediaToolkit-Swift-Cxx-Bridge.hpp"

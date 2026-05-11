@@ -300,6 +300,24 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
     }
   }
 
+  func concatVideos(clipPaths: [String], outputPath: String) throws -> Promise<ConcatResult> {
+    return Promise.async {
+      try await withCheckedThrowingContinuation { continuation in
+        VideoProcessor.concatVideos(
+          clipPaths: clipPaths,
+          outputPath: outputPath,
+          completion: { durationSec, error in
+            if let error {
+              continuation.resume(throwing: error)
+            } else {
+              continuation.resume(returning: ConcatResult(durationSec: durationSec))
+            }
+          }
+        )
+      }
+    }
+  }
+
   func generateVideoPreview(uri: String, options: GeneratePreviewOptions) throws -> Promise<MediaResult> {
     return Promise.async {
       try await withCheckedThrowingContinuation { continuation in

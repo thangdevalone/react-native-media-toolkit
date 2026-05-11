@@ -95,6 +95,10 @@ abstract class HybridMediaToolkitSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
+  abstract fun concatVideos(clipPaths: Array<String>, outputPath: String): Promise<ConcatResult>
+  
+  @DoNotStrip
+  @Keep
   abstract fun getMediaMetadata(uri: String): Promise<MediaMetadata>
 
   // Default implementation of `HybridObject.toString()`

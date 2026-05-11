@@ -959,8 +959,15 @@ class VideoProcessor: NSObject {
       if let audioAssetTrack = asset.tracks(withMediaType: .audio).first,
          let compAudioTrack = compAudioTrack {
         do {
+          let audioInsertDuration = CMTimeMinimum(
+            audioAssetTrack.timeRange.duration,
+            trackDuration
+          )
+          if audioInsertDuration.seconds <= 0 {
+            continue
+          }
           try compAudioTrack.insertTimeRange(
-            CMTimeRange(start: .zero, duration: audioAssetTrack.timeRange.duration),
+            CMTimeRange(start: .zero, duration: audioInsertDuration),
             of: audioAssetTrack,
             at: cumulative
           )

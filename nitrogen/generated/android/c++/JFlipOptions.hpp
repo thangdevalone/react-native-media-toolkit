@@ -36,9 +36,12 @@ namespace margelo::nitro::mediatoolkit {
       jni::local_ref<jni::JString> direction = this->getFieldValue(fieldDirection);
       static const auto fieldOutputPath = clazz->getField<jni::JString>("outputPath");
       jni::local_ref<jni::JString> outputPath = this->getFieldValue(fieldOutputPath);
+      static const auto fieldCornerRadius = clazz->getField<jni::JDouble>("cornerRadius");
+      jni::local_ref<jni::JDouble> cornerRadius = this->getFieldValue(fieldCornerRadius);
       return FlipOptions(
         direction->toStdString(),
-        outputPath != nullptr ? std::make_optional(outputPath->toStdString()) : std::nullopt
+        outputPath != nullptr ? std::make_optional(outputPath->toStdString()) : std::nullopt,
+        cornerRadius != nullptr ? std::make_optional(cornerRadius->value()) : std::nullopt
       );
     }
 
@@ -48,13 +51,14 @@ namespace margelo::nitro::mediatoolkit {
      */
     [[maybe_unused]]
     static jni::local_ref<JFlipOptions::javaobject> fromCpp(const FlipOptions& value) {
-      using JSignature = JFlipOptions(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
+      using JSignature = JFlipOptions(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
         jni::make_jstring(value.direction),
-        value.outputPath.has_value() ? jni::make_jstring(value.outputPath.value()) : nullptr
+        value.outputPath.has_value() ? jni::make_jstring(value.outputPath.value()) : nullptr,
+        value.cornerRadius.has_value() ? jni::JDouble::valueOf(value.cornerRadius.value()) : nullptr
       );
     }
   };

@@ -23,7 +23,10 @@ data class RotateOptions(
   val degrees: Double,
   @DoNotStrip
   @Keep
-  val outputPath: String?
+  val outputPath: String?,
+  @DoNotStrip
+  @Keep
+  val cornerRadius: Double?
 ) {
   /* primary constructor */
 
@@ -32,12 +35,14 @@ data class RotateOptions(
     if (other !is RotateOptions) return false
     return Objects.deepEquals(this.degrees, other.degrees)
       && Objects.deepEquals(this.outputPath, other.outputPath)
+      && Objects.deepEquals(this.cornerRadius, other.cornerRadius)
   }
 
   override fun hashCode(): Int {
     return arrayOf(
       degrees,
-      outputPath
+      outputPath,
+      cornerRadius
     ).contentDeepHashCode()
   }
 
@@ -49,8 +54,8 @@ data class RotateOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(degrees: Double, outputPath: String?): RotateOptions {
-      return RotateOptions(degrees, outputPath)
+    private fun fromCpp(degrees: Double, outputPath: String?, cornerRadius: Double?): RotateOptions {
+      return RotateOptions(degrees, outputPath, cornerRadius)
     }
   }
 }

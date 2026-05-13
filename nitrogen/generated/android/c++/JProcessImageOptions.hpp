@@ -46,6 +46,8 @@ namespace margelo::nitro::mediatoolkit {
       jni::local_ref<jni::JDouble> rotation = this->getFieldValue(fieldRotation);
       static const auto fieldOutputPath = clazz->getField<jni::JString>("outputPath");
       jni::local_ref<jni::JString> outputPath = this->getFieldValue(fieldOutputPath);
+      static const auto fieldCornerRadius = clazz->getField<jni::JDouble>("cornerRadius");
+      jni::local_ref<jni::JDouble> cornerRadius = this->getFieldValue(fieldCornerRadius);
       return ProcessImageOptions(
         cropX != nullptr ? std::make_optional(cropX->value()) : std::nullopt,
         cropY != nullptr ? std::make_optional(cropY->value()) : std::nullopt,
@@ -53,7 +55,8 @@ namespace margelo::nitro::mediatoolkit {
         cropHeight != nullptr ? std::make_optional(cropHeight->value()) : std::nullopt,
         flip != nullptr ? std::make_optional(flip->toStdString()) : std::nullopt,
         rotation != nullptr ? std::make_optional(rotation->value()) : std::nullopt,
-        outputPath != nullptr ? std::make_optional(outputPath->toStdString()) : std::nullopt
+        outputPath != nullptr ? std::make_optional(outputPath->toStdString()) : std::nullopt,
+        cornerRadius != nullptr ? std::make_optional(cornerRadius->value()) : std::nullopt
       );
     }
 
@@ -63,7 +66,7 @@ namespace margelo::nitro::mediatoolkit {
      */
     [[maybe_unused]]
     static jni::local_ref<JProcessImageOptions::javaobject> fromCpp(const ProcessImageOptions& value) {
-      using JSignature = JProcessImageOptions(jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>);
+      using JSignature = JProcessImageOptions(jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -74,7 +77,8 @@ namespace margelo::nitro::mediatoolkit {
         value.cropHeight.has_value() ? jni::JDouble::valueOf(value.cropHeight.value()) : nullptr,
         value.flip.has_value() ? jni::make_jstring(value.flip.value()) : nullptr,
         value.rotation.has_value() ? jni::JDouble::valueOf(value.rotation.value()) : nullptr,
-        value.outputPath.has_value() ? jni::make_jstring(value.outputPath.value()) : nullptr
+        value.outputPath.has_value() ? jni::make_jstring(value.outputPath.value()) : nullptr,
+        value.cornerRadius.has_value() ? jni::JDouble::valueOf(value.cornerRadius.value()) : nullptr
       );
     }
   };

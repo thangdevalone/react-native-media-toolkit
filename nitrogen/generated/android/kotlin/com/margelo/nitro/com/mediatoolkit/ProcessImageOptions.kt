@@ -38,7 +38,10 @@ data class ProcessImageOptions(
   val rotation: Double?,
   @DoNotStrip
   @Keep
-  val outputPath: String?
+  val outputPath: String?,
+  @DoNotStrip
+  @Keep
+  val cornerRadius: Double?
 ) {
   /* primary constructor */
 
@@ -52,6 +55,7 @@ data class ProcessImageOptions(
       && Objects.deepEquals(this.flip, other.flip)
       && Objects.deepEquals(this.rotation, other.rotation)
       && Objects.deepEquals(this.outputPath, other.outputPath)
+      && Objects.deepEquals(this.cornerRadius, other.cornerRadius)
   }
 
   override fun hashCode(): Int {
@@ -62,7 +66,8 @@ data class ProcessImageOptions(
       cropHeight,
       flip,
       rotation,
-      outputPath
+      outputPath,
+      cornerRadius
     ).contentDeepHashCode()
   }
 
@@ -74,8 +79,8 @@ data class ProcessImageOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, outputPath: String?): ProcessImageOptions {
-      return ProcessImageOptions(cropX, cropY, cropWidth, cropHeight, flip, rotation, outputPath)
+    private fun fromCpp(cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, outputPath: String?, cornerRadius: Double?): ProcessImageOptions {
+      return ProcessImageOptions(cropX, cropY, cropWidth, cropHeight, flip, rotation, outputPath, cornerRadius)
     }
   }
 }

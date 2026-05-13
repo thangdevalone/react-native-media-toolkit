@@ -18,10 +18,16 @@ public extension CropOptions {
   /**
    * Create a new instance of `CropOptions`.
    */
-  init(x: Double, y: Double, width: Double, height: Double, outputPath: String?) {
+  init(x: Double, y: Double, width: Double, height: Double, outputPath: String?, cornerRadius: Double?) {
     self.init(x, y, width, height, { () -> bridge.std__optional_std__string_ in
       if let __unwrappedValue = outputPath {
         return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = cornerRadius {
+        return bridge.create_std__optional_double_(__unwrappedValue)
       } else {
         return .init()
       }
@@ -54,6 +60,18 @@ public extension CropOptions {
       if bridge.has_value_std__optional_std__string_(self.__outputPath) {
         let __unwrapped = bridge.get_std__optional_std__string_(self.__outputPath)
         return String(__unwrapped)
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var cornerRadius: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__cornerRadius) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__cornerRadius)
+        return __unwrapped
       } else {
         return nil
       }

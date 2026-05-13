@@ -32,7 +32,10 @@ data class CropOptions(
   val height: Double,
   @DoNotStrip
   @Keep
-  val outputPath: String?
+  val outputPath: String?,
+  @DoNotStrip
+  @Keep
+  val cornerRadius: Double?
 ) {
   /* primary constructor */
 
@@ -44,6 +47,7 @@ data class CropOptions(
       && Objects.deepEquals(this.width, other.width)
       && Objects.deepEquals(this.height, other.height)
       && Objects.deepEquals(this.outputPath, other.outputPath)
+      && Objects.deepEquals(this.cornerRadius, other.cornerRadius)
   }
 
   override fun hashCode(): Int {
@@ -52,7 +56,8 @@ data class CropOptions(
       y,
       width,
       height,
-      outputPath
+      outputPath,
+      cornerRadius
     ).contentDeepHashCode()
   }
 
@@ -64,8 +69,8 @@ data class CropOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(x: Double, y: Double, width: Double, height: Double, outputPath: String?): CropOptions {
-      return CropOptions(x, y, width, height, outputPath)
+    private fun fromCpp(x: Double, y: Double, width: Double, height: Double, outputPath: String?, cornerRadius: Double?): CropOptions {
+      return CropOptions(x, y, width, height, outputPath, cornerRadius)
     }
   }
 }

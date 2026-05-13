@@ -45,10 +45,11 @@ namespace margelo::nitro::mediatoolkit {
     double width     SWIFT_PRIVATE;
     double height     SWIFT_PRIVATE;
     std::optional<std::string> outputPath     SWIFT_PRIVATE;
+    std::optional<double> cornerRadius     SWIFT_PRIVATE;
 
   public:
     CropOptions() = default;
-    explicit CropOptions(double x, double y, double width, double height, std::optional<std::string> outputPath): x(x), y(y), width(width), height(height), outputPath(outputPath) {}
+    explicit CropOptions(double x, double y, double width, double height, std::optional<std::string> outputPath, std::optional<double> cornerRadius): x(x), y(y), width(width), height(height), outputPath(outputPath), cornerRadius(cornerRadius) {}
 
   public:
     friend bool operator==(const CropOptions& lhs, const CropOptions& rhs) = default;
@@ -68,7 +69,8 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "y"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "height"))),
-        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cornerRadius")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::mediatoolkit::CropOptions& arg) {
@@ -78,6 +80,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "width"), JSIConverter<double>::toJSI(runtime, arg.width));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "height"), JSIConverter<double>::toJSI(runtime, arg.height));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "outputPath"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.outputPath));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "cornerRadius"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.cornerRadius));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -93,6 +96,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "height")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cornerRadius")))) return false;
       return true;
     }
   };

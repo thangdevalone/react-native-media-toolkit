@@ -74,7 +74,6 @@ namespace margelo::nitro::mediatoolkit { struct MediaMetadata; }
 #include "ExtractAudioOptions.hpp"
 #include "GeneratePreviewOptions.hpp"
 #include "ConcatResult.hpp"
-#include <vector>
 #include "MediaMetadata.hpp"
 
 namespace margelo::nitro::mediatoolkit {

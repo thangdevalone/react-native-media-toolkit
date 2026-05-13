@@ -32,7 +32,10 @@ data class CompressImageOptions(
   val format: String?,
   @DoNotStrip
   @Keep
-  val outputPath: String?
+  val outputPath: String?,
+  @DoNotStrip
+  @Keep
+  val cornerRadius: Double?
 ) {
   /* primary constructor */
 
@@ -44,6 +47,7 @@ data class CompressImageOptions(
       && Objects.deepEquals(this.maxHeight, other.maxHeight)
       && Objects.deepEquals(this.format, other.format)
       && Objects.deepEquals(this.outputPath, other.outputPath)
+      && Objects.deepEquals(this.cornerRadius, other.cornerRadius)
   }
 
   override fun hashCode(): Int {
@@ -52,7 +56,8 @@ data class CompressImageOptions(
       maxWidth,
       maxHeight,
       format,
-      outputPath
+      outputPath,
+      cornerRadius
     ).contentDeepHashCode()
   }
 
@@ -64,8 +69,8 @@ data class CompressImageOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(quality: Double?, maxWidth: Double?, maxHeight: Double?, format: String?, outputPath: String?): CompressImageOptions {
-      return CompressImageOptions(quality, maxWidth, maxHeight, format, outputPath)
+    private fun fromCpp(quality: Double?, maxWidth: Double?, maxHeight: Double?, format: String?, outputPath: String?, cornerRadius: Double?): CompressImageOptions {
+      return CompressImageOptions(quality, maxWidth, maxHeight, format, outputPath, cornerRadius)
     }
   }
 }

@@ -93,7 +93,6 @@ namespace margelo::nitro::mediatoolkit { struct GeneratePreviewOptions; }
 #include "JExtractAudioOptions.hpp"
 #include "GeneratePreviewOptions.hpp"
 #include "JGeneratePreviewOptions.hpp"
-#include <vector>
 
 namespace margelo::nitro::mediatoolkit {
 

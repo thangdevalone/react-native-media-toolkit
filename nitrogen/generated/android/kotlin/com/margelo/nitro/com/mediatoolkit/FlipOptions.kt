@@ -23,7 +23,10 @@ data class FlipOptions(
   val direction: String,
   @DoNotStrip
   @Keep
-  val outputPath: String?
+  val outputPath: String?,
+  @DoNotStrip
+  @Keep
+  val cornerRadius: Double?
 ) {
   /* primary constructor */
 
@@ -32,12 +35,14 @@ data class FlipOptions(
     if (other !is FlipOptions) return false
     return Objects.deepEquals(this.direction, other.direction)
       && Objects.deepEquals(this.outputPath, other.outputPath)
+      && Objects.deepEquals(this.cornerRadius, other.cornerRadius)
   }
 
   override fun hashCode(): Int {
     return arrayOf(
       direction,
-      outputPath
+      outputPath,
+      cornerRadius
     ).contentDeepHashCode()
   }
 
@@ -49,8 +54,8 @@ data class FlipOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(direction: String, outputPath: String?): FlipOptions {
-      return FlipOptions(direction, outputPath)
+    private fun fromCpp(direction: String, outputPath: String?, cornerRadius: Double?): FlipOptions {
+      return FlipOptions(direction, outputPath, cornerRadius)
     }
   }
 }

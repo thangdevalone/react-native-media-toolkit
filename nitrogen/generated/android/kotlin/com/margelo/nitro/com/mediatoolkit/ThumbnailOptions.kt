@@ -29,7 +29,10 @@ data class ThumbnailOptions(
   val maxWidth: Double?,
   @DoNotStrip
   @Keep
-  val outputPath: String?
+  val outputPath: String?,
+  @DoNotStrip
+  @Keep
+  val cornerRadius: Double?
 ) {
   /* primary constructor */
 
@@ -40,6 +43,7 @@ data class ThumbnailOptions(
       && Objects.deepEquals(this.quality, other.quality)
       && Objects.deepEquals(this.maxWidth, other.maxWidth)
       && Objects.deepEquals(this.outputPath, other.outputPath)
+      && Objects.deepEquals(this.cornerRadius, other.cornerRadius)
   }
 
   override fun hashCode(): Int {
@@ -47,7 +51,8 @@ data class ThumbnailOptions(
       timeMs,
       quality,
       maxWidth,
-      outputPath
+      outputPath,
+      cornerRadius
     ).contentDeepHashCode()
   }
 
@@ -59,8 +64,8 @@ data class ThumbnailOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(timeMs: Double?, quality: Double?, maxWidth: Double?, outputPath: String?): ThumbnailOptions {
-      return ThumbnailOptions(timeMs, quality, maxWidth, outputPath)
+    private fun fromCpp(timeMs: Double?, quality: Double?, maxWidth: Double?, outputPath: String?, cornerRadius: Double?): ThumbnailOptions {
+      return ThumbnailOptions(timeMs, quality, maxWidth, outputPath, cornerRadius)
     }
   }
 }

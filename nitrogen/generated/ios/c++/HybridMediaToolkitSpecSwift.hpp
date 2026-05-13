@@ -75,7 +75,6 @@ namespace margelo::nitro::mediatoolkit { struct LocationData; }
 #include "ExtractAudioOptions.hpp"
 #include "GeneratePreviewOptions.hpp"
 #include "ConcatResult.hpp"
-#include <vector>
 #include "MediaMetadata.hpp"
 #include "LocationData.hpp"
 

@@ -42,10 +42,11 @@ namespace margelo::nitro::mediatoolkit {
   public:
     double degrees     SWIFT_PRIVATE;
     std::optional<std::string> outputPath     SWIFT_PRIVATE;
+    std::optional<double> cornerRadius     SWIFT_PRIVATE;
 
   public:
     RotateOptions() = default;
-    explicit RotateOptions(double degrees, std::optional<std::string> outputPath): degrees(degrees), outputPath(outputPath) {}
+    explicit RotateOptions(double degrees, std::optional<std::string> outputPath, std::optional<double> cornerRadius): degrees(degrees), outputPath(outputPath), cornerRadius(cornerRadius) {}
 
   public:
     friend bool operator==(const RotateOptions& lhs, const RotateOptions& rhs) = default;
@@ -62,13 +63,15 @@ namespace margelo::nitro {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::mediatoolkit::RotateOptions(
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "degrees"))),
-        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cornerRadius")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::mediatoolkit::RotateOptions& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "degrees"), JSIConverter<double>::toJSI(runtime, arg.degrees));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "outputPath"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.outputPath));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "cornerRadius"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.cornerRadius));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -81,6 +84,7 @@ namespace margelo::nitro {
       }
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "degrees")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cornerRadius")))) return false;
       return true;
     }
   };

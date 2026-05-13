@@ -529,10 +529,16 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       let q = max(0, min(100, Int(quality)))
       let radius = options?.cornerRadius ?? 0
       
-      if radius > 0 {
+      if radius != 0 {
+        var actualRadius = CGFloat(radius)
+        if radius < 0 {
+          let percent = CGFloat(min(abs(radius), 100.0) / 100.0)
+          let minDimension = min(uiImage.size.width, uiImage.size.height)
+          actualRadius = (minDimension / 2.0) * percent
+        }
         let rect = CGRect(origin: .zero, size: uiImage.size)
         UIGraphicsBeginImageContextWithOptions(uiImage.size, false, uiImage.scale)
-        UIBezierPath(roundedRect: rect, cornerRadius: CGFloat(radius)).addClip()
+        UIBezierPath(roundedRect: rect, cornerRadius: actualRadius).addClip()
         uiImage.draw(in: rect)
         uiImage = UIGraphicsGetImageFromCurrentImageContext() ?? uiImage
         UIGraphicsEndImageContext()
@@ -540,7 +546,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       
       let data: Data
       let outExt: String
-      if radius > 0 {
+      if radius != 0 {
           data = uiImage.pngData() ?? Data()
           outExt = "png"
       } else {

@@ -931,8 +931,8 @@ internal object VideoProcessor {
     
     var radius = cornerRadiusPx
     if (radius < 0) {
-        val percent = Math.min(Math.abs(radius), 100f) / 100f
-        val minDimension = Math.min(bitmap.width, bitmap.height)
+        val percent = minOf(kotlin.math.abs(radius), 100f) / 100f
+        val minDimension = minOf(bitmap.width, bitmap.height)
         radius = (minDimension / 2f) * percent
     }
 

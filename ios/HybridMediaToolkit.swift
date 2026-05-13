@@ -527,12 +527,12 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       }
 
       let q = max(0, min(100, Int(quality)))
-      let radius = options?.cornerRadius ?? 0
+      let radius = options?.cornerRadius ?? 0.0
       
-      if radius != 0 {
+      if radius != 0.0 {
         var actualRadius = CGFloat(radius)
-        if radius < 0 {
-          let percent = CGFloat(min(abs(radius), 100.0) / 100.0)
+        if radius < 0.0 {
+          let percent = min(abs(CGFloat(radius)), 100.0) / 100.0
           let minDimension = min(uiImage.size.width, uiImage.size.height)
           actualRadius = (minDimension / 2.0) * percent
         }
@@ -546,7 +546,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       
       let data: Data
       let outExt: String
-      if radius != 0 {
+      if radius != 0.0 {
           data = uiImage.pngData() ?? Data()
           outExt = "png"
       } else {

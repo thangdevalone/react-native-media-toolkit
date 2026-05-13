@@ -70,6 +70,8 @@ export interface CropOptions {
   height: number;
   /** Absolute output file path (optional) */
   outputPath?: string;
+  /** Corner radius in pixels (optional) */
+  cornerRadius?: number;
 }
 
 export interface CompressImageOptions {
@@ -83,6 +85,8 @@ export interface CompressImageOptions {
   format?: string;
   /** Absolute output file path (optional) */
   outputPath?: string;
+  /** Corner radius in pixels (optional) */
+  cornerRadius?: number;
 }
 
 export interface SplitImageOptions {
@@ -148,6 +152,8 @@ export interface ThumbnailOptions {
   maxWidth?: number;
   /** Absolute output file path (optional, defaults to temp JPEG) */
   outputPath?: string;
+  /** Corner radius in pixels (optional) */
+  cornerRadius?: number;
 }
 
 export interface ThumbnailResult {
@@ -185,6 +191,8 @@ export interface FlipOptions {
   direction: string;
   /** Absolute output file path (optional) */
   outputPath?: string;
+  /** Corner radius in pixels (optional) */
+  cornerRadius?: number;
 }
 
 export interface RotateOptions {
@@ -192,6 +200,8 @@ export interface RotateOptions {
   degrees: number;
   /** Absolute output file path (optional) */
   outputPath?: string;
+  /** Corner radius in pixels (optional) */
+  cornerRadius?: number;
 }
 
 export interface SpeedOptions {
@@ -244,6 +254,7 @@ export interface ProcessImageOptions {
   flip?: string; // "horizontal" | "vertical"
   rotation?: number;
   outputPath?: string;
+  cornerRadius?: number;
 }
 
 // ─── HybridObject spec ─────────────────────────────────────────────────────

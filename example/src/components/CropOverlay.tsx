@@ -37,12 +37,37 @@ const CropOverlay = React.memo(
     const aW = useRef(new Animated.Value(box.current.w)).current;
     const aH = useRef(new Animated.Value(box.current.h)).current;
 
+    const HS = 32, BW = 3, BL = 22;
+
+    const aT_plus_H = useRef(new Animated.Value(box.current.t + box.current.h)).current;
+    const aL_plus_W = useRef(new Animated.Value(box.current.l + box.current.w)).current;
+
+    const tl_L = useRef(new Animated.Value(box.current.l - HS / 2)).current;
+    const tl_T = useRef(new Animated.Value(box.current.t - HS / 2)).current;
+    const tr_L = useRef(new Animated.Value(box.current.l + box.current.w - HS / 2)).current;
+    const tr_T = useRef(new Animated.Value(box.current.t - HS / 2)).current;
+    const bl_L = useRef(new Animated.Value(box.current.l - HS / 2)).current;
+    const bl_T = useRef(new Animated.Value(box.current.t + box.current.h - HS / 2)).current;
+    const br_L = useRef(new Animated.Value(box.current.l + box.current.w - HS / 2)).current;
+    const br_T = useRef(new Animated.Value(box.current.t + box.current.h - HS / 2)).current;
+
     const applyBox = () => {
       const b = box.current;
       aL.setValue(b.l);
       aT.setValue(b.t);
       aW.setValue(b.w);
       aH.setValue(b.h);
+      aT_plus_H.setValue(b.t + b.h);
+      aL_plus_W.setValue(b.l + b.w);
+
+      tl_L.setValue(b.l - HS / 2);
+      tl_T.setValue(b.t - HS / 2);
+      tr_L.setValue(b.l + b.w - HS / 2);
+      tr_T.setValue(b.t - HS / 2);
+      bl_L.setValue(b.l - HS / 2);
+      bl_T.setValue(b.t + b.h - HS / 2);
+      br_L.setValue(b.l + b.w - HS / 2);
+      br_T.setValue(b.t + b.h - HS / 2);
     };
     const notify = () => {
       const b = box.current;
@@ -64,8 +89,7 @@ const CropOverlay = React.memo(
           const { w, h } = box.current;
           box.current.l = Math.max(0, Math.min(W - w, ds.current.l + g.dx));
           box.current.t = Math.max(0, Math.min(H - h, ds.current.t + g.dy));
-          aL.setValue(box.current.l);
-          aT.setValue(box.current.t);
+          applyBox();
         },
         onPanResponderRelease: notify,
         onPanResponderTerminate: notify,
@@ -119,8 +143,6 @@ const CropOverlay = React.memo(
     const blP = useRef(mkCP('bl')).current;
     const brP = useRef(mkCP('br')).current;
 
-    const HS = 32, BW = 3, BL = 22;
-
     return (
       <View
         style={{
@@ -135,9 +157,9 @@ const CropOverlay = React.memo(
       >
         {/* Vignette overlays - Restored to 4 views to prevent CABackingStore memory crash on iOS */}
         <Animated.View style={[s.vig, { top: 0, left: 0, right: 0, height: aT }]} />
-        <Animated.View style={[s.vig, { top: Animated.add(aT, aH), left: 0, right: 0, bottom: 0 }]} />
+        <Animated.View style={[s.vig, { top: aT_plus_H, left: 0, right: 0, bottom: 0 }]} />
         <Animated.View style={[s.vig, { top: aT, left: 0, width: aL, height: aH }]} />
-        <Animated.View style={[s.vig, { top: aT, left: Animated.add(aL, aW), right: 0, height: aH }]} />
+        <Animated.View style={[s.vig, { top: aT, left: aL_plus_W, right: 0, height: aH }]} />
 
         {/* Selection box with grid */}
         <Animated.View
@@ -160,18 +182,20 @@ const CropOverlay = React.memo(
         </Animated.View>
 
         {/* Corner handles (larger hit area) */}
-        {[
-          { pos: { left: Animated.subtract(aL, HS / 2), top: Animated.subtract(aT, HS / 2) }, p: tlP },
-          { pos: { left: Animated.subtract(Animated.add(aL, aW), HS / 2), top: Animated.subtract(aT, HS / 2) }, p: trP },
-          { pos: { left: Animated.subtract(aL, HS / 2), top: Animated.subtract(Animated.add(aT, aH), HS / 2) }, p: blP },
-          { pos: { left: Animated.subtract(Animated.add(aL, aW), HS / 2), top: Animated.subtract(Animated.add(aT, aH), HS / 2) }, p: brP },
-        ].map((h, i) => (
-          <Animated.View
-            key={i}
-            style={[s.handle, { width: HS, height: HS, ...h.pos, borderColor: accentColor }]}
-            {...h.p.panHandlers}
-          />
-        ))}
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+          {[
+            { pos: { left: tl_L, top: tl_T }, p: tlP },
+            { pos: { left: tr_L, top: tr_T }, p: trP },
+            { pos: { left: bl_L, top: bl_T }, p: blP },
+            { pos: { left: br_L, top: br_T }, p: brP },
+          ].map((h, i) => (
+            <Animated.View
+              key={i}
+              style={[s.handle, { width: HS, height: HS, ...h.pos, borderColor: accentColor }]}
+              {...h.p.panHandlers}
+            />
+          ))}
+        </View>
       </View>
     );
   }

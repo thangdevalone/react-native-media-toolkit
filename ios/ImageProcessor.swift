@@ -21,6 +21,7 @@ class ImageProcessor: NSObject {
     cropH: Double,
     flip: String?,
     rotation: Double,
+    cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
     guard let image = loadImage(from: uri) else {
@@ -75,11 +76,20 @@ class ImageProcessor: NSObject {
       UIGraphicsEndImageContext()
     }
 
-    let out = outputPath ?? tempPath(ext: "jpg")
-    let data = finalImage.jpegData(compressionQuality: 0.9) ?? Data()
+    // 4. Corner Radius
+    if cornerRadius != 0 {
+      finalImage = applyCornerRadius(to: finalImage, radius: cornerRadius)
+    }
+
+    let hasAlpha = cornerRadius != 0
+    let ext = hasAlpha ? "png" : "jpg"
+    let mime = hasAlpha ? "image/png" : "image/jpeg"
+    let out = outputPath ?? tempPath(ext: ext)
+    
+    let data = hasAlpha ? (finalImage.pngData() ?? Data()) : (finalImage.jpegData(compressionQuality: 0.9) ?? Data())
     try data.write(to: URL(fileURLWithPath: out))
 
-    return result(path: out, image: finalImage, mime: "image/jpeg")
+    return result(path: out, image: finalImage, mime: mime)
   }
 
   // ─── CROP ────────────────────────────────────────────────────────────────
@@ -93,6 +103,7 @@ class ImageProcessor: NSObject {
     y: Double,
     width: Double,
     height: Double,
+    cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
     guard let image = loadImage(from: uri) else {
@@ -114,12 +125,20 @@ class ImageProcessor: NSObject {
       throw MediaToolkitError.processingFailed("CGImage crop failed")
     }
 
-    let cropped = UIImage(cgImage: cgCropped)
-    let out = outputPath ?? tempPath(ext: "jpg")
-    let data = cropped.jpegData(compressionQuality: 0.9) ?? Data()
+    var cropped = UIImage(cgImage: cgCropped)
+    if cornerRadius != 0 {
+      cropped = applyCornerRadius(to: cropped, radius: cornerRadius)
+    }
+    
+    let hasAlpha = cornerRadius != 0
+    let ext = hasAlpha ? "png" : "jpg"
+    let mime = hasAlpha ? "image/png" : "image/jpeg"
+    let out = outputPath ?? tempPath(ext: ext)
+    
+    let data = hasAlpha ? (cropped.pngData() ?? Data()) : (cropped.jpegData(compressionQuality: 0.9) ?? Data())
     try data.write(to: URL(fileURLWithPath: out))
 
-    return result(path: out, image: cropped, mime: "image/jpeg")
+    return result(path: out, image: cropped, mime: mime)
   }
 
   // ─── ROTATE ──────────────────────────────────────────────────────────────
@@ -128,6 +147,7 @@ class ImageProcessor: NSObject {
   static func rotateImage(
     uri: String,
     degrees: Double,
+    cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
     guard let image = loadImage(from: uri) else {
@@ -148,14 +168,22 @@ class ImageProcessor: NSObject {
     context.translateBy(x: newSize.width / 2, y: newSize.height / 2)
     context.rotate(by: radians)
     normalised.draw(in: CGRect(x: -normalised.size.width / 2, y: -normalised.size.height / 2, width: normalised.size.width, height: normalised.size.height))
-    let rotated = UIGraphicsGetImageFromCurrentImageContext() ?? normalised
+    var rotated = UIGraphicsGetImageFromCurrentImageContext() ?? normalised
     UIGraphicsEndImageContext()
 
-    let out = outputPath ?? tempPath(ext: "jpg")
-    let data = rotated.jpegData(compressionQuality: 0.9) ?? Data()
+    if cornerRadius != 0 {
+      rotated = applyCornerRadius(to: rotated, radius: cornerRadius)
+    }
+
+    let hasAlpha = cornerRadius != 0
+    let ext = hasAlpha ? "png" : "jpg"
+    let mime = hasAlpha ? "image/png" : "image/jpeg"
+    let out = outputPath ?? tempPath(ext: ext)
+    
+    let data = hasAlpha ? (rotated.pngData() ?? Data()) : (rotated.jpegData(compressionQuality: 0.9) ?? Data())
     try data.write(to: URL(fileURLWithPath: out))
 
-    return result(path: out, image: rotated, mime: "image/jpeg")
+    return result(path: out, image: rotated, mime: mime)
   }
 
   // ─── FLIP ────────────────────────────────────────────────────────────────
@@ -164,6 +192,7 @@ class ImageProcessor: NSObject {
   static func flipImage(
     uri: String,
     direction: String,
+    cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
     guard let image = loadImage(from: uri) else {
@@ -186,14 +215,22 @@ class ImageProcessor: NSObject {
     }
     
     normalised.draw(in: CGRect(origin: .zero, size: size))
-    let flipped = UIGraphicsGetImageFromCurrentImageContext() ?? normalised
+    var flipped = UIGraphicsGetImageFromCurrentImageContext() ?? normalised
     UIGraphicsEndImageContext()
 
-    let out = outputPath ?? tempPath(ext: "jpg")
-    let data = flipped.jpegData(compressionQuality: 0.9) ?? Data()
+    if cornerRadius != 0 {
+      flipped = applyCornerRadius(to: flipped, radius: cornerRadius)
+    }
+
+    let hasAlpha = cornerRadius != 0
+    let ext = hasAlpha ? "png" : "jpg"
+    let mime = hasAlpha ? "image/png" : "image/jpeg"
+    let out = outputPath ?? tempPath(ext: ext)
+    
+    let data = hasAlpha ? (flipped.pngData() ?? Data()) : (flipped.jpegData(compressionQuality: 0.9) ?? Data())
     try data.write(to: URL(fileURLWithPath: out))
 
-    return result(path: out, image: flipped, mime: "image/jpeg")
+    return result(path: out, image: flipped, mime: mime)
   }
 
   // ─── COMPRESS ────────────────────────────────────────────────────────────
@@ -205,6 +242,7 @@ class ImageProcessor: NSObject {
     maxWidth: Double,
     maxHeight: Double,
     format: String,
+    cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
     let path = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
@@ -227,21 +265,26 @@ class ImageProcessor: NSObject {
       throw MediaToolkitError.processingFailed("Could not downsample or decode image.")
     }
 
-    let resized = UIImage(cgImage: cgImage)
+    var resized = UIImage(cgImage: cgImage)
+    if cornerRadius != 0 {
+      resized = applyCornerRadius(to: resized, radius: cornerRadius)
+    }
+
     let q = CGFloat(max(0, min(100, quality))) / 100.0
     let ext: String
     let data: Data?
     let mime: String
+    
+    let forcePng = cornerRadius != 0
 
-    switch format {
-    case "png":
+    if forcePng || format == "png" {
       ext = "png"; mime = "image/png"
       data = resized.pngData()
-    case "webp":
+    } else if format == "webp" {
       throw MediaToolkitError.processingFailed(
         "WebP encoding is not supported on iOS. Use \"jpeg\" or \"png\" instead."
       )
-    default:
+    } else {
       ext = "jpg"; mime = "image/jpeg"
       data = resized.jpegData(compressionQuality: q)
     }
@@ -437,5 +480,22 @@ class ImageProcessor: NSObject {
       "duration": 0,
       "mime": mime,
     ]
+  }
+
+  private static func applyCornerRadius(to image: UIImage, radius: Double) -> UIImage {
+    guard radius != 0 else { return image }
+    var actualRadius = CGFloat(radius)
+    if radius < 0 {
+      let percent = min(abs(CGFloat(radius)), 100.0) / 100.0
+      let minDimension = min(image.size.width, image.size.height)
+      actualRadius = (minDimension / 2.0) * percent
+    }
+    let rect = CGRect(origin: .zero, size: image.size)
+    UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+    UIBezierPath(roundedRect: rect, cornerRadius: actualRadius).addClip()
+    image.draw(in: rect)
+    let rounded = UIGraphicsGetImageFromCurrentImageContext() ?? image
+    UIGraphicsEndImageContext()
+    return rounded
   }
 }

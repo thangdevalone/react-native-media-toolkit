@@ -1,27 +1,67 @@
 import { NitroModules } from 'react-native-nitro-modules';
 import type { MediaToolkit as MediaToolkitSpec } from './MediaToolkit.nitro';
 
-export type {
-  CropOptions,
-  CompressImageOptions,
+import type {
+  CropOptions as NCropOptions,
+  CompressImageOptions as NCompressImageOptions,
+  ThumbnailOptions as NThumbnailOptions,
+  FlipOptions as NFlipOptions,
+  RotateOptions as NRotateOptions,
+  ProcessImageOptions as NProcessImageOptions,
   SplitImageOptions,
   TrimOptions,
   TrimAndCropOptions,
   VideoCropOptions,
   CompressVideoOptions,
-  ThumbnailOptions,
   ThumbnailResult,
-  FlipOptions,
-  RotateOptions,
   SpeedOptions,
   ExtractAudioOptions,
   GeneratePreviewOptions,
   ProcessVideoOptions,
-  ProcessImageOptions,
   MediaResult,
   MediaMetadata,
   LocationData,
 } from './MediaToolkit.nitro';
+
+export type {
+  SplitImageOptions,
+  TrimOptions,
+  TrimAndCropOptions,
+  VideoCropOptions,
+  CompressVideoOptions,
+  ThumbnailResult,
+  SpeedOptions,
+  ExtractAudioOptions,
+  GeneratePreviewOptions,
+  ProcessVideoOptions,
+  MediaResult,
+  MediaMetadata,
+  LocationData,
+};
+
+export type CropOptions = Omit<NCropOptions, 'cornerRadius'> & { cornerRadius?: number | string };
+export type CompressImageOptions = Omit<NCompressImageOptions, 'cornerRadius'> & { cornerRadius?: number | string };
+export type ThumbnailOptions = Omit<NThumbnailOptions, 'cornerRadius'> & { cornerRadius?: number | string };
+export type FlipOptions = Omit<NFlipOptions, 'cornerRadius'> & { cornerRadius?: number | string };
+export type RotateOptions = Omit<NRotateOptions, 'cornerRadius'> & { cornerRadius?: number | string };
+export type ProcessImageOptions = Omit<NProcessImageOptions, 'cornerRadius'> & { cornerRadius?: number | string };
+
+const parseRadius = (val?: number | string): number | undefined => {
+  if (val === undefined) return undefined;
+  if (typeof val === 'number') return Math.max(0, val);
+  if (typeof val === 'string') {
+    const cleanVal = val.replace(/-/g, '').trim();
+    let cr = parseFloat(cleanVal) || 0;
+    if (cr < 0) cr = 0;
+    if (cleanVal.endsWith('%')) {
+      if (cr > 100) cr = 100;
+      return -cr;
+    }
+    return cr;
+  }
+  return undefined;
+};
+
 
 // ─── Re-export ProgressEvent for backwards compatibility ──────────────────────
 export interface ProgressEvent {
@@ -41,12 +81,12 @@ export const MediaToolkit = {
   /**
    * Crop an image by a relative region (x, y, width, height all in 0.0–1.0).
    */
-  cropImage: native.cropImage.bind(native),
+  cropImage: (uri: string, opts: CropOptions) => native.cropImage(uri, { ...opts, cornerRadius: parseRadius(opts.cornerRadius) }),
 
   /**
    * Compress (resize + quality reduce) an image.
    */
-  compressImage: native.compressImage.bind(native),
+  compressImage: (uri: string, opts: CompressImageOptions) => native.compressImage(uri, { ...opts, cornerRadius: parseRadius(opts.cornerRadius) }),
 
   /**
    * Split an image into a rows x columns grid without resizing the source pixels.
@@ -56,12 +96,12 @@ export const MediaToolkit = {
   /**
    * Flip an image horizontally or vertically.
    */
-  flipImage: native.flipImage.bind(native),
+  flipImage: (uri: string, opts: FlipOptions) => native.flipImage(uri, { ...opts, cornerRadius: parseRadius(opts.cornerRadius) }),
 
   /**
    * Rotate an image by 90, 180, or 270 degrees.
    */
-  rotateImage: native.rotateImage.bind(native),
+  rotateImage: (uri: string, opts: RotateOptions) => native.rotateImage(uri, { ...opts, cornerRadius: parseRadius(opts.cornerRadius) }),
 
   // ── Video ─────────────────────────────────────────────────────────────────
 
@@ -91,7 +131,7 @@ export const MediaToolkit = {
    * @param uri  Source video URI
    * @param options  timeMs, quality (0–100), maxWidth, outputPath
    */
-  getThumbnail: native.getThumbnail.bind(native),
+  getThumbnail: (uri: string, opts?: ThumbnailOptions) => native.getThumbnail(uri, opts ? { ...opts, cornerRadius: parseRadius(opts.cornerRadius) } : undefined),
 
   /**
    * Flip a video horizontally or vertically.
@@ -111,7 +151,7 @@ export const MediaToolkit = {
   /**
    * Run multiple transformations (crop, flip, rotate) on an image.
    */
-  processImage: native.processImage.bind(native),
+  processImage: (uri: string, opts: ProcessImageOptions) => native.processImage(uri, { ...opts, cornerRadius: parseRadius(opts.cornerRadius) }),
 
   /**
    * Change video playback speed (e.g. 0.5x, 2.0x).

@@ -794,6 +794,7 @@ internal object VideoProcessor {
     timeMs: Long,
     quality: Int,
     maxWidth: Int,
+    cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val retriever = android.media.MediaMetadataRetriever()
@@ -825,19 +826,31 @@ internal object VideoProcessor {
       if (rotation == 90 || rotation == 270) { val tmp = srcW; srcW = srcH; srcH = tmp }
 
       // Downscale thumbnail image if requested
-      val scaledBitmap = if (maxWidth > 0 && bitmap.width > maxWidth) {
+      var scaledBitmap = if (maxWidth > 0 && bitmap.width > maxWidth) {
         val scale = maxWidth.toFloat() / bitmap.width
         val newH = (bitmap.height * scale).toInt()
         android.graphics.Bitmap.createScaledBitmap(bitmap, maxWidth, newH, true)
           .also { if (it !== bitmap) bitmap.recycle() }
       } else bitmap
 
-      val q = quality.coerceIn(0, 100)
-      val out = outputPath ?: (System.getProperty("java.io.tmpdir") + "/" + java.util.UUID.randomUUID() + ".jpg")
-      val written = java.io.FileOutputStream(out).use { fos ->
-        scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, q, fos)
+      if (cornerRadius != 0.0) {
+        val rounded = applyCornerRadius(scaledBitmap, cornerRadius.toFloat())
+        if (rounded !== scaledBitmap) {
+            scaledBitmap.recycle()
+            scaledBitmap = rounded
+        }
       }
-      if (!written) throw MediaToolkitException.ProcessingFailed("Failed to encode JPEG thumbnail")
+
+      val forcePng = cornerRadius != 0.0
+      val ext = if (forcePng) "png" else "jpg"
+      val compressFormat = if (forcePng) android.graphics.Bitmap.CompressFormat.PNG else android.graphics.Bitmap.CompressFormat.JPEG
+
+      val q = quality.coerceIn(0, 100)
+      val out = outputPath ?: (System.getProperty("java.io.tmpdir") + "/" + java.util.UUID.randomUUID() + "." + ext)
+      val written = java.io.FileOutputStream(out).use { fos ->
+        scaledBitmap.compress(compressFormat, q, fos)
+      }
+      if (!written) throw MediaToolkitException.ProcessingFailed("Failed to encode thumbnail")
       if (scaledBitmap !== bitmap) scaledBitmap.recycle()
       bitmap.recycle()
 
@@ -911,5 +924,32 @@ internal object VideoProcessor {
     if (maxWidth <= 0 || width <= maxWidth) return width to height
     val scale = maxWidth.toDouble() / width.toDouble()
     return maxWidth to (height * scale).toInt()
+  }
+
+  private fun applyCornerRadius(bitmap: android.graphics.Bitmap, cornerRadiusPx: Float): android.graphics.Bitmap {
+    if (cornerRadiusPx == 0f) return bitmap
+    
+    var radius = cornerRadiusPx
+    if (radius < 0) {
+        val percent = Math.min(Math.abs(radius), 100f) / 100f
+        val minDimension = Math.min(bitmap.width, bitmap.height)
+        radius = (minDimension / 2f) * percent
+    }
+
+    val output = android.graphics.Bitmap.createBitmap(bitmap.width, bitmap.height, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(output)
+    val paint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.BLACK
+    }
+    val rect = android.graphics.RectF(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
+    
+    canvas.drawARGB(0, 0, 0, 0)
+    canvas.drawRoundRect(rect, radius, radius, paint)
+    
+    paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+    canvas.drawBitmap(bitmap, 0f, 0f, paint)
+    
+    return output
   }
 }

@@ -27,6 +27,7 @@ internal object ImageProcessor {
     cropHeight: Double,
     flip: String?,
     rotation: Double,
+    cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
@@ -68,16 +69,29 @@ internal object ImageProcessor {
       }
     }
 
-    val out = outputPath ?: tempPath("jpg")
+    if (cornerRadius != 0.0) {
+      val rounded = applyCornerRadius(bmp, cornerRadius.toFloat())
+      if (rounded !== bmp) {
+          bmp.recycle()
+          bmp = rounded
+      }
+    }
+
+    val forcePng = cornerRadius != 0.0
+    val ext = if (forcePng) "png" else "jpg"
+    val compressFormat = if (forcePng) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+    val mime = if (forcePng) "image/png" else "image/jpeg"
+
+    val out = outputPath ?: tempPath(ext)
     val written = FileOutputStream(out).use { fos ->
-      bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+      bmp.compress(compressFormat, 90, fos)
     }
     if (!written) {
         bmp.recycle()
         throw MediaToolkitException.ProcessingFailed("Could not encode processed image")
     }
 
-    return buildResult(out, bmp, "image/jpeg", 0)
+    return buildResult(out, bmp, mime, 0)
   }
 
   // ─── CROP ────────────────────────────────────────────────────────────────
@@ -88,6 +102,7 @@ internal object ImageProcessor {
     y: Double,
     width: Double,
     height: Double,
+    cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
@@ -108,13 +123,27 @@ internal object ImageProcessor {
       ?: run { bmp.recycle(); throw MediaToolkitException.ProcessingFailed("Bitmap crop failed") }
     bmp.recycle()
 
-    val out = outputPath ?: tempPath("jpg")
+    var finalBmp = cropped
+    if (cornerRadius != 0.0) {
+      val rounded = applyCornerRadius(finalBmp, cornerRadius.toFloat())
+      if (rounded !== finalBmp) {
+          finalBmp.recycle()
+          finalBmp = rounded
+      }
+    }
+
+    val forcePng = cornerRadius != 0.0
+    val ext = if (forcePng) "png" else "jpg"
+    val compressFormat = if (forcePng) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+    val mime = if (forcePng) "image/png" else "image/jpeg"
+
+    val out = outputPath ?: tempPath(ext)
     val written = FileOutputStream(out).use { fos ->
-      cropped.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+      finalBmp.compress(compressFormat, 90, fos)
     }
     if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode cropped image")
 
-    return buildResult(out, cropped, "image/jpeg", 0)
+    return buildResult(out, finalBmp, mime, 0)
   }
 
   // ─── ROTATE ──────────────────────────────────────────────────────────────
@@ -122,6 +151,7 @@ internal object ImageProcessor {
   fun rotateImage(
     uri: String,
     degrees: Double,
+    cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
@@ -132,16 +162,29 @@ internal object ImageProcessor {
 
     val matrix = Matrix()
     matrix.postRotate(degrees.toFloat())
-    val rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+    var rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
     if (rotated !== bmp) bmp.recycle()
 
-    val out = outputPath ?: tempPath("jpg")
+    if (cornerRadius != 0.0) {
+      val rounded = applyCornerRadius(rotated, cornerRadius.toFloat())
+      if (rounded !== rotated) {
+          rotated.recycle()
+          rotated = rounded
+      }
+    }
+
+    val forcePng = cornerRadius != 0.0
+    val ext = if (forcePng) "png" else "jpg"
+    val compressFormat = if (forcePng) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+    val mime = if (forcePng) "image/png" else "image/jpeg"
+
+    val out = outputPath ?: tempPath(ext)
     val written = FileOutputStream(out).use { fos ->
-      rotated.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+      rotated.compress(compressFormat, 90, fos)
     }
     if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode rotated image")
 
-    return buildResult(out, rotated, "image/jpeg", 0)
+    return buildResult(out, rotated, mime, 0)
   }
 
   // ─── FLIP ────────────────────────────────────────────────────────────────
@@ -149,6 +192,7 @@ internal object ImageProcessor {
   fun flipImage(
     uri: String,
     direction: String,
+    cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
@@ -163,16 +207,29 @@ internal object ImageProcessor {
     } else {
       matrix.postScale(1f, -1f, bmp.width / 2f, bmp.height / 2f)
     }
-    val flipped = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+    var flipped = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
     if (flipped !== bmp) bmp.recycle()
 
-    val out = outputPath ?: tempPath("jpg")
+    if (cornerRadius != 0.0) {
+      val rounded = applyCornerRadius(flipped, cornerRadius.toFloat())
+      if (rounded !== flipped) {
+          flipped.recycle()
+          flipped = rounded
+      }
+    }
+
+    val forcePng = cornerRadius != 0.0
+    val ext = if (forcePng) "png" else "jpg"
+    val compressFormat = if (forcePng) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+    val mime = if (forcePng) "image/png" else "image/jpeg"
+
+    val out = outputPath ?: tempPath(ext)
     val written = FileOutputStream(out).use { fos ->
-      flipped.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+      flipped.compress(compressFormat, 90, fos)
     }
     if (!written) throw MediaToolkitException.ProcessingFailed("Could not encode flipped image")
 
-    return buildResult(out, flipped, "image/jpeg", 0)
+    return buildResult(out, flipped, mime, 0)
   }
 
   // ─── COMPRESS ────────────────────────────────────────────────────────────
@@ -183,6 +240,7 @@ internal object ImageProcessor {
     maxWidth: Int,
     maxHeight: Int,
     format: String,
+    cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
@@ -217,15 +275,25 @@ internal object ImageProcessor {
     bmp = fixExifOrientationDirect(bmp, orientation)
     bmp = resizeIfNeeded(bmp, maxWidth, maxHeight)
 
-    val (compressFormat, ext, mime) = when (format) {
-      "png"  -> Triple(Bitmap.CompressFormat.PNG,  "png", "image/png")
-      "webp" -> Triple(
+    if (cornerRadius != 0.0) {
+      val rounded = applyCornerRadius(bmp, cornerRadius.toFloat())
+      if (rounded !== bmp) {
+          bmp.recycle()
+          bmp = rounded
+      }
+    }
+
+    val forcePng = cornerRadius != 0.0
+
+    val (compressFormat, ext, mime) = when {
+      forcePng || format == "png" -> Triple(Bitmap.CompressFormat.PNG,  "png", "image/png")
+      format == "webp" -> Triple(
         if (android.os.Build.VERSION.SDK_INT >= 30)
           Bitmap.CompressFormat.WEBP_LOSSLESS
         else Bitmap.CompressFormat.WEBP,
         "webp", "image/webp"
       )
-      else   -> Triple(Bitmap.CompressFormat.JPEG, "jpg", "image/jpeg")
+      else -> Triple(Bitmap.CompressFormat.JPEG, "jpg", "image/jpeg")
     }
 
     val out = outputPath ?: tempPath(ext)
@@ -408,5 +476,32 @@ internal object ImageProcessor {
       "duration" to duration,
       "mime"     to mime
     )
+  }
+
+  private fun applyCornerRadius(bitmap: Bitmap, cornerRadiusPx: Float): Bitmap {
+    if (cornerRadiusPx == 0f) return bitmap
+    
+    var radius = cornerRadiusPx
+    if (radius < 0) {
+        val percent = Math.min(Math.abs(radius), 100f) / 100f
+        val minDimension = Math.min(bitmap.width, bitmap.height)
+        radius = (minDimension / 2f) * percent
+    }
+
+    val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(output)
+    val paint = Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.BLACK
+    }
+    val rect = android.graphics.RectF(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
+    
+    canvas.drawARGB(0, 0, 0, 0)
+    canvas.drawRoundRect(rect, radius, radius, paint)
+    
+    paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+    canvas.drawBitmap(bitmap, 0f, 0f, paint)
+    
+    return output
   }
 }

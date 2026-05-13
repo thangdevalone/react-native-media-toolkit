@@ -22,6 +22,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
         y: options.y,
         width: options.width,
         height: options.height,
+        cornerRadius: options.cornerRadius ?? 0,
         outputPath: options.outputPath
       )
       return makeMediaResult(raw)
@@ -36,6 +37,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
         maxWidth: options.maxWidth ?? 0,
         maxHeight: options.maxHeight ?? 0,
         format: options.format ?? "jpeg",
+        cornerRadius: options.cornerRadius ?? 0,
         outputPath: options.outputPath
       )
       return makeMediaResult(raw)
@@ -62,6 +64,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       let raw = try ImageProcessor.flipImage(
         uri: uri,
         direction: options.direction,
+        cornerRadius: options.cornerRadius ?? 0,
         outputPath: options.outputPath
       )
       return makeMediaResult(raw)
@@ -73,6 +76,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       let raw = try ImageProcessor.rotateImage(
         uri: uri,
         degrees: options.degrees,
+        cornerRadius: options.cornerRadius ?? 0,
         outputPath: options.outputPath
       )
       return makeMediaResult(raw)
@@ -89,6 +93,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
         cropH: options.cropHeight ?? 0,
         flip: options.flip,
         rotation: options.rotation ?? 0,
+        cornerRadius: options.cornerRadius ?? 0,
         outputPath: options.outputPath
       )
       return makeMediaResult(raw)
@@ -522,11 +527,31 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       }
 
       let q = max(0, min(100, Int(quality)))
-      guard let data = uiImage.jpegData(compressionQuality: CGFloat(q) / 100.0) else {
-        throw MediaToolkitError.processingFailed("Failed to encode JPEG thumbnail")
+      let radius = options?.cornerRadius ?? 0
+      
+      if radius > 0 {
+        let rect = CGRect(origin: .zero, size: uiImage.size)
+        UIGraphicsBeginImageContextWithOptions(uiImage.size, false, uiImage.scale)
+        UIBezierPath(roundedRect: rect, cornerRadius: CGFloat(radius)).addClip()
+        uiImage.draw(in: rect)
+        uiImage = UIGraphicsGetImageFromCurrentImageContext() ?? uiImage
+        UIGraphicsEndImageContext()
+      }
+      
+      let data: Data
+      let outExt: String
+      if radius > 0 {
+          data = uiImage.pngData() ?? Data()
+          outExt = "png"
+      } else {
+          data = uiImage.jpegData(compressionQuality: CGFloat(q) / 100.0) ?? Data()
+          outExt = "jpg"
+      }
+      if data.isEmpty {
+        throw MediaToolkitError.processingFailed("Failed to encode thumbnail")
       }
 
-      let outPath = options?.outputPath ?? (NSTemporaryDirectory() + UUID().uuidString + ".jpg")
+      let outPath = options?.outputPath ?? (NSTemporaryDirectory() + UUID().uuidString + "." + outExt)
       let outURL  = URL(fileURLWithPath: outPath)
       try data.write(to: outURL)
 

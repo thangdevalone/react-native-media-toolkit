@@ -315,6 +315,7 @@ const preview = await MediaToolkit.generateVideoPreview(videoUri, {
 | `width` | `number` | **Required** | Crop width relative to image width (0.0–1.0) |
 | `height` | `number` | **Required** | Crop height relative to image height (0.0–1.0) |
 | `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+| `cornerRadius` | `number \| string` | Optional | Corner radius in px or percentage (e.g. "50%"). 100% creates a perfect circle. |
 
 ### `compressImage(uri, options): Promise<MediaResult>`
 
@@ -327,6 +328,7 @@ All options are optional. Pass an empty object `{}` to use all defaults.
 | `maxHeight` | `number` | original | Max output height in px (aspect ratio preserved) |
 | `format` | `string` | `'jpeg'` | Output format: `'jpeg'` \| `'png'` \| `'webp'` |
 | `outputPath` | `string` | temp file | Absolute path for the output file |
+| `cornerRadius` | `number \| string` | `0` | Corner radius in px or percentage (e.g. "50%"). 100% creates a perfect circle. |
 
 ### `splitImage(uri, options): Promise<MediaResult[]>`
 
@@ -348,6 +350,7 @@ Splits the source image into a `rows x columns` grid using original pixel dimens
 |---|---|---|---|
 | `direction` | `string` | **Required** | `'horizontal'` or `'vertical'` |
 | `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+| `cornerRadius` | `number \| string` | Optional | Corner radius in px or percentage (e.g. "50%"). 100% creates a perfect circle. |
 
 ### `rotateImage(uri, options): Promise<MediaResult>`
 ### `rotateVideo(uri, options): Promise<MediaResult>`
@@ -356,6 +359,7 @@ Splits the source image into a `rows x columns` grid using original pixel dimens
 |---|---|---|---|
 | `degrees` | `number` | **Required** | `90`, `180`, or `270` |
 | `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+| `cornerRadius` | `number \| string` | Optional | Corner radius in px or percentage (e.g. "50%"). 100% creates a perfect circle. |
 
 ### `processImage(uri, options): Promise<MediaResult>`
 
@@ -378,6 +382,7 @@ Multi-transform image in a single pass. All options are **optional**.
 | `startTime` | `number` | **Required** | Trim start position in milliseconds |
 | `endTime` | `number` | **Required** | Trim end position in milliseconds |
 | `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+| `cornerRadius` | `number \| string` | Optional | Corner radius in px or percentage (e.g. "50%"). 100% creates a perfect circle. |
 
 ### `concatVideos(clipPaths, outputPath): Promise<ConcatResult>`
 
@@ -409,6 +414,7 @@ Same relative coordinate system as `cropImage` — all values in the range (0.0�
 | `width` | `number` | **Required** | Crop width relative to frame width (0.0–1.0) |
 | `height` | `number` | **Required** | Crop height relative to frame height (0.0–1.0) |
 | `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+| `cornerRadius` | `number \| string` | Optional | Corner radius in px or percentage (e.g. "50%"). 100% creates a perfect circle. |
 
 ### `trimAndCropVideo(uri, options): Promise<MediaResult>`
 
@@ -423,6 +429,7 @@ Combines trim and crop into a **single encode pass** — faster and avoids doubl
 | `width` | `number` | **Required** | Crop width relative to frame width (0.0–1.0) |
 | `height` | `number` | **Required** | Crop height relative to frame height (0.0–1.0) |
 | `outputPath` | `string` | Optional | Absolute path for the output file. Defaults to a temp file. |
+| `cornerRadius` | `number \| string` | Optional | Corner radius in px or percentage (e.g. "50%"). 100% creates a perfect circle. |
 
 ### `processVideo(uri, options): Promise<MediaResult>`
 

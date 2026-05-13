@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -8,6 +9,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CropOverlay from '../components/CropOverlay';
@@ -21,7 +23,7 @@ interface Props {
   loading: boolean;
   opLabel: string;
   onBack: () => void;
-  onApply: () => void;
+  onApply: (cornerRadius: string | number) => void;
   onLayout: (w: number, h: number) => void;
   onCropCommit: (c: CropBox) => void;
 }
@@ -30,6 +32,12 @@ export default function CropImageScreen({
   srcUri, crop, prevSz, loading, opLabel,
   onBack, onApply, onLayout, onCropCommit,
 }: Props) {
+  const [cornerRadius, setCornerRadius] = useState('0');
+  
+  const handleApply = () => {
+    onApply(cornerRadius);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
@@ -39,9 +47,20 @@ export default function CropImageScreen({
             <Ionicons name="chevron-back" size={24} color={T.text} />
           </TouchableOpacity>
           <Text style={s.title}>CROP IMAGE</Text>
-          <TouchableOpacity style={s.nextBtn} onPress={onApply}>
+          <TouchableOpacity style={s.nextBtn} onPress={handleApply}>
             <Text style={s.nextTxt}>Apply</Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={s.toolbar}>
+          <Text style={s.label}>Corner Radius (px or %):</Text>
+          <TextInput
+            style={s.input}
+            value={cornerRadius}
+            onChangeText={setCornerRadius}
+            placeholder="0 or 50%"
+            placeholderTextColor="#888"
+          />
         </View>
 
         <View
@@ -79,4 +98,7 @@ const s = StyleSheet.create({
   nextTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.78)', alignItems: 'center', justifyContent: 'center', zIndex: 99 },
   loadingTxt: { color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 14 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#222' },
+  label: { color: '#FFF', fontSize: 14, marginRight: 12 },
+  input: { flex: 1, backgroundColor: '#222', color: '#FFF', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
 });

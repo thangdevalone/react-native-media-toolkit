@@ -296,6 +296,7 @@ const preview = await MediaToolkit.generateVideoPreview(videoUri, {
 | `width` | `number` | **Bắt buộc** | Chiều rộng vùng cắt so với chiều rộng ảnh (0.0–1.0) |
 | `height` | `number` | **Bắt buộc** | Chiều cao vùng cắt so với chiều cao ảnh (0.0–1.0) |
 | `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+| `cornerRadius` | `number \| string` | Tuỳ chọn | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `compressImage(uri, options): Promise<MediaResult>`
 
@@ -308,6 +309,7 @@ Tất cả options đều là tuỳ chọn. Có thể truyền object rỗng `{}
 | `maxHeight` | `number` | gốc | Chiều cao tối đa output (px, giữ tỉ lệ) |
 | `format` | `string` | `'jpeg'` | Định dạng output: `'jpeg'` \| `'png'` \| `'webp'` |
 | `outputPath` | `string` | file tạm | Đường dẫn tuyệt đối file output |
+| `cornerRadius` | `number \| string` | `0` | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `splitImage(uri, options): Promise<MediaResult[]>`
 
@@ -329,6 +331,7 @@ Chia ảnh nguồn thành lưới `rows x columns` theo đúng pixel gốc, khô
 |---|---|---|---|
 | `direction` | `string` | **Bắt buộc** | `'horizontal'` hoặc `'vertical'` |
 | `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+| `cornerRadius` | `number \| string` | Tuỳ chọn | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `rotateImage(uri, options): Promise<MediaResult>`
 ### `rotateVideo(uri, options): Promise<MediaResult>`
@@ -337,6 +340,7 @@ Chia ảnh nguồn thành lưới `rows x columns` theo đúng pixel gốc, khô
 |---|---|---|---|
 | `degrees` | `number` | **Bắt buộc** | `90`, `180`, hoặc `270` |
 | `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+| `cornerRadius` | `number \| string` | Tuỳ chọn | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `processImage(uri, options): Promise<MediaResult>`
 
@@ -351,6 +355,7 @@ Xử lý đa tác vụ ảnh. Tất cả options đều là **tuỳ chọn**.
 | `flip` | `string` | `'horizontal'` hoặc `'vertical'` |
 | `rotation` | `number` | `90`, `180`, hoặc `270` |
 | `outputPath` | `string` | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+| `cornerRadius` | `number \| string` | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `trimVideo(uri, options): Promise<MediaResult>`
 
@@ -371,6 +376,7 @@ Cùng hệ toạ độ tương đối với `cropImage` — tất cả giá tr�
 | `width` | `number` | **Bắt buộc** | Chiều rộng vùng cắt so với chiều rộng frame (0.0–1.0) |
 | `height` | `number` | **Bắt buộc** | Chiều cao vùng cắt so với chiều cao frame (0.0–1.0) |
 | `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+| `cornerRadius` | `number \| string` | Tuỳ chọn | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `trimAndCropVideo(uri, options): Promise<MediaResult>`
 
@@ -385,6 +391,7 @@ Kết hợp trim và crop trong **một lần encode duy nhất** — nhanh hơn
 | `width` | `number` | **Bắt buộc** | Chiều rộng vùng cắt so với chiều rộng frame (0.0–1.0) |
 | `height` | `number` | **Bắt buộc** | Chiều cao vùng cắt so với chiều cao frame (0.0–1.0) |
 | `outputPath` | `string` | Tuỳ chọn | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+| `cornerRadius` | `number \| string` | Tuỳ chọn | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `processVideo(uri, options): Promise<MediaResult>`
 
@@ -401,6 +408,7 @@ Xử lý đa tác vụ video trong một lần duy nhất (trim, crop, flip, rot
 | `flip` | `string` | `'horizontal'` hoặc `'vertical'` |
 | `rotation` | `number` | `90`, `180`, hoặc `270` |
 | `outputPath` | `string` | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
+| `cornerRadius` | `number \| string` | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `compressVideo(uri, options): Promise<MediaResult>`
 
@@ -432,6 +440,7 @@ Nếu không truyền gì cả, thư viện mặc định dùng `quality: 'mediu
 | `quality` | `number` | `80` | Chất lượng JPEG output (0–100) |
 | `maxWidth` | `number` | gốc | Chiều rộng thumbnail tối đa (px, giữ tỉ lệ) |
 | `outputPath` | `string` | file tạm | Đường dẫn tuyệt đối file JPEG output |
+| `cornerRadius` | `number \| string` | `0` | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
 ### `changeVideoSpeed(uri, options): Promise<MediaResult>`
 

@@ -141,6 +141,7 @@ export default function App() {
   const [muteAudio, setMuteAudio] = useState(false);
   const [imgQuality, setImgQuality] = useState('80');
   const [imgMaxWidth, setImgMaxWidth] = useState('1080');
+  const [imgCornerRadius, setImgCornerRadius] = useState('0');
   const [splitRows, setSplitRows] = useState('2');
   const [splitColumns, setSplitColumns] = useState('2');
   const [gifMaxWidth, setGifMaxWidth] = useState('0');
@@ -316,7 +317,7 @@ export default function App() {
     );
   };
 
-  const applyImageCrop = () => {
+  const applyImageCrop = (cr: number) => {
     setScreen('home');
     doOp('Crop Image', () =>
       MediaToolkit.cropImage(srcUri!, {
@@ -324,6 +325,7 @@ export default function App() {
         y: crop.y,
         width: crop.w,
         height: crop.h,
+        cornerRadius: cr,
       })
     );
   };
@@ -382,7 +384,8 @@ export default function App() {
       MediaToolkit.compressImage(srcUri!, {
         quality: q,
         maxWidth: w,
-        format: 'jpeg',
+        format: imgCornerRadius && imgCornerRadius !== '0' ? 'png' : 'jpeg',
+        cornerRadius: imgCornerRadius,
       })
     );
   };
@@ -436,8 +439,9 @@ export default function App() {
         timeMs: 0,
         quality: 85,
         maxWidth: 720,
+        cornerRadius: imgCornerRadius,
       });
-      return { ...r, duration: 0, mime: 'image/jpeg' } as any;
+      return { ...r, duration: 0, mime: imgCornerRadius && imgCornerRadius !== '0' ? 'image/png' : 'image/jpeg' } as any;
     });
   };
 
@@ -989,6 +993,19 @@ export default function App() {
                         </TouchableOpacity>
                       ))}
                     </View>
+                  </View>
+
+                  <View style={{ marginBottom: 4 }}>
+                    <Text style={[h.opHint, { marginBottom: 6 }]}>
+                      Corner Radius (px or %)
+                    </Text>
+                    <TextInput
+                      style={h.input}
+                      value={imgCornerRadius}
+                      onChangeText={setImgCornerRadius}
+                      placeholder="0 or 50%"
+                      placeholderTextColor={T.textMuted}
+                    />
                   </View>
                 </View>
                 <ActionBtn

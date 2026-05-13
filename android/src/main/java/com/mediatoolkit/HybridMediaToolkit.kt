@@ -56,6 +56,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         options.y,
         options.width,
         options.height,
+        options.cornerRadius ?: 0.0,
         options.outputPath
       )
       raw.toMediaResult()
@@ -70,6 +71,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         (options.maxWidth ?: 0.0).toInt(),
         (options.maxHeight ?: 0.0).toInt(),
         options.format ?: "jpeg",
+        options.cornerRadius ?: 0.0,
         options.outputPath
       )
       raw.toMediaResult()
@@ -95,6 +97,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
       val raw = ImageProcessor.flipImage(
         uri,
         options.direction,
+        options.cornerRadius ?: 0.0,
         options.outputPath
       )
       raw.toMediaResult()
@@ -106,6 +109,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
       val raw = ImageProcessor.rotateImage(
         uri,
         options.degrees,
+        options.cornerRadius ?: 0.0,
         options.outputPath
       )
       raw.toMediaResult()
@@ -122,6 +126,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         options.cropHeight ?: 0.0,
         options.flip,
         options.rotation ?: 0.0,
+        options.cornerRadius ?: 0.0,
         options.outputPath
       )
       raw.toMediaResult()
@@ -295,7 +300,8 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
       val timeMs   = options?.timeMs?.toLong() ?: 0L
       val quality  = options?.quality?.toInt() ?: 80
       val maxWidth = options?.maxWidth?.toInt() ?: 0
-      val raw = VideoProcessor.getThumbnail(ctx, uri, timeMs, quality, maxWidth, options?.outputPath)
+      val cornerRadius = options?.cornerRadius ?: 0.0
+      val raw = VideoProcessor.getThumbnail(ctx, uri, timeMs, quality, maxWidth, cornerRadius, options?.outputPath)
       ThumbnailResult(
         uri      = raw["uri"]      as? String ?: "",
         size     = (raw["size"]     as? Number)?.toDouble() ?: 0.0,

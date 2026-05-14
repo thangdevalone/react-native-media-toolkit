@@ -509,16 +509,16 @@ internal object VideoProcessor {
 
         android.util.Log.d("VideoProcessor", "Mathematical Prediction: scale=${String.format("%.3f", scale)}, res=${finalWidth}x${finalHeight}")
 
-        // Use 65% margin for setBitrate since hardware encoders overshoot
-        var targetBits = ((targetSizeInMB * 0.65) * 1024 * 1024 * 8) / durationSecs
+        // Use 85% margin for setBitrate to ensure high quality (previously 65% caused blur)
+        var targetBits = ((targetSizeInMB * 0.85) * 1024 * 1024 * 8) / durationSecs
         if (!muteAudio) { targetBits -= 128_000 }
         computedBitrate = targetBits.toInt()
 
         if (computedBitrate > 20_000_000) computedBitrate = 20_000_000
-        if (computedBitrate < 200_000) computedBitrate = 200_000
+        if (computedBitrate < 400_000) computedBitrate = 400_000 // bump minimum to avoid extreme blur
 
-        if (origBitrate > 0 && computedBitrate > (origBitrate * 0.70).toInt()) {
-            computedBitrate = (origBitrate * 0.70).toInt()
+        if (origBitrate > 0 && computedBitrate > origBitrate) {
+            computedBitrate = origBitrate
         }
     } else {
         computedBitrate = when {
@@ -527,6 +527,10 @@ internal object VideoProcessor {
           quality == "high" -> 8_000_000
           else              -> 4_000_000
         }
+    }
+
+    if (bitrate > 0) {
+        computedBitrate = bitrate
     }
 
     if (maxWidth > 0 && finalWidth > maxWidth) {

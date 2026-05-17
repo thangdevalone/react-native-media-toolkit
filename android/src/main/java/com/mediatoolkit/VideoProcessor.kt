@@ -180,7 +180,11 @@ internal object VideoProcessor {
 
     val effects = Effects(emptyList(), effectList)
 
-    return runTransform(context, mediaItem, effects, out, onProgress, transmux = false)
+    // processVideo always re-encodes (transmux = false). Without an explicit bitrate,
+    // Media3 Transformer picks a very low default, causing severe blur.
+    // 4 Mbps balances quality vs file size — locket clips are short (2-5s) so this
+    // keeps video sharp enough while not inflating size before compressVideo.
+    return runTransform(context, mediaItem, effects, out, onProgress, transmux = false, targetBitrate = 4_000_000)
   }
 
   // ─── ROTATE ──────────────────────────────────────────────────────────────

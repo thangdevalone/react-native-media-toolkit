@@ -542,7 +542,10 @@ internal object VideoProcessor {
         }
     }
 
-    if (bitrate > 0) {
+    // Explicit bitrate override — only when NOT in smart compress mode.
+    // When targetSizeInMB is set, the budget calculation already determines
+    // the optimal bitrate; overriding it would break the size constraint.
+    if (bitrate > 0 && targetSizeInMB <= 0) {
         computedBitrate = bitrate
     }
 

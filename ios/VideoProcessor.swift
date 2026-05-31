@@ -902,6 +902,22 @@ class VideoProcessor: NSObject {
             NSLog("[MediaToolkit] Smart Compress Result: target=%.1fMB, actual=%.2fMB (%d%%)", targetMB, actualMB, pct)
           }
         }
+
+        // Fallback: If encoder inflates the file beyond original size,
+        // revert to original to prevent making it worse. (Matches Android behavior)
+        if !muteAudio,
+           let sourceURL = (asset as? AVURLAsset)?.url, sourceURL.isFileURL,
+           let origAttr = try? FileManager.default.attributesOfItem(atPath: sourceURL.path),
+           let origSize = origAttr[.size] as? Int64, origSize > 0,
+           let outAttr = try? FileManager.default.attributesOfItem(atPath: out),
+           let outSize = outAttr[.size] as? Int64, outSize > origSize {
+          let origMB = Double(origSize) / (1024.0 * 1024.0)
+          let outMB = Double(outSize) / (1024.0 * 1024.0)
+          NSLog("[MediaToolkit] Encoder inflated file from %.1fMB to %.1fMB. Reverting to original.", origMB, outMB)
+          try? FileManager.default.removeItem(at: outURL)
+          try? FileManager.default.copyItem(at: sourceURL, to: outURL)
+        }
+
         let durationMs = asset.duration.seconds * 1000
         completion(videoResult(path: out, asset: asset, trimmed: durationMs), nil)
       default:

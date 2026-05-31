@@ -771,21 +771,28 @@ class VideoProcessor: NSObject {
               return
           }
           
-          if origSizeMB > 0 && targetSizeInMB < (origSizeMB * 0.05) {
-              completion(nil, MediaToolkitError.invalidInput("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it."))
-              return
-          }
           // ----------------------------------------------
 
-          var targetBitrate = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
-          if !muteAudio { targetBitrate -= 128_000 }
+          // ── Smart Resolution + Preset Selection (consistent budget) ──────
+          // Use 85% margin (same as Android) for resolution calculation.
+          // iOS uses fileLengthLimit for actual size control, but the resolution
+          // calculation still matters for picking the right preset tier.
+          //
+          // 85% margin accounts for:
+          //   • ~5%  MP4 container overhead
+          //   • ~10% encoder variance
+          let BUDGET_MARGIN: Double = 0.85
+          let TARGET_BPPPS: Double = 4.5
+          let AUDIO_BITRATE: Double = 128_000
+
+          var videoBudget = (targetSizeInMB * BUDGET_MARGIN * 1024 * 1024 * 8) / durationSecs
+          if !muteAudio { videoBudget -= AUDIO_BITRATE }
+          if videoBudget < 100_000 { videoBudget = 100_000 }
           
           let displaySize = videoDisplaySize(asset: asset)
           let shortEdge = CGFloat(min(displaySize.width, displaySize.height))
 
-          // Calculate exact target pixels based on standard encoder bits-per-pixel-per-sec
-          let TARGET_BPPPS: Double = 4.5
-          let targetPixels = targetBitrate / TARGET_BPPPS
+          let targetPixels = videoBudget / TARGET_BPPPS
           let currentPixels = Double(displaySize.width * displaySize.height)
           
           var scale = sqrt(targetPixels / currentPixels)
@@ -813,10 +820,16 @@ class VideoProcessor: NSObject {
               }
           }
 
+          // Pick the most appropriate preset tier for the computed resolution.
+          // Using lower thresholds (e.g. 480 instead of 540) lets fileLengthLimit
+          // work within a slightly higher resolution — often better visual quality
+          // than forcing a lower-res preset at higher bitrate.
           if computedShortEdge >= 1080 { preset = AVAssetExportPreset1920x1080 }
-          else if computedShortEdge >= 720 { preset = AVAssetExportPreset1280x720 }
-          else if computedShortEdge >= 540 { preset = AVAssetExportPreset960x540 }
+          else if computedShortEdge >= 640 { preset = AVAssetExportPreset1280x720 }
+          else if computedShortEdge >= 480 { preset = AVAssetExportPreset960x540 }
           else { preset = AVAssetExportPreset640x480 }
+
+          NSLog("[MediaToolkit] Smart Compress Plan: budget=%.0f bps, shortEdge=%dp, preset=%@", videoBudget, Int(computedShortEdge), preset)
       } else {
           preset = AVAssetExportPresetHighestQuality
       }
@@ -860,8 +873,9 @@ class VideoProcessor: NSObject {
     session.outputURL      = outURL
 
     if targetSizeInMB > 0 {
-        // AVAssetExportSession accepts fileLengthLimit natively tracking Bitrate
-        var fileLimit = Int64(targetSizeInMB * 1024 * 1024 * 0.90) // 10% safety margin for MP4 overhead
+        // AVAssetExportSession accepts fileLengthLimit natively — Apple adjusts
+        // encoder quality internally to fit the constraint.
+        var fileLimit = Int64(targetSizeInMB * 1024 * 1024 * 0.92) // 8% margin for MP4 overhead
         let sourceAsset = (asset as? AVURLAsset) ?? (exportAsset as? AVURLAsset)
         if let url = sourceAsset?.url, url.isFileURL {
             if let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
@@ -873,11 +887,21 @@ class VideoProcessor: NSObject {
         session.fileLengthLimit = fileLimit
     }
 
+    let targetMB = targetSizeInMB
     pollProgress(session: session, onProgress: onProgress)
 
     session.exportAsynchronously {
       switch session.status {
       case .completed:
+        // Post-compression size validation
+        if targetMB > 0 {
+          if let attr = try? FileManager.default.attributesOfItem(atPath: out),
+             let size = attr[.size] as? Int64 {
+            let actualMB = Double(size) / (1024.0 * 1024.0)
+            let pct = Int(actualMB / targetMB * 100)
+            NSLog("[MediaToolkit] Smart Compress Result: target=%.1fMB, actual=%.2fMB (%d%%)", targetMB, actualMB, pct)
+          }
+        }
         let durationMs = asset.duration.seconds * 1000
         completion(videoResult(path: out, asset: asset, trimmed: durationMs), nil)
       default:

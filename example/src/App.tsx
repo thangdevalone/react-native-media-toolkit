@@ -137,7 +137,7 @@ export default function App() {
 
   // ── Compress options states ─────────────────────────────────────────────
   const [targetSize, setTargetSize] = useState('8.0');
-  const [minRes, setMinRes] = useState('720');
+  const [minRes, setMinRes] = useState('');
   const [muteAudio, setMuteAudio] = useState(false);
   const [imgQuality, setImgQuality] = useState('80');
   const [imgMaxWidth, setImgMaxWidth] = useState('1080');
@@ -423,11 +423,11 @@ export default function App() {
   const compressVid = () => {
     setScreen('home');
     const size = parseFloat(targetSize) || 8.0;
-    const res = parseInt(minRes) || 720;
+    const res = minRes ? parseInt(minRes) : undefined;
     doOp('Smart Compress Video', () =>
       MediaToolkit.compressVideo(srcUri!, {
         targetSizeInMB: size,
-        minResolution: res,
+        ...(res ? { minResolution: res } : {}),
         muteAudio: muteAudio,
       })
     );
@@ -1090,28 +1090,28 @@ export default function App() {
                     <Text style={[h.opHint, { marginBottom: 6 }]}>
                       Min Resolution Bounds
                     </Text>
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      {['480', '540', '720', '1080'].map((res) => (
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      {[{ value: '', label: 'Auto' }, { value: '480', label: '480p' }, { value: '540', label: '540p' }, { value: '720', label: '720p' }, { value: '1080', label: '1080p' }].map((item) => (
                         <Pressable
-                          key={res}
-                          onPress={() => setMinRes(res)}
+                          key={item.value}
+                          onPress={() => setMinRes(item.value)}
                           style={{
                             paddingHorizontal: 10,
                             paddingVertical: 6,
                             borderRadius: 6,
-                            backgroundColor: minRes === res ? T.teal : T.bg,
+                            backgroundColor: minRes === item.value ? T.teal : T.bg,
                             borderWidth: 1,
-                            borderColor: minRes === res ? T.teal : T.border,
+                            borderColor: minRes === item.value ? T.teal : T.border,
                           }}
                         >
                           <Text
                             style={{
                               fontSize: 11,
                               fontWeight: '700',
-                              color: minRes === res ? '#000' : T.text,
+                              color: minRes === item.value ? '#000' : T.text,
                             }}
                           >
-                            {res}p
+                            {item.label}
                           </Text>
                         </Pressable>
                       ))}

@@ -158,7 +158,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
           quality: options.quality ?? "medium",
           bitrate: options.bitrate ?? 0,
           targetSizeInMB: options.targetSizeInMB ?? 0,
-          minResolution: options.minResolution ?? 720,
+          minResolution: options.minResolution ?? 0,
           maxWidth: options.width ?? 0,
           muteAudio: options.muteAudio ?? false,
           outputPath: options.outputPath,

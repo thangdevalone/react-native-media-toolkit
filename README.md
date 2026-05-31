@@ -208,7 +208,7 @@ The compressor supports two modes. Use **one** of them:
 ```typescript
 const result = await MediaToolkit.compressVideo(videoUri, {
   targetSizeInMB: 8,   // required for this mode — target output size in MB
-  minResolution: 480,  // optional — minimum short-edge resolution (default 720)
+  minResolution: 480,  // optional — minimum short-edge resolution (auto-calculated if omitted)
   muteAudio: false,    // optional — strip audio track (default false)
   width: 1280,         // optional — max output width, aspect ratio preserved
 });
@@ -460,7 +460,7 @@ If none of the three are passed, the library falls back to `quality: 'medium'`.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `targetSizeInMB` | `number` | — | **Optional.** Target output file size in MB. When set, overrides `quality` and `bitrate`. |
-| `minResolution` | `number` | `720` | **Optional.** Minimum short-edge resolution (px) when using `targetSizeInMB`. Prevents over-downscaling. |
+| `minResolution` | `number` | auto | **Optional.** Minimum short-edge resolution (px) when using `targetSizeInMB`. Prevents over-downscaling. When omitted, auto-calculates a safe floor based on the source resolution (≈33% of original, min 240p). |
 | `quality` | `string` | `'medium'` | **Optional.** Preset: `'low'` \| `'medium'` \| `'high'`. Ignored if `targetSizeInMB` or `bitrate` is set. |
 | `bitrate` | `number` | — | **Optional.** Explicit target bitrate in bps. Overrides `quality`; ignored if `targetSizeInMB` is set. |
 | `width` | `number` | original | **Optional.** Max output width in px (aspect ratio preserved). |
@@ -594,7 +594,7 @@ Standard image processing operations can cause Out-Of-Memory (OOM) exceptions wh
 
 The `compressVideo` API provides a dynamically balanced encoding strategy via the `targetSizeInMB` flag. When provided, the library will:
 - Calculate a bounded target `bitrate` mapped by the `duration` of the media track.
-- Adjust the output resolution dynamically, floor-bounded by `minResolution` to maintain pixel clarity at constrained bitrates.
+- Adjust the output resolution dynamically, floor-bounded by `minResolution` (or an auto-calculated safe floor when omitted) to maintain pixel clarity at constrained bitrates.
 - Optionally strip the audio track (`muteAudio`) to allocate the entire output bandwidth to the visual presentation.
 
 ### Comparison with common alternatives

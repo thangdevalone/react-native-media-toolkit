@@ -129,7 +129,7 @@ export interface VideoCropOptions {
 export interface CompressVideoOptions {
   /** Target file size in Megabytes. Computes an optimal bitrate based on duration. */
   targetSizeInMB?: number;
-  /** Minimum resolution (shortest side in px) to protect quality when target size is small (default 720) */
+  /** Minimum resolution (shortest side in px) to protect quality when target size is small. Auto-calculated if omitted. */
   minResolution?: number;
   /** Quality preset: "low" | "medium" | "high" (default "medium", ignored if targetSizeInMB is set) */
   quality?: string;

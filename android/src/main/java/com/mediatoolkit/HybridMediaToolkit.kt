@@ -171,7 +171,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         options.quality ?: "medium",
         (options.bitrate ?: 0.0).toInt(),    // 0 = use quality preset (mirrors iOS behaviour)
         options.targetSizeInMB ?: 0.0,
-        options.minResolution ?: 720.0,
+        options.minResolution ?: 0.0,
         (options.width ?: 0.0).toInt(),
         options.muteAudio ?: false,
         options.outputPath

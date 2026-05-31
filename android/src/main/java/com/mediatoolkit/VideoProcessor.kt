@@ -542,13 +542,6 @@ internal object VideoProcessor {
         }
     }
 
-    // Explicit bitrate override — only when NOT in smart compress mode.
-    // When targetSizeInMB is set, the budget calculation already determines
-    // the optimal bitrate; overriding it would break the size constraint.
-    if (bitrate > 0 && targetSizeInMB <= 0) {
-        computedBitrate = bitrate
-    }
-
     if (maxWidth > 0 && finalWidth > maxWidth) {
         val mwScale = maxWidth.toDouble() / finalWidth
         finalWidth = maxWidth

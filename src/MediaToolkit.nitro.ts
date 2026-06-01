@@ -238,6 +238,7 @@ export interface ProcessVideoOptions {
   cropHeight?: number;
   flip?: string; // "horizontal" | "vertical"
   rotation?: number;
+  lutUri?: string; // Absolute path to a PNG LUT image
   outputPath?: string;
 }
 
@@ -253,6 +254,7 @@ export interface ProcessImageOptions {
   cropHeight?: number;
   flip?: string; // "horizontal" | "vertical"
   rotation?: number;
+  lutUri?: string; // Absolute path to a PNG LUT image
   outputPath?: string;
   cornerRadius?: number;
 }

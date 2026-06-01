@@ -48,11 +48,12 @@ namespace margelo::nitro::mediatoolkit {
     std::optional<double> cropHeight     SWIFT_PRIVATE;
     std::optional<std::string> flip     SWIFT_PRIVATE;
     std::optional<double> rotation     SWIFT_PRIVATE;
+    std::optional<std::string> lutUri     SWIFT_PRIVATE;
     std::optional<std::string> outputPath     SWIFT_PRIVATE;
 
   public:
     ProcessVideoOptions() = default;
-    explicit ProcessVideoOptions(std::optional<double> startTime, std::optional<double> endTime, std::optional<double> cropX, std::optional<double> cropY, std::optional<double> cropWidth, std::optional<double> cropHeight, std::optional<std::string> flip, std::optional<double> rotation, std::optional<std::string> outputPath): startTime(startTime), endTime(endTime), cropX(cropX), cropY(cropY), cropWidth(cropWidth), cropHeight(cropHeight), flip(flip), rotation(rotation), outputPath(outputPath) {}
+    explicit ProcessVideoOptions(std::optional<double> startTime, std::optional<double> endTime, std::optional<double> cropX, std::optional<double> cropY, std::optional<double> cropWidth, std::optional<double> cropHeight, std::optional<std::string> flip, std::optional<double> rotation, std::optional<std::string> lutUri, std::optional<std::string> outputPath): startTime(startTime), endTime(endTime), cropX(cropX), cropY(cropY), cropWidth(cropWidth), cropHeight(cropHeight), flip(flip), rotation(rotation), lutUri(lutUri), outputPath(outputPath) {}
 
   public:
     friend bool operator==(const ProcessVideoOptions& lhs, const ProcessVideoOptions& rhs) = default;
@@ -76,6 +77,7 @@ namespace margelo::nitro {
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cropHeight"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "flip"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rotation"))),
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lutUri"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))
       );
     }
@@ -89,6 +91,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "cropHeight"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.cropHeight));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "flip"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.flip));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "rotation"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.rotation));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "lutUri"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.lutUri));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "outputPath"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.outputPath));
       return obj;
     }
@@ -108,6 +111,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cropHeight")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "flip")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rotation")))) return false;
+      if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lutUri")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "outputPath")))) return false;
       return true;
     }

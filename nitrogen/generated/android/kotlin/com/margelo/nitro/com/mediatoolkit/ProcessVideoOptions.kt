@@ -44,6 +44,9 @@ data class ProcessVideoOptions(
   val rotation: Double?,
   @DoNotStrip
   @Keep
+  val lutUri: String?,
+  @DoNotStrip
+  @Keep
   val outputPath: String?
 ) {
   /* primary constructor */
@@ -59,6 +62,7 @@ data class ProcessVideoOptions(
       && Objects.deepEquals(this.cropHeight, other.cropHeight)
       && Objects.deepEquals(this.flip, other.flip)
       && Objects.deepEquals(this.rotation, other.rotation)
+      && Objects.deepEquals(this.lutUri, other.lutUri)
       && Objects.deepEquals(this.outputPath, other.outputPath)
   }
 
@@ -72,6 +76,7 @@ data class ProcessVideoOptions(
       cropHeight,
       flip,
       rotation,
+      lutUri,
       outputPath
     ).contentDeepHashCode()
   }
@@ -84,8 +89,8 @@ data class ProcessVideoOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(startTime: Double?, endTime: Double?, cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, outputPath: String?): ProcessVideoOptions {
-      return ProcessVideoOptions(startTime, endTime, cropX, cropY, cropWidth, cropHeight, flip, rotation, outputPath)
+    private fun fromCpp(startTime: Double?, endTime: Double?, cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, lutUri: String?, outputPath: String?): ProcessVideoOptions {
+      return ProcessVideoOptions(startTime, endTime, cropX, cropY, cropWidth, cropHeight, flip, rotation, lutUri, outputPath)
     }
   }
 }

@@ -38,6 +38,9 @@ data class ProcessImageOptions(
   val rotation: Double?,
   @DoNotStrip
   @Keep
+  val lutUri: String?,
+  @DoNotStrip
+  @Keep
   val outputPath: String?,
   @DoNotStrip
   @Keep
@@ -54,6 +57,7 @@ data class ProcessImageOptions(
       && Objects.deepEquals(this.cropHeight, other.cropHeight)
       && Objects.deepEquals(this.flip, other.flip)
       && Objects.deepEquals(this.rotation, other.rotation)
+      && Objects.deepEquals(this.lutUri, other.lutUri)
       && Objects.deepEquals(this.outputPath, other.outputPath)
       && Objects.deepEquals(this.cornerRadius, other.cornerRadius)
   }
@@ -66,6 +70,7 @@ data class ProcessImageOptions(
       cropHeight,
       flip,
       rotation,
+      lutUri,
       outputPath,
       cornerRadius
     ).contentDeepHashCode()
@@ -79,8 +84,8 @@ data class ProcessImageOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, outputPath: String?, cornerRadius: Double?): ProcessImageOptions {
-      return ProcessImageOptions(cropX, cropY, cropWidth, cropHeight, flip, rotation, outputPath, cornerRadius)
+    private fun fromCpp(cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, lutUri: String?, outputPath: String?, cornerRadius: Double?): ProcessImageOptions {
+      return ProcessImageOptions(cropX, cropY, cropWidth, cropHeight, flip, rotation, lutUri, outputPath, cornerRadius)
     }
   }
 }

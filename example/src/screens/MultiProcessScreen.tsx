@@ -43,8 +43,31 @@ interface Props {
     cropH: number;
     flip?: string;
     rotation: number;
+    lutUri?: string;
   }) => void;
 }
+
+const LUTS = [
+  { id: 'none', label: 'No LUT', source: null },
+  { id: 'lut1', label: 'Beauty 1', source: require('../assets/luts/SY-Beauty_Portrait-1.png') },
+  { id: 'lut2', label: 'Beauty 2', source: require('../assets/luts/SY-Beauty_Portrait-2.png') },
+  { id: 'lut3', label: 'Beauty 3', source: require('../assets/luts/SY-Beauty_Portrait-3.png') },
+  { id: 'lut4', label: 'Beauty 4', source: require('../assets/luts/SY-Beauty_Portrait-4.png') },
+  { id: 'lut5', label: 'Beauty 5', source: require('../assets/luts/SY-Beauty_Portrait-5.png') },
+  { id: 'lut6', label: 'Beauty 6', source: require('../assets/luts/SY-Beauty_Portrait-6.png') },
+  { id: 'lut7', label: 'Beauty 7', source: require('../assets/luts/SY-Beauty_Portrait-7.png') },
+  { id: 'lut8', label: 'Beauty 8', source: require('../assets/luts/SY-Beauty_Portrait-8.png') },
+  { id: 'lut9', label: 'Beauty 9', source: require('../assets/luts/SY-Beauty_Portrait-9.png') },
+  { id: 'lut10', label: 'Beauty 10', source: require('../assets/luts/SY-Beauty_Portrait-10.png') },
+  { id: 'lut11', label: 'Beauty 11', source: require('../assets/luts/SY-Beauty_Portrait-11.png') },
+  { id: 'lut12', label: 'Beauty 12', source: require('../assets/luts/SY-Beauty_Portrait-12.png') },
+  { id: 'lut13', label: 'Beauty 13', source: require('../assets/luts/SY-Beauty_Portrait-13.png') },
+  { id: 'lut14', label: 'Beauty 14', source: require('../assets/luts/SY-Beauty_Portrait-14.png') },
+  { id: 'lut15', label: 'Beauty 15', source: require('../assets/luts/SY-Beauty_Portrait-15.png') },
+  { id: 'lut16', label: 'Beauty 16', source: require('../assets/luts/SY-Beauty_Portrait-16.png') },
+  { id: 'lut17', label: 'Beauty 17', source: require('../assets/luts/SY-Beauty_Portrait-17.png') },
+  { id: 'lut18', label: 'Beauty 18', source: require('../assets/luts/SY-Beauty_Portrait-18.png') },
+];
 
 export default function MultiProcessScreen({
   srcUri, srcType, durationMs, player, loading, opLabel, onBack, onApply,
@@ -52,6 +75,7 @@ export default function MultiProcessScreen({
   // Transform State
   const [rotation, setRotation] = useState(0);
   const [flip, setFlip] = useState<'none' | 'horizontal' | 'vertical'>('none');
+  const [selectedLut, setSelectedLut] = useState<string>('none');
   
   // Crop State
   const [cropBox, setCropBox] = useState<CropBox>(DEF_CROP);
@@ -64,6 +88,52 @@ export default function MultiProcessScreen({
   // Dimensions
   const [natSz, setNatSz] = useState({ w: 0, h: 0 });
   const [prevSz, setPrevSz] = useState({ w: 0, h: 0 });
+
+  // Preview State
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [basePreviewUri, setBasePreviewUri] = useState<string>(srcUri); // Holds thumbnail for video
+
+  useEffect(() => {
+    let isCancelled = false;
+    
+    if (selectedLut === 'none') {
+      setPreviewUri(null);
+      return;
+    }
+    
+    const applyPreview = async () => {
+      setPreviewLoading(true);
+      if (player && player.playing) player.pause();
+      try {
+        let currentBase = basePreviewUri;
+        // If it's a video and we haven't extracted a thumbnail yet
+        if (srcType === 'video' && currentBase === srcUri) {
+           const timeMs = player ? player.currentTime * 1000 : 0;
+           const thumb = await MediaToolkit.getThumbnail(srcUri, { timeMs, quality: 100 });
+           currentBase = thumb.uri;
+           if (!isCancelled) setBasePreviewUri(currentBase);
+        }
+        
+        const lutObj = LUTS.find(l => l.id === selectedLut);
+        if (lutObj && lutObj.source) {
+          const lutUri = Image.resolveAssetSource(lutObj.source as any)?.uri;
+          const res = await MediaToolkit.processImage(currentBase, {
+            lutUri,
+          });
+          if (!isCancelled) setPreviewUri(res.uri);
+        }
+      } catch (e) {
+        console.warn('Preview error:', e);
+      } finally {
+        if (!isCancelled) setPreviewLoading(false);
+      }
+    };
+    
+    applyPreview();
+    
+    return () => { isCancelled = true; };
+  }, [selectedLut, basePreviewUri, srcType, srcUri, player]);
 
   useEffect(() => {
     let active = true;
@@ -139,6 +209,7 @@ export default function MultiProcessScreen({
       cropX: ox, cropY: oy, cropW: ow, cropH: oh,
       flip: flip === 'none' ? undefined : flip,
       rotation,
+      lutUri: selectedLut !== 'none' ? Image.resolveAssetSource(LUTS.find(l => l.id === selectedLut)?.source as any)?.uri : undefined,
     });
   };
 
@@ -180,12 +251,20 @@ export default function MultiProcessScreen({
                     { scaleY: flip === 'vertical' ? -1 : 1 }
                   ]
                 }}>
-                  {srcType === 'video' && player ? (
+                  {previewUri ? (
+                    <Image source={{ uri: previewUri }} style={StyleSheet.absoluteFill} resizeMode="stretch" />
+                  ) : (srcType === 'video' && player ? (
                     <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="fill" nativeControls={false} />
                   ) : (
                     <Image source={{ uri: srcUri }} style={StyleSheet.absoluteFill} resizeMode="stretch" />
-                  )}
+                  ))}
                 </View>
+
+                {previewLoading && (
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' }]}>
+                    <ActivityIndicator size="small" color="#FFF" />
+                  </View>
+                )}
 
                 {/* Constant Crop Overlay mapping to visual bounds */}
                 <CropOverlay
@@ -259,6 +338,20 @@ export default function MultiProcessScreen({
               <Text style={[s.toolLbl, flip === 'vertical' && {color: T.teal}]}>Flip V</Text>
             </TouchableOpacity>
           </ScrollView>
+
+          {/* LUT Selector */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[s.toolbar, { marginTop: 16 }]}>
+            <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold', marginRight: 8 }}>LUTs:</Text>
+            {LUTS.map((lut) => (
+              <TouchableOpacity 
+                key={lut.id}
+                style={[s.lutBtn, selectedLut === lut.id && s.toolActive]}
+                onPress={() => setSelectedLut(lut.id)}
+              >
+                <Text style={[s.toolLbl, selectedLut === lut.id && {color: T.teal}, {marginTop: 0}]}>{lut.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {loading && (
@@ -280,7 +373,7 @@ const s = StyleSheet.create({
   applyBtn: { padding: 8 },
   title: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 1 },
   
-  previewWrapper: { flex: 1, backgroundColor: '#111', margin: 16, borderRadius: 16, overflow: 'hidden' },
+  previewWrapper: { flex: 1, backgroundColor: '#111', margin: 16 },
 
   toolsArea: { paddingVertical: 16, paddingBottom: 24 },
   toolbar: { paddingHorizontal: 24, alignItems: 'center', gap: 12 },
@@ -288,6 +381,7 @@ const s = StyleSheet.create({
   toolActive: { backgroundColor: 'rgba(50, 215, 75, 0.15)', borderRadius: 12 },
   toolLbl: { color: '#8E8E93', fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
   div: { width: 1, height: 32, backgroundColor: '#333', marginHorizontal: 4 },
+  lutBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: '#222' },
 
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', zIndex: 99 },
   loadingTxt: { color: '#FFF', fontSize: 14, marginTop: 14, fontWeight: '600' },

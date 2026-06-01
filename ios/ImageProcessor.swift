@@ -21,6 +21,7 @@ class ImageProcessor: NSObject {
     cropH: Double,
     flip: String?,
     rotation: Double,
+    lutUri: String?,
     cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
@@ -76,8 +77,17 @@ class ImageProcessor: NSObject {
       UIGraphicsEndImageContext()
     }
 
-    // 4. Corner Radius
-    if cornerRadius != 0 {
+    // 4. Apply LUT
+    if let lutUri = lutUri, !lutUri.isEmpty, let ciImage = CIImage(image: finalImage) {
+      let filteredCI = MediaFilters.applyLUT(to: ciImage, lutUri: lutUri)
+      let context = CIContext(options: nil)
+      if let cgImage = context.createCGImage(filteredCI, from: filteredCI.extent) {
+          finalImage = UIImage(cgImage: cgImage)
+      }
+    }
+
+    // 5. Corner radius
+    if cornerRadius > 0 {
       finalImage = applyCornerRadius(to: finalImage, radius: cornerRadius)
     }
 

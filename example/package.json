@@ -21,6 +21,7 @@
     "expo-font": "~14.0.11",
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.11",
+    "expo-media-library": "~18.2.1",
     "expo-status-bar": "~3.0.9",
     "expo-video": "patch:expo-video@npm%3A3.0.16#~/.yarn/patches/expo-video-npm-3.0.16-8037695497.patch",
     "expo-video-thumbnails": "~10.0.8",

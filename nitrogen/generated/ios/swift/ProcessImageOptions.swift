@@ -18,7 +18,7 @@ public extension ProcessImageOptions {
   /**
    * Create a new instance of `ProcessImageOptions`.
    */
-  init(cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, outputPath: String?, cornerRadius: Double?) {
+  init(cropX: Double?, cropY: Double?, cropWidth: Double?, cropHeight: Double?, flip: String?, rotation: Double?, lutUri: String?, outputPath: String?, cornerRadius: Double?) {
     self.init({ () -> bridge.std__optional_double_ in
       if let __unwrappedValue = cropX {
         return bridge.create_std__optional_double_(__unwrappedValue)
@@ -52,6 +52,12 @@ public extension ProcessImageOptions {
     }(), { () -> bridge.std__optional_double_ in
       if let __unwrappedValue = rotation {
         return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_std__string_ in
+      if let __unwrappedValue = lutUri {
+        return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
       } else {
         return .init()
       }
@@ -136,6 +142,18 @@ public extension ProcessImageOptions {
       if bridge.has_value_std__optional_double_(self.__rotation) {
         let __unwrapped = bridge.get_std__optional_double_(self.__rotation)
         return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var lutUri: String? {
+    return { () -> String? in
+      if bridge.has_value_std__optional_std__string_(self.__lutUri) {
+        let __unwrapped = bridge.get_std__optional_std__string_(self.__lutUri)
+        return String(__unwrapped)
       } else {
         return nil
       }

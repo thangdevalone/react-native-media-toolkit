@@ -20,6 +20,7 @@ internal object ImageProcessor {
   // ─── PROCESS (Crop + Flip + Rotate) ──────────────────────────────────────
 
   fun processImage(
+    context: android.content.Context,
     uri: String,
     cropX: Double,
     cropY: Double,
@@ -27,11 +28,12 @@ internal object ImageProcessor {
     cropHeight: Double,
     flip: String?,
     rotation: Double,
+    lutUri: String?,
     cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
-    var bmp = BitmapFactory.decodeFile(path)
+    var bmp = UriHelper.loadBitmap(context, uri)
       ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientation(bmp, path)
@@ -69,6 +71,15 @@ internal object ImageProcessor {
       }
     }
 
+    // 3. Apply LUT
+    if (!lutUri.isNullOrEmpty()) {
+        val filteredBmp = MediaFilters.applyLUTToBitmap(context, bmp, lutUri)
+        if (filteredBmp !== bmp) {
+            bmp.recycle()
+            bmp = filteredBmp
+        }
+    }
+
     if (cornerRadius != 0.0) {
       val rounded = applyCornerRadius(bmp, cornerRadius.toFloat())
       if (rounded !== bmp) {
@@ -97,6 +108,7 @@ internal object ImageProcessor {
   // ─── CROP ────────────────────────────────────────────────────────────────
 
   fun cropImage(
+    context: android.content.Context,
     uri: String,
     x: Double,
     y: Double,
@@ -106,7 +118,7 @@ internal object ImageProcessor {
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
-    var bmp = BitmapFactory.decodeFile(path)
+    var bmp = UriHelper.loadBitmap(context, uri)
       ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientation(bmp, path)
@@ -149,13 +161,14 @@ internal object ImageProcessor {
   // ─── ROTATE ──────────────────────────────────────────────────────────────
 
   fun rotateImage(
+    context: android.content.Context,
     uri: String,
     degrees: Double,
     cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
-    var bmp = BitmapFactory.decodeFile(path)
+    var bmp = UriHelper.loadBitmap(context, uri)
       ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientation(bmp, path)
@@ -190,13 +203,14 @@ internal object ImageProcessor {
   // ─── FLIP ────────────────────────────────────────────────────────────────
 
   fun flipImage(
+    context: android.content.Context,
     uri: String,
     direction: String,
     cornerRadius: Double,
     outputPath: String?
   ): Map<String, Any> {
     val path = uriToPath(uri)
-    var bmp = BitmapFactory.decodeFile(path)
+    var bmp = UriHelper.loadBitmap(context, uri)
       ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientation(bmp, path)
@@ -235,6 +249,7 @@ internal object ImageProcessor {
   // ─── COMPRESS ────────────────────────────────────────────────────────────
 
   fun compressImage(
+    context: android.content.Context,
     uri: String,
     quality: Int,
     maxWidth: Int,
@@ -246,7 +261,7 @@ internal object ImageProcessor {
     val path = uriToPath(uri)
     val options = BitmapFactory.Options()
     options.inJustDecodeBounds = true
-    BitmapFactory.decodeFile(path, options)
+    UriHelper.loadBitmap(context, uri, options)
 
     var rawW = options.outWidth
     var rawH = options.outHeight
@@ -269,7 +284,7 @@ internal object ImageProcessor {
     }
     options.inSampleSize = sampleSize
 
-    var bmp = BitmapFactory.decodeFile(path, options)
+    var bmp = UriHelper.loadBitmap(context, uri, options)
       ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientationDirect(bmp, orientation)
@@ -307,6 +322,7 @@ internal object ImageProcessor {
   }
 
   fun splitImage(
+    context: android.content.Context,
     uri: String,
     rows: Int,
     columns: Int,
@@ -320,7 +336,7 @@ internal object ImageProcessor {
     }
 
     val path = uriToPath(uri)
-    var bmp = BitmapFactory.decodeFile(path)
+    var bmp = UriHelper.loadBitmap(context, uri)
       ?: throw MediaToolkitException.InvalidInput("Cannot decode image: $uri")
 
     bmp = fixExifOrientation(bmp, path)

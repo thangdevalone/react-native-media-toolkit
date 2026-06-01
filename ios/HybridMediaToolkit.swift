@@ -93,6 +93,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
         cropH: options.cropHeight ?? 0,
         flip: options.flip,
         rotation: options.rotation ?? 0,
+        lutUri: options.lutUri,
         cornerRadius: options.cornerRadius ?? 0,
         outputPath: options.outputPath
       )
@@ -261,6 +262,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
           cropH: options.cropHeight ?? 0,
           flip: options.flip,
           rotation: options.rotation ?? 0,
+          lutUri: options.lutUri,
           outputPath: options.outputPath,
           onProgress: { _ in },
           completion: { result, error in

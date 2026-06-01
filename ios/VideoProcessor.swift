@@ -149,6 +149,9 @@ class VideoProcessor: NSObject {
       request.finish(with: cropped, context: nil)
     })
     videoComp.renderSize = CGSize(width: cropW, height: cropH)
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     // ── Export ─────────────────────────────────────────────────────────────
     guard let session = AVAssetExportSession(
@@ -190,6 +193,7 @@ class VideoProcessor: NSObject {
     cropH: Double,
     flip: String?,
     rotation: Double,
+    lutUri: String?,
     outputPath: String?,
     onProgress: @escaping ProgressHandler,
     completion: @escaping Completion
@@ -250,9 +254,17 @@ class VideoProcessor: NSObject {
       if rotation != 0 { img = img.transformed(by: CGAffineTransform(rotationAngle: radians)) }
       img = img.transformed(by: CGAffineTransform(translationX: finalSize.width/2, y: finalSize.height/2))
       
+      // Apply custom LUT if provided
+      if let lutUri = lutUri, !lutUri.isEmpty {
+          img = MediaFilters.applyLUT(to: img, lutUri: lutUri)
+      }
+      
       request.finish(with: img, context: nil)
     })
     videoComp.renderSize = finalSize
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
@@ -369,6 +381,9 @@ class VideoProcessor: NSObject {
       request.finish(with: cropped, context: nil)
     })
     videoComp.renderSize = CGSize(width: cropW, height: cropH)
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     // ── Export ─────────────────────────────────────────────────────────────
     guard let session = AVAssetExportSession(
@@ -448,6 +463,9 @@ class VideoProcessor: NSObject {
         request.finish(with: tx, context: nil)
     })
     videoComp.renderSize = newSize
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
@@ -515,6 +533,9 @@ class VideoProcessor: NSObject {
         request.finish(with: tx, context: nil)
     })
     videoComp.renderSize = CGSize(width: fw, height: fh)
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return

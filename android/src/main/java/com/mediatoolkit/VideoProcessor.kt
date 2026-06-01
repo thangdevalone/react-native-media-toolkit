@@ -136,6 +136,7 @@ internal object VideoProcessor {
     cropHeight: Float,
     flip: String?,
     rotation: Double,
+    lutUri: String?,
     outputPath: String?,
     onProgress: (Int) -> Unit
   ): Map<String, Any> {
@@ -176,6 +177,11 @@ internal object VideoProcessor {
           .setRotationDegrees(rotation.toFloat())
           .build()
       )
+    }
+
+    // 3. LUT
+    if (!lutUri.isNullOrEmpty()) {
+        MediaFilters.getLutEffect(context, lutUri)?.let { effectList.add(it) }
     }
 
     val effects = Effects(emptyList(), effectList)

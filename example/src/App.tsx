@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useEvent } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
+import * as MediaLibrary from 'expo-media-library';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -317,7 +318,7 @@ export default function App() {
     );
   };
 
-  const applyImageCrop = (cr: number) => {
+  const applyImageCrop = (cr: number | string) => {
     setScreen('home');
     doOp('Crop Image', () =>
       MediaToolkit.cropImage(srcUri!, {
@@ -474,6 +475,7 @@ export default function App() {
         cropHeight: opts.cropH,
         flip: opts.flip,
         rotation: opts.rotation,
+        lutUri: opts.lutUri,
       })
     );
   };
@@ -488,6 +490,7 @@ export default function App() {
         cropHeight: opts.cropH,
         flip: opts.flip,
         rotation: opts.rotation,
+        lutUri: opts.lutUri,
       })
     );
   };
@@ -1450,6 +1453,34 @@ export default function App() {
                   </View>
                 ))}
               </View>
+              <TouchableOpacity
+                style={{
+                  marginTop: 16,
+                  backgroundColor: T.green,
+                  padding: 12,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+                onPress={async () => {
+                  try {
+                    const { status } = await MediaLibrary.requestPermissionsAsync();
+                    if (status !== 'granted') {
+                      Alert.alert('Permission Denied', 'Cannot save without gallery access.');
+                      return;
+                    }
+                    await MediaLibrary.saveToLibraryAsync(result.uri);
+                    Alert.alert('Saved!', 'Media saved to your gallery successfully.');
+                  } catch (error: any) {
+                    Alert.alert('Error', error.message || 'Failed to save media.');
+                  }
+                }}
+              >
+                <Ionicons name="download-outline" size={20} color="#000" />
+                <Text style={{ color: '#000', fontWeight: '700', fontSize: 16 }}>Save to Gallery</Text>
+              </TouchableOpacity>
             </View>
           )}
 

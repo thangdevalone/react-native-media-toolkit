@@ -18,7 +18,9 @@
       "appleTeamId": "39D3CZD74P",
       "infoPlist": {
         "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera to capture photos and videos.",
-        "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone to record audio for video recordings."
+        "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone to record audio for video recordings.",
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos to select media.",
+        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save processed media to your gallery."
       }
     },
     "android": {
@@ -32,7 +34,9 @@
       "largeHeap": true,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -50,6 +54,7 @@
           }
         }
       ],
+      "expo-media-library",
       "./plugins/withMediaToolkitAndroid",
       "expo-font"
     ]

@@ -143,6 +143,7 @@ const result = await MediaToolkit.processImage(imageUri, {
   cropHeight: 0.8,
   flip: 'horizontal',
   rotation: 90,
+  lutUri: 'file:///.../hald_lut_64.png', // Custom HALD LUT color grading
 });
 ```
 
@@ -270,6 +271,7 @@ const result = await MediaToolkit.processVideo(videoUri, {
   cropHeight: 0.8,
   flip: 'horizontal',
   rotation: 90,
+  lutUri: 'http://.../hald_lut_64.png', // Custom HALD LUT color grading
 });
 ```
 
@@ -373,6 +375,7 @@ Multi-transform image in a single pass. All options are **optional**.
 | `cropHeight` | `number` | Crop height relative to image height (0.0–1.0) |
 | `flip` | `string` | `'horizontal'` or `'vertical'` |
 | `rotation` | `number` | `90`, `180`, or `270` |
+| `lutUri` | `string` | URI to a 64x64x64 HALD LUT PNG image (512x512) for custom color grading. Supports local, asset, and remote links. |
 | `outputPath` | `string` | Absolute path for the output file. Defaults to a temp file. |
 
 ### `trimVideo(uri, options): Promise<MediaResult>`
@@ -445,6 +448,7 @@ Multi-transform video in a single pass (trim, crop, flip, rotate). All options a
 | `cropHeight` | `number` | Crop height relative to frame height (0.0–1.0) |
 | `flip` | `string` | `'horizontal'` or `'vertical'` |
 | `rotation` | `number` | `90`, `180`, or `270` |
+| `lutUri` | `string` | URI to a 64x64x64 HALD LUT PNG image (512x512) for custom color grading. Supports local, asset, and remote links. |
 | `outputPath` | `string` | Absolute path for the output file. Defaults to a temp file. |
 
 ### `compressVideo(uri, options): Promise<MediaResult>`

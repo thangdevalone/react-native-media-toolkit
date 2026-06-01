@@ -49,24 +49,7 @@ interface Props {
 
 const LUTS = [
   { id: 'none', label: 'No LUT', source: null },
-  { id: 'lut1', label: 'Beauty 1', source: require('../assets/luts/SY-Beauty_Portrait-1.png') },
-  { id: 'lut2', label: 'Beauty 2', source: require('../assets/luts/SY-Beauty_Portrait-2.png') },
-  { id: 'lut3', label: 'Beauty 3', source: require('../assets/luts/SY-Beauty_Portrait-3.png') },
-  { id: 'lut4', label: 'Beauty 4', source: require('../assets/luts/SY-Beauty_Portrait-4.png') },
-  { id: 'lut5', label: 'Beauty 5', source: require('../assets/luts/SY-Beauty_Portrait-5.png') },
-  { id: 'lut6', label: 'Beauty 6', source: require('../assets/luts/SY-Beauty_Portrait-6.png') },
-  { id: 'lut7', label: 'Beauty 7', source: require('../assets/luts/SY-Beauty_Portrait-7.png') },
-  { id: 'lut8', label: 'Beauty 8', source: require('../assets/luts/SY-Beauty_Portrait-8.png') },
-  { id: 'lut9', label: 'Beauty 9', source: require('../assets/luts/SY-Beauty_Portrait-9.png') },
-  { id: 'lut10', label: 'Beauty 10', source: require('../assets/luts/SY-Beauty_Portrait-10.png') },
-  { id: 'lut11', label: 'Beauty 11', source: require('../assets/luts/SY-Beauty_Portrait-11.png') },
-  { id: 'lut12', label: 'Beauty 12', source: require('../assets/luts/SY-Beauty_Portrait-12.png') },
-  { id: 'lut13', label: 'Beauty 13', source: require('../assets/luts/SY-Beauty_Portrait-13.png') },
-  { id: 'lut14', label: 'Beauty 14', source: require('../assets/luts/SY-Beauty_Portrait-14.png') },
-  { id: 'lut15', label: 'Beauty 15', source: require('../assets/luts/SY-Beauty_Portrait-15.png') },
-  { id: 'lut16', label: 'Beauty 16', source: require('../assets/luts/SY-Beauty_Portrait-16.png') },
-  { id: 'lut17', label: 'Beauty 17', source: require('../assets/luts/SY-Beauty_Portrait-17.png') },
-  { id: 'lut18', label: 'Beauty 18', source: require('../assets/luts/SY-Beauty_Portrait-18.png') },
+  { id: 'light_beauty', label: 'Light Beauty', source: require('../assets/luts/Light_Beauty.png') },
 ];
 
 export default function MultiProcessScreen({

@@ -84,3 +84,10 @@ android/generated
 
 # React Native Nitro Modules
 # nitrogen/ - intentionally tracked in git (needed for native CI builds)
+
+# LUT and Cube files
+*.lut
+*.cube
+example/src/assets/cube/
+example/src/assets/luts/*
+!example/src/assets/luts/Light_Beauty.png

@@ -93,6 +93,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
         cropH: options.cropHeight ?? 0,
         flip: options.flip,
         rotation: options.rotation ?? 0,
+        lutUri: options.lutUri,
         cornerRadius: options.cornerRadius ?? 0,
         outputPath: options.outputPath
       )
@@ -158,7 +159,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
           quality: options.quality ?? "medium",
           bitrate: options.bitrate ?? 0,
           targetSizeInMB: options.targetSizeInMB ?? 0,
-          minResolution: options.minResolution ?? 720,
+          minResolution: options.minResolution ?? 0,
           maxWidth: options.width ?? 0,
           muteAudio: options.muteAudio ?? false,
           outputPath: options.outputPath,
@@ -261,6 +262,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
           cropH: options.cropHeight ?? 0,
           flip: options.flip,
           rotation: options.rotation ?? 0,
+          lutUri: options.lutUri,
           outputPath: options.outputPath,
           onProgress: { _ in },
           completion: { result, error in

@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission, useVideoOutput, type CameraRef, type Recorder } from 'react-native-vision-camera';
+import { MediaToolkit } from 'react-native-media-toolkit';
 import { T } from '../theme';
 
 interface RecordVideoScreenProps {
@@ -11,7 +12,8 @@ interface RecordVideoScreenProps {
 }
 
 export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScreenProps) {
-  const device = useCameraDevice('back');
+  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
+  const device = useCameraDevice(cameraPosition);
   const { hasPermission, requestPermission } = useCameraPermission();
   const { hasPermission: hasMicPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
 
@@ -72,12 +74,24 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
 
           // VisionCamera returns a plain path (no file:// prefix)
           const uri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
-          onRecord(uri, durMs, 1080, 1920); // Defaulting to 1080x1920 for portrait
+          
+          if (Platform.OS === 'android' && cameraPosition === 'front') {
+            MediaToolkit.processVideo(uri, { flip: 'horizontal' })
+              .then(res => onRecord(res.uri, durMs, 1080, 1920))
+              .catch(err => {
+                console.warn('Failed to flip video:', err);
+                onRecord(uri, durMs, 1080, 1920);
+              });
+          } else {
+            onRecord(uri, durMs, 1080, 1920); // Defaulting to 1080x1920 for portrait
+          }
         },
         (error: Error) => {
           if (timerRef.current) clearInterval(timerRef.current);
           console.error('Recording error:', error);
+          Alert.alert('Recording Failed', 'Video data could not be captured (e.g. recording was too short).');
           setIsRecording(false);
+          setSaving(false);
           setElapsed(0);
         }
       );
@@ -86,7 +100,7 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
       setIsRecording(false);
       if (timerRef.current) clearInterval(timerRef.current);
     }
-  }, [onRecord, videoOutput]);
+  }, [onRecord, videoOutput, cameraPosition]);
 
   const stopRecording = useCallback(async () => {
     stopTimeRef.current = Date.now();  // Capture EXACT stop moment for duration
@@ -158,7 +172,13 @@ export default function RecordVideoScreen({ onBack, onRecord }: RecordVideoScree
             </View>
           )}
 
-          <View style={{ width: 44 }} />
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => setCameraPosition(p => p === 'back' ? 'front' : 'back')}
+            disabled={isRecording || saving}
+          >
+            <Ionicons name="camera-reverse-outline" size={24} color={(isRecording || saving) ? '#666' : '#FFF'} />
+          </TouchableOpacity>
         </View>
 
         {/* Bottom bar */}

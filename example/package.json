@@ -10,7 +10,8 @@
     "postinstall": "node -e \"fs.rmSync('node_modules/expo-video/local-maven-repo', {recursive:true, force:true})\"",
     "build:ios": "xcodebuild ONLY_ACTIVE_ARCH=YES EXCLUDED_ARCHS=x86_64 -workspace ios/MediaToolkitExample.xcworkspace -UseNewBuildSystem=YES -scheme MediaToolkitExample -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet",
     "build:android": "cd android && ./gradlew assembleDebug -DtestBuildType=debug -Dorg.gradle.jvmargs=-Xmx4g",
-    "build:web": "expo export --platform web"
+    "build:web": "expo export --platform web",
+    "clean": "npx rimraf android/build android/app/build android/app/.cxx android/.gradle ios/build ios/Pods node_modules/.cache"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -20,6 +21,7 @@
     "expo-font": "~14.0.11",
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.11",
+    "expo-media-library": "~18.2.1",
     "expo-status-bar": "~3.0.9",
     "expo-video": "patch:expo-video@npm%3A3.0.16#~/.yarn/patches/expo-video-npm-3.0.16-8037695497.patch",
     "expo-video-thumbnails": "~10.0.8",

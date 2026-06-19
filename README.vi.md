@@ -143,6 +143,7 @@ const result = await MediaToolkit.processImage(imageUri, {
   cropHeight: 0.8,
   flip: 'horizontal',
   rotation: 90,
+  lutUri: 'file:///.../hald_lut_64.png', // Áp dụng màu tuỳ chỉnh HALD LUT
 });
 ```
 
@@ -189,7 +190,7 @@ Bộ nén hỗ trợ hai chế độ. Dùng **một trong hai**:
 ```typescript
 const result = await MediaToolkit.compressVideo(videoUri, {
   targetSizeInMB: 8,   // bắt buộc cho chế độ này — dung lượng output mục tiêu (MB)
-  minResolution: 480,  // tuỳ chọn — độ phân giải ngắn nhất tối thiểu (mặc định 720)
+  minResolution: 480,  // tuỳ chọn — độ phân giải ngắn nhất tối thiểu (tự tính nếu không truyền)
   muteAudio: false,    // tuỳ chọn — loại bỏ âm thanh (mặc định false)
   width: 1280,         // tuỳ chọn — chiều rộng tối đa, giữ nguyên tỉ lệ
 });
@@ -251,6 +252,7 @@ const result = await MediaToolkit.processVideo(videoUri, {
   cropHeight: 0.8,
   flip: 'horizontal',
   rotation: 90,
+  lutUri: 'http://.../hald_lut_64.png', // Áp dụng màu tuỳ chỉnh HALD LUT
 });
 ```
 
@@ -354,6 +356,7 @@ Xử lý đa tác vụ ảnh. Tất cả options đều là **tuỳ chọn**.
 | `cropHeight` | `number` | Chiều cao vùng cắt so với chiều cao ảnh (0.0–1.0) |
 | `flip` | `string` | `'horizontal'` hoặc `'vertical'` |
 | `rotation` | `number` | `90`, `180`, hoặc `270` |
+| `lutUri` | `string` | Link tới ảnh HALD LUT PNG (64x64x64 - 512x512) để áp dụng filter màu tuỳ chỉnh (hỗ trợ HTTP, Local File, Asset). |
 | `outputPath` | `string` | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
 | `cornerRadius` | `number \| string` | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
@@ -407,6 +410,7 @@ Xử lý đa tác vụ video trong một lần duy nhất (trim, crop, flip, rot
 | `cropHeight` | `number` | Chiều cao vùng cắt so với chiều cao frame (0.0–1.0) |
 | `flip` | `string` | `'horizontal'` hoặc `'vertical'` |
 | `rotation` | `number` | `90`, `180`, hoặc `270` |
+| `lutUri` | `string` | Link tới ảnh HALD LUT PNG (64x64x64 - 512x512) để áp dụng filter màu tuỳ chỉnh (hỗ trợ HTTP, Local File, Asset). |
 | `outputPath` | `string` | Đường dẫn tuyệt đối file output. Mặc định là file tạm. |
 | `cornerRadius` | `number \| string` | Bo góc bằng px hoặc % (VD: "50%"). 100% tạo thành hình tròn. |
 
@@ -423,7 +427,7 @@ Nếu không truyền gì cả, thư viện mặc định dùng `quality: 'mediu
 | Tuỳ chọn | Kiểu | Mặc định | Mô tả |
 |---|---|---|---|
 | `targetSizeInMB` | `number` | — | **Tuỳ chọn.** Dung lượng output mục tiêu (MB). Khi đặt, ghi đè `quality` và `bitrate`. |
-| `minResolution` | `number` | `720` | **Tuỳ chọn.** Độ phân giải cạnh ngắn tối thiểu (px) khi dùng `targetSizeInMB`. Tránh downscale quá mức. |
+| `minResolution` | `number` | tự tính | **Tuỳ chọn.** Độ phân giải cạnh ngắn tối thiểu (px) khi dùng `targetSizeInMB`. Tránh downscale quá mức. Khi không truyền, tự tính dựa trên resolution gốc (≈33% gốc, tối thiểu 240p). |
 | `quality` | `string` | `'medium'` | **Tuỳ chọn.** Preset: `'low'` \| `'medium'` \| `'high'`. Bị bỏ qua nếu có `targetSizeInMB` hoặc `bitrate`. |
 | `bitrate` | `number` | — | **Tuỳ chọn.** Bitrate mục tiêu (bps). Ghi đè `quality`; bị bỏ qua nếu có `targetSizeInMB`. |
 | `width` | `number` | gốc | **Tuỳ chọn.** Chiều rộng tối đa output (px, giữ tỉ lệ). |
@@ -556,7 +560,7 @@ Việc xử lý ảnh độ phân giải cao (ví dụ gốc 40MP+) thường g�
 
 Hàm `compressVideo` hỗ trợ chiến lược encode động thông qua tham số `targetSizeInMB`. Khi được cài đặt, framework sẽ:
 - Tính toán `bitrate` đầu ra dựa trên thời lượng (`duration`) tiêu chuẩn của media.
-- Thay đổi động độ phân giải thu được, giới hạn chạm đáy bởi `minResolution` nhằm giữ lại mật độ chi tiết (pixel density) ở những dải bitrate thấp.
+- Thay đổi động độ phân giải thu được, giới hạn chạm đáy bởi `minResolution` (hoặc tự tính khi không truyền) nhằm giữ lại mật độ chi tiết (pixel density) ở những dải bitrate thấp.
 - Hỗ trợ loại bỏ track âm thanh qua `muteAudio` nhằm dồn toàn bộ phần băng thông cho luồng video.
 
 ### So sánh với các thư viện phổ biến

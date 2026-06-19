@@ -143,6 +143,7 @@ const result = await MediaToolkit.processImage(imageUri, {
   cropHeight: 0.8,
   flip: 'horizontal',
   rotation: 90,
+  lutUri: 'file:///.../hald_lut_64.png', // Custom HALD LUT color grading
 });
 ```
 
@@ -208,7 +209,7 @@ The compressor supports two modes. Use **one** of them:
 ```typescript
 const result = await MediaToolkit.compressVideo(videoUri, {
   targetSizeInMB: 8,   // required for this mode — target output size in MB
-  minResolution: 480,  // optional — minimum short-edge resolution (default 720)
+  minResolution: 480,  // optional — minimum short-edge resolution (auto-calculated if omitted)
   muteAudio: false,    // optional — strip audio track (default false)
   width: 1280,         // optional — max output width, aspect ratio preserved
 });
@@ -270,6 +271,7 @@ const result = await MediaToolkit.processVideo(videoUri, {
   cropHeight: 0.8,
   flip: 'horizontal',
   rotation: 90,
+  lutUri: 'http://.../hald_lut_64.png', // Custom HALD LUT color grading
 });
 ```
 
@@ -373,6 +375,7 @@ Multi-transform image in a single pass. All options are **optional**.
 | `cropHeight` | `number` | Crop height relative to image height (0.0–1.0) |
 | `flip` | `string` | `'horizontal'` or `'vertical'` |
 | `rotation` | `number` | `90`, `180`, or `270` |
+| `lutUri` | `string` | URI to a 64x64x64 HALD LUT PNG image (512x512) for custom color grading. Supports local, asset, and remote links. |
 | `outputPath` | `string` | Absolute path for the output file. Defaults to a temp file. |
 
 ### `trimVideo(uri, options): Promise<MediaResult>`
@@ -445,6 +448,7 @@ Multi-transform video in a single pass (trim, crop, flip, rotate). All options a
 | `cropHeight` | `number` | Crop height relative to frame height (0.0–1.0) |
 | `flip` | `string` | `'horizontal'` or `'vertical'` |
 | `rotation` | `number` | `90`, `180`, or `270` |
+| `lutUri` | `string` | URI to a 64x64x64 HALD LUT PNG image (512x512) for custom color grading. Supports local, asset, and remote links. |
 | `outputPath` | `string` | Absolute path for the output file. Defaults to a temp file. |
 
 ### `compressVideo(uri, options): Promise<MediaResult>`
@@ -460,7 +464,7 @@ If none of the three are passed, the library falls back to `quality: 'medium'`.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `targetSizeInMB` | `number` | — | **Optional.** Target output file size in MB. When set, overrides `quality` and `bitrate`. |
-| `minResolution` | `number` | `720` | **Optional.** Minimum short-edge resolution (px) when using `targetSizeInMB`. Prevents over-downscaling. |
+| `minResolution` | `number` | auto | **Optional.** Minimum short-edge resolution (px) when using `targetSizeInMB`. Prevents over-downscaling. When omitted, auto-calculates a safe floor based on the source resolution (≈33% of original, min 240p). |
 | `quality` | `string` | `'medium'` | **Optional.** Preset: `'low'` \| `'medium'` \| `'high'`. Ignored if `targetSizeInMB` or `bitrate` is set. |
 | `bitrate` | `number` | — | **Optional.** Explicit target bitrate in bps. Overrides `quality`; ignored if `targetSizeInMB` is set. |
 | `width` | `number` | original | **Optional.** Max output width in px (aspect ratio preserved). |
@@ -594,7 +598,7 @@ Standard image processing operations can cause Out-Of-Memory (OOM) exceptions wh
 
 The `compressVideo` API provides a dynamically balanced encoding strategy via the `targetSizeInMB` flag. When provided, the library will:
 - Calculate a bounded target `bitrate` mapped by the `duration` of the media track.
-- Adjust the output resolution dynamically, floor-bounded by `minResolution` to maintain pixel clarity at constrained bitrates.
+- Adjust the output resolution dynamically, floor-bounded by `minResolution` (or an auto-calculated safe floor when omitted) to maintain pixel clarity at constrained bitrates.
 - Optionally strip the audio track (`muteAudio`) to allocate the entire output bandwidth to the visual presentation.
 
 ### Comparison with common alternatives

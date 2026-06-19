@@ -51,6 +51,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
   override fun cropImage(uri: String, options: CropOptions): Promise<MediaResult> {
     return Promise.async(scope) {
       val raw = ImageProcessor.cropImage(
+        ctx,
         uri,
         options.x,
         options.y,
@@ -66,6 +67,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
   override fun compressImage(uri: String, options: CompressImageOptions): Promise<MediaResult> {
     return Promise.async(scope) {
       val raw = ImageProcessor.compressImage(
+        ctx,
         uri,
         (options.quality ?: 80.0).toInt(),
         (options.maxWidth ?: 0.0).toInt(),
@@ -81,6 +83,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
   override fun splitImage(uri: String, options: SplitImageOptions): Promise<Array<MediaResult>> {
     return Promise.async(scope) {
       ImageProcessor.splitImage(
+        ctx,
         uri,
         options.rows.toInt(),
         options.columns.toInt(),
@@ -95,6 +98,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
   override fun flipImage(uri: String, options: FlipOptions): Promise<MediaResult> {
     return Promise.async(scope) {
       val raw = ImageProcessor.flipImage(
+        ctx,
         uri,
         options.direction,
         options.cornerRadius ?: 0.0,
@@ -107,6 +111,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
   override fun rotateImage(uri: String, options: RotateOptions): Promise<MediaResult> {
     return Promise.async(scope) {
       val raw = ImageProcessor.rotateImage(
+        ctx,
         uri,
         options.degrees,
         options.cornerRadius ?: 0.0,
@@ -119,6 +124,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
   override fun processImage(uri: String, options: ProcessImageOptions): Promise<MediaResult> {
     return Promise.async(scope) {
       val raw = ImageProcessor.processImage(
+        ctx,
         uri,
         options.cropX ?: 0.0,
         options.cropY ?: 0.0,
@@ -126,6 +132,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         options.cropHeight ?: 0.0,
         options.flip,
         options.rotation ?: 0.0,
+        options.lutUri,
         options.cornerRadius ?: 0.0,
         options.outputPath
       )
@@ -171,7 +178,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         options.quality ?: "medium",
         (options.bitrate ?: 0.0).toInt(),    // 0 = use quality preset (mirrors iOS behaviour)
         options.targetSizeInMB ?: 0.0,
-        options.minResolution ?: 720.0,
+        options.minResolution ?: 0.0,
         (options.width ?: 0.0).toInt(),
         options.muteAudio ?: false,
         options.outputPath
@@ -234,6 +241,7 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
         (options.cropHeight ?: 0.0).toFloat(),
         options.flip,
         options.rotation ?: 0.0,
+        options.lutUri,
         options.outputPath
       ) { /* progress ignored */ }
       raw.toMediaResult()

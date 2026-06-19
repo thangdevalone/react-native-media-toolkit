@@ -149,6 +149,9 @@ class VideoProcessor: NSObject {
       request.finish(with: cropped, context: nil)
     })
     videoComp.renderSize = CGSize(width: cropW, height: cropH)
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     // ── Export ─────────────────────────────────────────────────────────────
     guard let session = AVAssetExportSession(
@@ -190,6 +193,7 @@ class VideoProcessor: NSObject {
     cropH: Double,
     flip: String?,
     rotation: Double,
+    lutUri: String?,
     outputPath: String?,
     onProgress: @escaping ProgressHandler,
     completion: @escaping Completion
@@ -250,9 +254,17 @@ class VideoProcessor: NSObject {
       if rotation != 0 { img = img.transformed(by: CGAffineTransform(rotationAngle: radians)) }
       img = img.transformed(by: CGAffineTransform(translationX: finalSize.width/2, y: finalSize.height/2))
       
+      // Apply custom LUT if provided
+      if let lutUri = lutUri, !lutUri.isEmpty {
+          img = MediaFilters.applyLUT(to: img, lutUri: lutUri)
+      }
+      
       request.finish(with: img, context: nil)
     })
     videoComp.renderSize = finalSize
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
@@ -369,6 +381,9 @@ class VideoProcessor: NSObject {
       request.finish(with: cropped, context: nil)
     })
     videoComp.renderSize = CGSize(width: cropW, height: cropH)
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     // ── Export ─────────────────────────────────────────────────────────────
     guard let session = AVAssetExportSession(
@@ -448,6 +463,9 @@ class VideoProcessor: NSObject {
         request.finish(with: tx, context: nil)
     })
     videoComp.renderSize = newSize
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
@@ -515,6 +533,9 @@ class VideoProcessor: NSObject {
         request.finish(with: tx, context: nil)
     })
     videoComp.renderSize = CGSize(width: fw, height: fh)
+    videoComp.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+    videoComp.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+    videoComp.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
     guard let session = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) else {
       completion(nil, MediaToolkitError.processingFailed("Cannot create export session")); return
@@ -771,21 +792,28 @@ class VideoProcessor: NSObject {
               return
           }
           
-          if origSizeMB > 0 && targetSizeInMB < (origSizeMB * 0.05) {
-              completion(nil, MediaToolkitError.invalidInput("Target size is too extreme (< 5% of original). The encoder hardware will fail to squeeze it."))
-              return
-          }
           // ----------------------------------------------
 
-          var targetBitrate = (targetSizeInMB * 1024 * 1024 * 8) / durationSecs
-          if !muteAudio { targetBitrate -= 128_000 }
+          // ── Smart Resolution + Preset Selection (consistent budget) ──────
+          // Use 85% margin (same as Android) for resolution calculation.
+          // iOS uses fileLengthLimit for actual size control, but the resolution
+          // calculation still matters for picking the right preset tier.
+          //
+          // 85% margin accounts for:
+          //   • ~5%  MP4 container overhead
+          //   • ~10% encoder variance
+          let BUDGET_MARGIN: Double = 0.85
+          let TARGET_BPPPS: Double = 4.5
+          let AUDIO_BITRATE: Double = 128_000
+
+          var videoBudget = (targetSizeInMB * BUDGET_MARGIN * 1024 * 1024 * 8) / durationSecs
+          if !muteAudio { videoBudget -= AUDIO_BITRATE }
+          if videoBudget < 100_000 { videoBudget = 100_000 }
           
           let displaySize = videoDisplaySize(asset: asset)
           let shortEdge = CGFloat(min(displaySize.width, displaySize.height))
 
-          // Calculate exact target pixels based on standard encoder bits-per-pixel-per-sec
-          let TARGET_BPPPS: Double = 4.5
-          let targetPixels = targetBitrate / TARGET_BPPPS
+          let targetPixels = videoBudget / TARGET_BPPPS
           let currentPixels = Double(displaySize.width * displaySize.height)
           
           var scale = sqrt(targetPixels / currentPixels)
@@ -813,10 +841,16 @@ class VideoProcessor: NSObject {
               }
           }
 
+          // Pick the most appropriate preset tier for the computed resolution.
+          // Using lower thresholds (e.g. 480 instead of 540) lets fileLengthLimit
+          // work within a slightly higher resolution — often better visual quality
+          // than forcing a lower-res preset at higher bitrate.
           if computedShortEdge >= 1080 { preset = AVAssetExportPreset1920x1080 }
-          else if computedShortEdge >= 720 { preset = AVAssetExportPreset1280x720 }
-          else if computedShortEdge >= 540 { preset = AVAssetExportPreset960x540 }
+          else if computedShortEdge >= 640 { preset = AVAssetExportPreset1280x720 }
+          else if computedShortEdge >= 480 { preset = AVAssetExportPreset960x540 }
           else { preset = AVAssetExportPreset640x480 }
+
+          NSLog("[MediaToolkit] Smart Compress Plan: budget=%.0f bps, shortEdge=%dp, preset=%@", videoBudget, Int(computedShortEdge), preset)
       } else {
           preset = AVAssetExportPresetHighestQuality
       }
@@ -860,8 +894,9 @@ class VideoProcessor: NSObject {
     session.outputURL      = outURL
 
     if targetSizeInMB > 0 {
-        // AVAssetExportSession accepts fileLengthLimit natively tracking Bitrate
-        var fileLimit = Int64(targetSizeInMB * 1024 * 1024 * 0.90) // 10% safety margin for MP4 overhead
+        // AVAssetExportSession accepts fileLengthLimit natively — Apple adjusts
+        // encoder quality internally to fit the constraint.
+        var fileLimit = Int64(targetSizeInMB * 1024 * 1024 * 0.92) // 8% margin for MP4 overhead
         let sourceAsset = (asset as? AVURLAsset) ?? (exportAsset as? AVURLAsset)
         if let url = sourceAsset?.url, url.isFileURL {
             if let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
@@ -873,11 +908,37 @@ class VideoProcessor: NSObject {
         session.fileLengthLimit = fileLimit
     }
 
+    let targetMB = targetSizeInMB
     pollProgress(session: session, onProgress: onProgress)
 
     session.exportAsynchronously {
       switch session.status {
       case .completed:
+        // Post-compression size validation
+        if targetMB > 0 {
+          if let attr = try? FileManager.default.attributesOfItem(atPath: out),
+             let size = attr[.size] as? Int64 {
+            let actualMB = Double(size) / (1024.0 * 1024.0)
+            let pct = Int(actualMB / targetMB * 100)
+            NSLog("[MediaToolkit] Smart Compress Result: target=%.1fMB, actual=%.2fMB (%d%%)", targetMB, actualMB, pct)
+          }
+        }
+
+        // Fallback: If encoder inflates the file beyond original size,
+        // revert to original to prevent making it worse. (Matches Android behavior)
+        if !muteAudio,
+           let sourceURL = (asset as? AVURLAsset)?.url, sourceURL.isFileURL,
+           let origAttr = try? FileManager.default.attributesOfItem(atPath: sourceURL.path),
+           let origSize = origAttr[.size] as? Int64, origSize > 0,
+           let outAttr = try? FileManager.default.attributesOfItem(atPath: out),
+           let outSize = outAttr[.size] as? Int64, outSize > origSize {
+          let origMB = Double(origSize) / (1024.0 * 1024.0)
+          let outMB = Double(outSize) / (1024.0 * 1024.0)
+          NSLog("[MediaToolkit] Encoder inflated file from %.1fMB to %.1fMB. Reverting to original.", origMB, outMB)
+          try? FileManager.default.removeItem(at: outURL)
+          try? FileManager.default.copyItem(at: sourceURL, to: outURL)
+        }
+
         let durationMs = asset.duration.seconds * 1000
         completion(videoResult(path: out, asset: asset, trimmed: durationMs), nil)
       default:

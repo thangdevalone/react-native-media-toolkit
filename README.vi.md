@@ -28,7 +28,7 @@ Xây dựng trên **Nitro Modules** (JSI), dùng `AVFoundation` trên iOS và **
 | Expo với Dev Client / Custom Build | Có |
 | Expo Go | Không hỗ trợ (yêu cầu native build) |
 | React Native | 0.75+ (bắt buộc New Architecture) |
-| iOS | 16.0+ |
+| iOS | 15.0+ |
 | Android | API 24+ (Android 7.0) / Đã hỗ trợ Android 15 (16 KB Page Size) |
 
 > **Lưu ý Expo:** Thư viện yêu cầu native build. Không thể dùng với Expo Go.  

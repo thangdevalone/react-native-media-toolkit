@@ -28,7 +28,7 @@ Built on **Nitro Modules** (JSI), using `AVFoundation` on iOS and **Jetpack Medi
 | Expo with Dev Client / Custom Build | Supported |
 | Expo Go | Not supported (requires native build) |
 | React Native | 0.75+ (New Architecture required) |
-| iOS | 16.0+ |
+| iOS | 15.0+ |
 | Android | API 24+ (Android 7.0) / Android 15 (16 KB Page Size) Ready |
 
 > **Expo note:** This library requires a native build. It cannot run in Expo Go.  

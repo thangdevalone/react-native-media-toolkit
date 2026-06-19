@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported }
+  s.platforms    = { :ios => '15.0' }
   s.source       = { :git => "https://github.com/thangdevalone/react-native-media-toolkit.git", :tag => "#{s.version}" }
 
   # Swift implementation files

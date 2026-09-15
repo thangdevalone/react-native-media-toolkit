@@ -862,6 +862,22 @@ class VideoProcessor: NSObject {
       }
     }
 
+    // Explicit bitrate → use AVAssetWriter pipeline
+    // (AVAssetExportSession does not support custom bitrate)
+    if bitrate > 0 && targetSizeInMB <= 0 {
+      NSLog("[MediaToolkit] Compress with explicit bitrate: %.0f bps, maxWidth=%.0f", bitrate, maxWidth)
+      compressWithBitrate(
+        asset: asset,
+        bitrate: Int(bitrate),
+        muteAudio: muteAudio,
+        maxWidth: maxWidth,
+        outputURL: outURL,
+        onProgress: onProgress,
+        completion: completion
+      )
+      return
+    }
+
     // When muteAudio is requested, build a composition that only contains the video track.
     // AVAssetExportSession will then produce a file with no audio stream.
     let exportAsset: AVAsset
@@ -943,6 +959,248 @@ class VideoProcessor: NSObject {
         completion(videoResult(path: out, asset: asset, trimmed: durationMs), nil)
       default:
         completion(nil, session.error ?? MediaToolkitError.processingFailed("Export failed"))
+      }
+    }
+  }
+
+  // ─── COMPRESS WITH EXPLICIT BITRATE (AVAssetWriter) ──────────────────────
+
+  /// Re-encodes video at an explicit bitrate using AVAssetWriter + AVAssetReader.
+  /// AVAssetExportSession only supports Apple’s built-in presets and does NOT
+  /// allow custom bitrate values, so this separate pipeline is required.
+  /// Audio is passed through without re-encoding (unless muted).
+  private static func compressWithBitrate(
+    asset: AVAsset,
+    bitrate: Int,
+    muteAudio: Bool,
+    maxWidth: Double,
+    outputURL: URL,
+    onProgress: @escaping ProgressHandler,
+    completion: @escaping Completion
+  ) {
+    guard let videoTrack = asset.tracks(withMediaType: .video).first else {
+      completion(nil, MediaToolkitError.processingFailed("No video track"))
+      return
+    }
+
+    // ── Compute output dimensions ─────────────────────────────────────────
+    // Reader delivers frames in the track’s natural coordinate space (before
+    // rotation). We apply maxWidth scaling based on display dimensions, then
+    // convert back to natural dimensions for the writer.
+    let naturalW = videoTrack.naturalSize.width
+    let naturalH = videoTrack.naturalSize.height
+    let displaySize = videoDisplaySize(asset: asset)
+
+    var scale: CGFloat = 1.0
+    if maxWidth > 0 && displaySize.width > maxWidth {
+      scale = CGFloat(maxWidth / displaySize.width)
+    }
+    var outW = Int(naturalW * scale)
+    var outH = Int(naturalH * scale)
+    // H.264 requires even dimensions
+    if outW % 2 != 0 { outW -= 1 }
+    if outH % 2 != 0 { outH -= 1 }
+
+    guard outW > 0 && outH > 0 else {
+      completion(nil, MediaToolkitError.processingFailed("Invalid output dimensions"))
+      return
+    }
+
+    let needsResize = (outW != Int(naturalW) || outH != Int(naturalH))
+
+    NSLog("[MediaToolkit] compressWithBitrate: bitrate=%d, natural=%.0fx%.0f, output=%dx%d, resize=%d",
+          bitrate, naturalW, naturalH, outW, outH, needsResize ? 1 : 0)
+
+    // ── Reader setup ──────────────────────────────────────────────────────
+    let reader: AVAssetReader
+    do {
+      reader = try AVAssetReader(asset: asset)
+    } catch {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create asset reader: \(error.localizedDescription)"))
+      return
+    }
+
+    let videoReaderOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [
+      kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+    ])
+    videoReaderOutput.alwaysCopiesSampleData = false
+    guard reader.canAdd(videoReaderOutput) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot add video reader output"))
+      return
+    }
+    reader.add(videoReaderOutput)
+
+    // Audio reader (passthrough — nil settings = compressed samples)
+    var audioReaderOutput: AVAssetReaderTrackOutput?
+    if !muteAudio, let audioTrack = asset.tracks(withMediaType: .audio).first {
+      let aOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: nil)
+      aOutput.alwaysCopiesSampleData = false
+      if reader.canAdd(aOutput) {
+        reader.add(aOutput)
+        audioReaderOutput = aOutput
+      }
+    }
+
+    // ── Writer setup ──────────────────────────────────────────────────────
+    let writer: AVAssetWriter
+    do {
+      writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
+    } catch {
+      completion(nil, MediaToolkitError.processingFailed("Cannot create asset writer: \(error.localizedDescription)"))
+      return
+    }
+
+    let videoSettings: [String: Any] = [
+      AVVideoCodecKey: AVVideoCodecType.h264,
+      AVVideoWidthKey: outW,
+      AVVideoHeightKey: outH,
+      AVVideoCompressionPropertiesKey: [
+        AVVideoAverageBitRateKey: bitrate,
+        AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+      ]
+    ]
+    let videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+    videoWriterInput.expectsMediaDataInRealTime = false
+    // Preserve rotation metadata so players display the video correctly
+    videoWriterInput.transform = videoTrack.preferredTransform
+    guard writer.canAdd(videoWriterInput) else {
+      completion(nil, MediaToolkitError.processingFailed("Cannot add video writer input"))
+      return
+    }
+    writer.add(videoWriterInput)
+
+    // Pixel buffer adaptor + CIContext for resize path
+    var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
+    var ciContext: CIContext?
+    if needsResize {
+      let adaptorAttrs: [String: Any] = [
+        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+        kCVPixelBufferWidthKey as String: outW,
+        kCVPixelBufferHeightKey as String: outH,
+      ]
+      pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
+        assetWriterInput: videoWriterInput,
+        sourcePixelBufferAttributes: adaptorAttrs
+      )
+      ciContext = CIContext()
+    }
+
+    // Audio writer (passthrough — nil settings = copy compressed stream)
+    var audioWriterInput: AVAssetWriterInput?
+    if audioReaderOutput != nil {
+      let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil)
+      aInput.expectsMediaDataInRealTime = false
+      if writer.canAdd(aInput) {
+        writer.add(aInput)
+        audioWriterInput = aInput
+      }
+    }
+
+    // ── Start processing ──────────────────────────────────────────────────
+    guard reader.startReading() else {
+      completion(nil, reader.error ?? MediaToolkitError.processingFailed("Cannot start reading"))
+      return
+    }
+    guard writer.startWriting() else {
+      completion(nil, writer.error ?? MediaToolkitError.processingFailed("Cannot start writing"))
+      return
+    }
+    writer.startSession(atSourceTime: .zero)
+
+    let totalDuration = max(asset.duration.seconds, 0.001)
+    let group = DispatchGroup()
+    let videoQueue = DispatchQueue(label: "com.mediatoolkit.compress.video")
+    let audioQueue = DispatchQueue(label: "com.mediatoolkit.compress.audio")
+
+    // ── Video samples ─────────────────────────────────────────────────────
+    group.enter()
+    videoWriterInput.requestMediaDataWhenReady(on: videoQueue) {
+      while videoWriterInput.isReadyForMoreMediaData {
+        guard reader.status == .reading else {
+          videoWriterInput.markAsFinished()
+          group.leave()
+          return
+        }
+        guard let sampleBuffer = videoReaderOutput.copyNextSampleBuffer() else {
+          videoWriterInput.markAsFinished()
+          group.leave()
+          return
+        }
+
+        let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        let progress = Float(pts.seconds / totalDuration)
+        DispatchQueue.main.async { onProgress(min(progress, 0.95)) }
+
+        if needsResize,
+           let adaptor = pixelBufferAdaptor,
+           let ctx = ciContext,
+           let srcBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+          // Scale via CIImage (GPU-accelerated)
+          let ciImage = CIImage(cvPixelBuffer: srcBuffer)
+          let scaleX = CGFloat(outW) / CGFloat(CVPixelBufferGetWidth(srcBuffer))
+          let scaleY = CGFloat(outH) / CGFloat(CVPixelBufferGetHeight(srcBuffer))
+          let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+
+          guard let pool = adaptor.pixelBufferPool else { continue }
+          var destBuffer: CVPixelBuffer?
+          CVPixelBufferPoolCreatePixelBuffer(nil, pool, &destBuffer)
+          guard let dest = destBuffer else { continue }
+          ctx.render(scaled, to: dest)
+          adaptor.append(dest, withPresentationTime: pts)
+        } else {
+          videoWriterInput.append(sampleBuffer)
+        }
+      }
+    }
+
+    // ── Audio samples (passthrough) ───────────────────────────────────────
+    if let audioInput = audioWriterInput, let audioOutput = audioReaderOutput {
+      group.enter()
+      audioInput.requestMediaDataWhenReady(on: audioQueue) {
+        while audioInput.isReadyForMoreMediaData {
+          guard reader.status == .reading else {
+            audioInput.markAsFinished()
+            group.leave()
+            return
+          }
+          guard let sampleBuffer = audioOutput.copyNextSampleBuffer() else {
+            audioInput.markAsFinished()
+            group.leave()
+            return
+          }
+          audioInput.append(sampleBuffer)
+        }
+      }
+    }
+
+    // ── Finalize ──────────────────────────────────────────────────────────
+    group.notify(queue: .global(qos: .userInitiated)) {
+      writer.finishWriting {
+        if writer.status == .completed {
+          DispatchQueue.main.async { onProgress(1.0) }
+
+          let outPath = outputURL.path
+
+          // Anti-inflation fallback: if output is larger than original, revert.
+          // (Matches AVAssetExportSession path and Android behavior)
+          if !muteAudio,
+             let sourceURL = (asset as? AVURLAsset)?.url, sourceURL.isFileURL,
+             let origAttr = try? FileManager.default.attributesOfItem(atPath: sourceURL.path),
+             let origSize = origAttr[.size] as? Int64, origSize > 0,
+             let outAttr = try? FileManager.default.attributesOfItem(atPath: outPath),
+             let outSize = outAttr[.size] as? Int64, outSize > origSize {
+            let origMB = Double(origSize) / (1024.0 * 1024.0)
+            let outMB = Double(outSize) / (1024.0 * 1024.0)
+            NSLog("[MediaToolkit] Encoder inflated file from %.1fMB to %.1fMB. Reverting to original.", origMB, outMB)
+            try? FileManager.default.removeItem(at: outputURL)
+            try? FileManager.default.copyItem(at: sourceURL, to: outputURL)
+          }
+
+          let durationMs = asset.duration.seconds * 1000
+          completion(videoResult(path: outPath, asset: asset, trimmed: durationMs), nil)
+        } else {
+          completion(nil, writer.error ?? MediaToolkitError.processingFailed("Export failed"))
+        }
       }
     }
   }

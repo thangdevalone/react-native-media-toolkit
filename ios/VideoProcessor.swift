@@ -1082,7 +1082,7 @@ class VideoProcessor: NSObject {
         assetWriterInput: videoWriterInput,
         sourcePixelBufferAttributes: adaptorAttrs
       )
-      ciContext = CIContext()
+      ciContext = CIContext(options: [.cacheIntermediates: false])
     }
 
     // Audio writer (passthrough — nil settings = copy compressed stream)
@@ -1112,25 +1112,45 @@ class VideoProcessor: NSObject {
     let videoQueue = DispatchQueue(label: "com.mediatoolkit.compress.video")
     let audioQueue = DispatchQueue(label: "com.mediatoolkit.compress.audio")
 
+    var lastReportedProgress: Float = -1.0
+    var videoFinished = false
+    let finishVideo: () -> Void = {
+      guard !videoFinished else { return }
+      videoFinished = true
+      videoWriterInput.markAsFinished()
+      group.leave()
+    }
+
     // ── Video samples ─────────────────────────────────────────────────────
     group.enter()
     videoWriterInput.requestMediaDataWhenReady(on: videoQueue) {
       while videoWriterInput.isReadyForMoreMediaData {
+        if writer.status != .writing {
+          reader.cancelReading()
+          finishVideo()
+          return
+        }
         guard reader.status == .reading else {
-          videoWriterInput.markAsFinished()
-          group.leave()
+          finishVideo()
           return
         }
         guard let sampleBuffer = videoReaderOutput.copyNextSampleBuffer() else {
-          videoWriterInput.markAsFinished()
-          group.leave()
+          if reader.status == .failed {
+            reader.cancelReading()
+          }
+          finishVideo()
           return
         }
 
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         let progress = Float(pts.seconds / totalDuration)
-        DispatchQueue.main.async { onProgress(min(progress, 0.95)) }
+        if progress - lastReportedProgress >= 0.01 || lastReportedProgress < 0 {
+          lastReportedProgress = progress
+          let clamped = min(progress, 0.95)
+          DispatchQueue.main.async { onProgress(clamped) }
+        }
 
+        let appendSuccess: Bool
         if needsResize,
            let adaptor = pixelBufferAdaptor,
            let ctx = ciContext,
@@ -1146,37 +1166,93 @@ class VideoProcessor: NSObject {
           CVPixelBufferPoolCreatePixelBuffer(nil, pool, &destBuffer)
           guard let dest = destBuffer else { continue }
           ctx.render(scaled, to: dest)
-          adaptor.append(dest, withPresentationTime: pts)
+          appendSuccess = adaptor.append(dest, withPresentationTime: pts)
         } else {
-          videoWriterInput.append(sampleBuffer)
+          appendSuccess = videoWriterInput.append(sampleBuffer)
         }
+
+        if !appendSuccess {
+          reader.cancelReading()
+          finishVideo()
+          return
+        }
+      }
+
+      if writer.status != .writing {
+        reader.cancelReading()
+        finishVideo()
+        return
       }
     }
 
     // ── Audio samples (passthrough) ───────────────────────────────────────
     if let audioInput = audioWriterInput, let audioOutput = audioReaderOutput {
+      var audioFinished = false
+      let finishAudio: () -> Void = {
+        guard !audioFinished else { return }
+        audioFinished = true
+        audioInput.markAsFinished()
+        group.leave()
+      }
+
       group.enter()
       audioInput.requestMediaDataWhenReady(on: audioQueue) {
         while audioInput.isReadyForMoreMediaData {
+          if writer.status != .writing {
+            reader.cancelReading()
+            finishAudio()
+            return
+          }
           guard reader.status == .reading else {
-            audioInput.markAsFinished()
-            group.leave()
+            finishAudio()
             return
           }
           guard let sampleBuffer = audioOutput.copyNextSampleBuffer() else {
-            audioInput.markAsFinished()
-            group.leave()
+            if reader.status == .failed {
+              reader.cancelReading()
+            }
+            finishAudio()
             return
           }
-          audioInput.append(sampleBuffer)
+          if !audioInput.append(sampleBuffer) {
+            reader.cancelReading()
+            finishAudio()
+            return
+          }
+        }
+
+        if writer.status != .writing {
+          reader.cancelReading()
+          finishAudio()
+          return
         }
       }
     }
 
     // ── Finalize ──────────────────────────────────────────────────────────
     group.notify(queue: .global(qos: .userInitiated)) {
+      if reader.status == .failed {
+        writer.cancelWriting()
+        try? FileManager.default.removeItem(at: outputURL)
+        completion(nil, reader.error ?? MediaToolkitError.processingFailed("Reader failed during compression"))
+        return
+      }
+
+      if writer.status == .failed {
+        try? FileManager.default.removeItem(at: outputURL)
+        completion(nil, writer.error ?? MediaToolkitError.processingFailed("Writer failed during compression"))
+        return
+      }
+
+      if writer.status == .cancelled || reader.status == .cancelled {
+        try? FileManager.default.removeItem(at: outputURL)
+        let err = writer.error ?? reader.error ?? MediaToolkitError.processingFailed("Compression cancelled")
+        completion(nil, err)
+        return
+      }
+
       writer.finishWriting {
-        if writer.status == .completed {
+        if writer.status == .completed && reader.status != .failed {
           DispatchQueue.main.async { onProgress(1.0) }
 
           let outPath = outputURL.path
@@ -1199,7 +1275,9 @@ class VideoProcessor: NSObject {
           let durationMs = asset.duration.seconds * 1000
           completion(videoResult(path: outPath, asset: asset, trimmed: durationMs), nil)
         } else {
-          completion(nil, writer.error ?? MediaToolkitError.processingFailed("Export failed"))
+          try? FileManager.default.removeItem(at: outputURL)
+          let err = writer.error ?? reader.error ?? MediaToolkitError.processingFailed("Export failed")
+          completion(nil, err)
         }
       }
     }

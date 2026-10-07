@@ -557,6 +557,19 @@ interface ThumbnailResult {
 
 ---
 
+## PhotoKit & Photos Library (`ph://`) Support (iOS)
+
+`react-native-media-toolkit` directly supports `ph://<localIdentifier>` URIs on iOS across all video and image operations (`trimVideo`, `cropVideo`, `compressVideo`, `concatVideos`, `getThumbnail`, `getMediaMetadata`, `compressImage`, `splitImage`, etc.).
+
+### iOS Sandbox & DCIM Limitation Notice
+On iOS, raw filesystem paths inside `/var/mobile/Media/DCIM/...` (which some picker libraries like `expo-media-library` expose as `localUri`, sometimes tagged with base64 fragments `#...`) **cannot** be directly decoded by a fresh `AVURLAsset` in an application process due to Apple's system security sandbox (`tracksError = The file couldn't be opened because you don't have permission to view it`).
+
+To work with videos and photos from the device library:
+1. **Use `ph://<localIdentifier>`:** Pass the asset identifier directly (e.g. `ph://ED7AC36B-A150-4C38-BB8C-B6D696F69B2C/L0/001` or `ph://<id>`). The toolkit resolves the underlying asset via PhotoKit (`PHImageManager.requestAVAsset` / `requestImageDataAndOrientation`). Ensure your `Info.plist` includes `NSPhotoLibraryUsageDescription`.
+2. **Or copy into the app sandbox:** If your integration only provides raw DCIM file paths, copy the file into your app's sandbox directory (e.g. `cacheDirectory` / `documentDirectory`) first before processing. (Libraries like `expo-image-picker` perform this copy automatically).
+
+---
+
 ## Custom UI
 
 This library is **headless** — it provides native processing logic only, without any built-in UI.  

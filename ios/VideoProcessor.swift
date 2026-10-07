@@ -1316,13 +1316,22 @@ class VideoProcessor: NSObject {
     var firstVideoTransform: CGAffineTransform?
 
     for path in clipPaths {
-      let fileUrl = MediaUtils.resolveURL(from: path)
-      let diskPath = MediaUtils.resolveFilePath(from: path)
-      if !FileManager.default.fileExists(atPath: diskPath) {
-        completion(0, MediaToolkitError.invalidInput("concatVideos: file not found: \(path)"))
-        return
+      let asset: AVAsset
+      if path.hasPrefix("ph://") {
+        guard let loaded = MediaUtils.loadAVAsset(from: path) else {
+          completion(0, MediaToolkitError.invalidInput("concatVideos: cannot load PhotoKit asset: \(path)"))
+          return
+        }
+        asset = loaded
+      } else {
+        let fileUrl = MediaUtils.resolveURL(from: path)
+        let diskPath = MediaUtils.resolveFilePath(from: path)
+        if !FileManager.default.fileExists(atPath: diskPath) {
+          completion(0, MediaToolkitError.invalidInput("concatVideos: file not found: \(path)"))
+          return
+        }
+        asset = AVURLAsset(url: fileUrl)
       }
-      let asset = AVURLAsset(url: fileUrl)
 
       guard let videoAssetTrack = asset.tracks(withMediaType: .video).first else {
         completion(0, MediaToolkitError.processingFailed("concatVideos: no video track in: \(path)"))
@@ -1409,9 +1418,7 @@ class VideoProcessor: NSObject {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   private static func loadAsset(_ uri: String) -> AVAsset? {
-    let url = MediaUtils.resolveURL(from: uri)
-    let asset = AVAsset(url: url)
-    return asset
+    return MediaUtils.loadAVAsset(from: uri)
   }
 
   private static func pollProgress(session: AVAssetExportSession, onProgress: @escaping ProgressHandler) {

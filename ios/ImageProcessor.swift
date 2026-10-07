@@ -1,8 +1,9 @@
-import Foundation
-import UIKit
 import CoreGraphics
+import Foundation
 import ImageIO
 import MobileCoreServices
+import Photos
+import UIKit
 import UniformTypeIdentifiers
 
 /// Handles image crop and compress on iOS using CGImage + UIKit.
@@ -255,9 +256,7 @@ class ImageProcessor: NSObject {
     cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
-    let url = MediaUtils.resolveURL(from: uri)
-    
-    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+    guard let source = createImageSource(from: uri) else {
       throw MediaToolkitError.invalidInput("Cannot load image source at: \(uri)")
     }
 
@@ -324,8 +323,7 @@ class ImageProcessor: NSObject {
       throw MediaToolkitError.invalidInput("rows and columns must be greater than 0")
     }
 
-    let url = MediaUtils.resolveURL(from: uri)
-    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+    guard let source = createImageSource(from: uri) else {
       throw MediaToolkitError.invalidInput("Cannot load image source at: \(uri)")
     }
     guard let image = loadImage(from: uri) else {
@@ -372,7 +370,20 @@ class ImageProcessor: NSObject {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
+  private static func createImageSource(from uri: String) -> CGImageSource? {
+    if uri.hasPrefix("ph://") {
+      guard let data = MediaUtils.loadImageData(from: uri) else { return nil }
+      return CGImageSourceCreateWithData(data as CFData, nil)
+    }
+    let url = MediaUtils.resolveURL(from: uri)
+    return CGImageSourceCreateWithURL(url as CFURL, nil)
+  }
+
   private static func loadImage(from uri: String) -> UIImage? {
+    if uri.hasPrefix("ph://") {
+      guard let data = MediaUtils.loadImageData(from: uri) else { return nil }
+      return UIImage(data: data)
+    }
     let path = MediaUtils.resolveFilePath(from: uri)
     return UIImage(contentsOfFile: path)
   }

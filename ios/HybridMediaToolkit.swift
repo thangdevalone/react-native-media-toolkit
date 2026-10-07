@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import NitroModules
+import Photos
 import UIKit
 
 /// Nitro HybridObject implementation for MediaToolkit.
@@ -374,6 +375,69 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
   }
 
   private func fetchMetadata(uri: String) throws -> MediaMetadata {
+      if uri.hasPrefix("ph://") {
+        guard let phAsset = MediaUtils.fetchPHAsset(from: uri) else {
+          throw MediaToolkitError.invalidInput("PHAsset not found for identifier: \(uri)")
+        }
+
+        let resources = PHAssetResource.assetResources(for: phAsset)
+        let size = Double(resources.first?.value(forKey: "fileSize") as? Int64 ?? 0)
+        var location: LocationData? = nil
+        if let loc = phAsset.location {
+          location = LocationData(latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude)
+        }
+        let datetime = phAsset.creationDate.map { ISO8601DateFormatter().string(from: $0) }
+
+        if phAsset.mediaType == .video {
+          guard let asset = MediaUtils.loadAVAsset(from: uri) else {
+            throw MediaToolkitError.invalidInput("Cannot load video asset from PhotoKit: \(uri)")
+          }
+          let duration = asset.duration.seconds * 1000
+          var width: Double = Double(phAsset.pixelWidth)
+          var height: Double = Double(phAsset.pixelHeight)
+          if let track = asset.tracks(withMediaType: .video).first {
+            let naturalSize = track.naturalSize.applying(track.preferredTransform)
+            width = Double(abs(naturalSize.width))
+            height = Double(abs(naturalSize.height))
+          }
+          return MediaMetadata(
+            type: "video", width: width, height: height, size: size,
+            duration: duration, mime: "video/mp4", make: "Apple", model: nil,
+            datetime: datetime, location: location,
+            aperture: nil, exposureTime: nil, iso: nil, focalLength: nil
+          )
+        } else {
+          guard let data = MediaUtils.loadImageData(from: uri),
+                let source = CGImageSourceCreateWithData(data as CFData, nil),
+                let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else {
+            throw MediaToolkitError.invalidInput("Cannot read image properties from PhotoKit: \(uri)")
+          }
+          var width = props[kCGImagePropertyPixelWidth as String] as? Double ?? Double(phAsset.pixelWidth)
+          var height = props[kCGImagePropertyPixelHeight as String] as? Double ?? Double(phAsset.pixelHeight)
+          let orientation = props[kCGImagePropertyOrientation as String] as? Int ?? 1
+          if orientation > 4 {
+            let tmp = width
+            width = height
+            height = tmp
+          }
+          let tiff = props[kCGImagePropertyTIFFDictionary as String] as? [String: Any]
+          let make = tiff?[kCGImagePropertyTIFFMake as String] as? String ?? "Apple"
+          let model = tiff?[kCGImagePropertyTIFFModel as String] as? String
+          let exif = props[kCGImagePropertyExifDictionary as String] as? [String: Any]
+          let aperture = (exif?[kCGImagePropertyExifApertureValue as String] as? NSNumber)?.doubleValue
+          let exposure = (exif?[kCGImagePropertyExifExposureTime as String] as? NSNumber)?.doubleValue
+          let iso = ((exif?[kCGImagePropertyExifISOSpeedRatings as String] as? [NSNumber])?.first)?.doubleValue
+          let focalLength = (exif?[kCGImagePropertyExifFocalLength as String] as? NSNumber)?.doubleValue
+
+          return MediaMetadata(
+            type: "image", width: width, height: height, size: size,
+            duration: 0, mime: "image/jpeg", make: make, model: model,
+            datetime: datetime, location: location,
+            aperture: aperture, exposureTime: exposure, iso: iso, focalLength: focalLength
+          )
+        }
+      }
+
       let fileUrl = MediaUtils.resolveURL(from: uri)
       let filePath = MediaUtils.resolveFilePath(from: uri)
 
@@ -601,13 +665,19 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       try data.write(to: outURL)
 
       // Source video file size (NOT the thumbnail JPEG size)
-      let srcPath = MediaUtils.resolveFilePath(from: uri)
       let srcFileSize: Double
-      if let attrs = try? FileManager.default.attributesOfItem(atPath: srcPath),
-         let sz = attrs[.size] as? Int {
-        srcFileSize = Double(sz)
+      if uri.hasPrefix("ph://"), let phAsset = MediaUtils.fetchPHAsset(from: uri) {
+        let resources = PHAssetResource.assetResources(for: phAsset)
+        let sz = resources.first?.value(forKey: "fileSize") as? Int64 ?? 0
+        srcFileSize = Double(sz > 0 ? sz : Int64(data.count))
       } else {
-        srcFileSize = Double(data.count) // fallback to thumbnail size
+        let srcPath = MediaUtils.resolveFilePath(from: uri)
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: srcPath),
+           let sz = attrs[.size] as? Int {
+          srcFileSize = Double(sz)
+        } else {
+          srcFileSize = Double(data.count) // fallback to thumbnail size
+        }
       }
 
       // Source video duration in milliseconds (actual file duration)
@@ -639,7 +709,6 @@ private func makeMediaResult(_ raw: [String: Any]) -> MediaResult {
 }
 
 private func loadAsset(_ uri: String) -> AVAsset? {
-  let url = MediaUtils.resolveURL(from: uri)
-  return AVAsset(url: url)
+  return MediaUtils.loadAVAsset(from: uri)
 }
 

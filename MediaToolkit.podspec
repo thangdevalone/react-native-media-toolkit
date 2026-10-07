@@ -15,6 +15,7 @@ Pod::Spec.new do |s|
 
   s.platforms    = { :ios => '15.0' }
   s.source       = { :git => "https://github.com/thangdevalone/react-native-media-toolkit.git", :tag => "#{s.version}" }
+  s.frameworks   = 'AVFoundation', 'Photos', 'UIKit'
 
   # Swift implementation files
   s.source_files = [

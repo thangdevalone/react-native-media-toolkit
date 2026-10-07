@@ -521,6 +521,19 @@ interface ThumbnailResult {
 
 ---
 
+## Hỗ trợ PhotoKit & Thư viện ảnh (`ph://`) (iOS)
+
+`react-native-media-toolkit` hỗ trợ trực tiếp các URI dạng `ph://<localIdentifier>` trên iOS cho toàn bộ các hàm xử lý video và ảnh (`trimVideo`, `cropVideo`, `compressVideo`, `concatVideos`, `getThumbnail`, `getMediaMetadata`, `compressImage`, `splitImage`, v.v.).
+
+### Lưu ý về Sandbox và đường dẫn DCIM trên iOS
+Trên iOS, các đường dẫn file gốc trong `/var/mobile/Media/DCIM/...` (thường được các thư viện như `expo-media-library` trả về dưới dạng `localUri`, đôi khi gắn kèm fragment base64 `#...`) **không thể** được giải mã trực tiếp bởi `AVURLAsset` trong process ứng dụng do cơ chế bảo mật sandbox của Apple (`tracksError = The file couldn't be opened because you don't have permission to view it`).
+
+Để làm việc với video và ảnh từ thư viện thiết bị:
+1. **Sử dụng `ph://<localIdentifier>`:** Truyền trực tiếp identifier của asset (ví dụ `ph://ED7AC36B-A150-4C38-BB8C-B6D696F69B2C/L0/001` hoặc `ph://<id>`). Thư viện sẽ tự động giải quyết asset thông qua PhotoKit (`PHImageManager.requestAVAsset` / `requestImageDataAndOrientation`). Hãy đảm bảo `Info.plist` đã khai báo quyền `NSPhotoLibraryUsageDescription`.
+2. **Hoặc sao chép vào sandbox ứng dụng:** Nếu bạn chỉ có đường dẫn file DCIM gốc, hãy sao chép file vào thư mục sandbox của app (ví dụ `cacheDirectory` / `documentDirectory`) trước khi truyền vào hàm xử lý. (Các thư viện như `expo-image-picker` đã thực hiện việc copy này tự động).
+
+---
+
 ## UI tuỳ chỉnh
 
 Thư viện này là **headless** — chỉ cung cấp logic xử lý native, không có UI đi kèm.  

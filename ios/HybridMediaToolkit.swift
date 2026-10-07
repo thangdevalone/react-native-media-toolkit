@@ -452,9 +452,9 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "heif", "webp", "gif", "bmp", "tiff", "tif"]
 
       let asset = AVURLAsset(url: fileUrl)
+      let hasVideoOrAudioTracks = !asset.tracks(withMediaType: .video).isEmpty || !asset.tracks(withMediaType: .audio).isEmpty
       var tracksError: NSError?
       let tracksStatus = asset.statusOfValue(forKey: "tracks", error: &tracksError)
-      let hasVideoOrAudioTracks = !asset.tracks(withMediaType: .video).isEmpty || !asset.tracks(withMediaType: .audio).isEmpty
 
       let isVideo: Bool
       if videoExtensions.contains(ext) {

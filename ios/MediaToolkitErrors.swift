@@ -58,12 +58,19 @@ enum MediaUtils {
   /// Fetches a PHAsset by localIdentifier if uri starts with ph://
   static func fetchPHAsset(from uri: String) -> PHAsset? {
     guard uri.hasPrefix("ph://") else { return nil }
-    let rawId = String(uri.dropFirst(5))
-    var fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [rawId], options: nil)
-    if fetchResult.count == 0 && !rawId.contains("/") {
-      fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: ["\(rawId)/L0/001"], options: nil)
+    let raw = String(uri.dropFirst(5))
+    let clean = (raw.removingPercentEncoding ?? raw).trimmingCharacters(in: .whitespacesAndNewlines)
+    let baseId = clean.components(separatedBy: "#")[0].components(separatedBy: "?")[0]
+
+    let candidates = [baseId, "\(baseId)/L0/001", clean, raw]
+    for id in candidates {
+      guard !id.isEmpty else { continue }
+      let result = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil)
+      if let first = result.firstObject {
+        return first
+      }
     }
-    return fetchResult.firstObject
+    return nil
   }
 
   /// Synchronously loads an AVAsset (waiting on semaphore for ph:// if on background thread).

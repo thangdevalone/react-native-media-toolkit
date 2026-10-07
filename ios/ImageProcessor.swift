@@ -255,8 +255,7 @@ class ImageProcessor: NSObject {
     cornerRadius: Double,
     outputPath: String?
   ) throws -> [String: Any] {
-    let path = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
-    let url = URL(fileURLWithPath: path)
+    let url = MediaUtils.resolveURL(from: uri)
     
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
       throw MediaToolkitError.invalidInput("Cannot load image source at: \(uri)")
@@ -325,8 +324,7 @@ class ImageProcessor: NSObject {
       throw MediaToolkitError.invalidInput("rows and columns must be greater than 0")
     }
 
-    let path = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
-    let url = URL(fileURLWithPath: path)
+    let url = MediaUtils.resolveURL(from: uri)
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
       throw MediaToolkitError.invalidInput("Cannot load image source at: \(uri)")
     }
@@ -375,9 +373,7 @@ class ImageProcessor: NSObject {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   private static func loadImage(from uri: String) -> UIImage? {
-    let path = uri.hasPrefix("file://")
-      ? String(uri.dropFirst(7))
-      : uri
+    let path = MediaUtils.resolveFilePath(from: uri)
     return UIImage(contentsOfFile: path)
   }
 

@@ -374,32 +374,65 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
   }
 
   private func fetchMetadata(uri: String) throws -> MediaMetadata {
-      let isVideo = uri.lowercased().hasSuffix(".mp4") || uri.lowercased().hasSuffix(".mov") || uri.lowercased().hasSuffix(".m4a")
-      let fileUrl = URL(string: uri) ?? URL(fileURLWithPath: uri)
-      
+      let fileUrl = MediaUtils.resolveURL(from: uri)
+      let filePath = MediaUtils.resolveFilePath(from: uri)
+
       var size: Double = 0
-      if let attrs = try? FileManager.default.attributesOfItem(atPath: fileUrl.path),
+      if let attrs = try? FileManager.default.attributesOfItem(atPath: filePath),
          let fSize = attrs[.size] as? NSNumber {
           size = fSize.doubleValue
       }
-      
+
+      let ext = fileUrl.pathExtension.lowercased()
+      let videoExtensions: Set<String> = ["mp4", "mov", "m4v", "m4a", "3gp", "avi", "mkv", "webm", "ts"]
+      let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "heif", "webp", "gif", "bmp", "tiff", "tif"]
+
+      let asset = AVURLAsset(url: fileUrl)
+      var tracksError: NSError?
+      let tracksStatus = asset.statusOfValue(forKey: "tracks", error: &tracksError)
+      let hasVideoOrAudioTracks = !asset.tracks(withMediaType: .video).isEmpty || !asset.tracks(withMediaType: .audio).isEmpty
+
+      let isVideo: Bool
+      if videoExtensions.contains(ext) {
+          isVideo = true
+      } else if imageExtensions.contains(ext) {
+          isVideo = false
+      } else if hasVideoOrAudioTracks {
+          isVideo = true
+      } else {
+          // Check if it's an image via CGImageSource
+          let imgSource = CGImageSourceCreateWithURL(fileUrl as CFURL, nil)
+          let props = imgSource != nil ? CGImageSourceCopyPropertiesAtIndex(imgSource!, 0, nil) as? [String: Any] : nil
+          if props != nil {
+              isVideo = false
+          } else if !asset.tracks.isEmpty {
+              isVideo = true
+          } else {
+              let fileExists = FileManager.default.fileExists(atPath: filePath)
+              let readable = FileManager.default.isReadableFile(atPath: filePath)
+              let tracksErrDesc = tracksError?.localizedDescription ?? "none"
+              throw MediaToolkitError.invalidInput(
+                  "Cannot read media at: \(uri) (fileExists=\(fileExists), readable=\(readable), size=\(Int64(size)), tracksStatus=\(tracksStatus.rawValue), tracksError=\(tracksErrDesc))"
+              )
+          }
+      }
+
       if isVideo {
-          let asset = AVAsset(url: fileUrl)
           let duration = asset.duration.seconds * 1000
-          
+
           var width: Double = 0
           var height: Double = 0
           if let track = asset.tracks(withMediaType: .video).first {
-              let size = track.naturalSize.applying(track.preferredTransform)
-              width = Double(abs(size.width))
-              height = Double(abs(size.height))
+              let naturalSize = track.naturalSize.applying(track.preferredTransform)
+              width = Double(abs(naturalSize.width))
+              height = Double(abs(naturalSize.height))
           }
-          
+
           var make: String? = nil
           var model: String? = nil
           var datetime: String? = nil
           var location: LocationData? = nil
-          
+
           let metadata = asset.commonMetadata
           for item in metadata {
               if item.commonKey == .commonKeyMake {
@@ -423,20 +456,24 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
                   }
               }
           }
-          
+
+          let mime = ext == "mov" ? "video/quicktime" : "video/mp4"
+
           return MediaMetadata(
               type: "video", width: width, height: height, size: size,
-              duration: duration, mime: "video/mp4", make: make, model: model,
+              duration: duration, mime: mime, make: make, model: model,
               datetime: datetime, location: location,
               aperture: nil, exposureTime: nil, iso: nil, focalLength: nil
           )
       } else {
           // Image
           guard let source = CGImageSourceCreateWithURL(fileUrl as CFURL, nil) else {
-              throw MediaToolkitError.invalidInput("Cannot read image")
+              throw MediaToolkitError.invalidInput("Cannot read image at: \(uri)")
           }
           guard let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else {
-              throw MediaToolkitError.invalidInput("Cannot read image properties")
+              let fileExists = FileManager.default.fileExists(atPath: filePath)
+              let readable = FileManager.default.isReadableFile(atPath: filePath)
+              throw MediaToolkitError.invalidInput("Cannot read image properties at: \(uri) (fileExists=\(fileExists), readable=\(readable), size=\(Int64(size)))")
           }
           
           var width = props[kCGImagePropertyPixelWidth as String] as? Double ?? 0
@@ -564,7 +601,7 @@ class HybridMediaToolkit: HybridMediaToolkitSpec {
       try data.write(to: outURL)
 
       // Source video file size (NOT the thumbnail JPEG size)
-      let srcPath = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
+      let srcPath = MediaUtils.resolveFilePath(from: uri)
       let srcFileSize: Double
       if let attrs = try? FileManager.default.attributesOfItem(atPath: srcPath),
          let sz = attrs[.size] as? Int {
@@ -602,14 +639,7 @@ private func makeMediaResult(_ raw: [String: Any]) -> MediaResult {
 }
 
 private func loadAsset(_ uri: String) -> AVAsset? {
-  let path = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
-  let url: URL
-  if path.hasPrefix("/") {
-    url = URL(fileURLWithPath: path)
-  } else if let u = URL(string: uri) {
-    url = u
-  } else {
-    return nil
-  }
+  let url = MediaUtils.resolveURL(from: uri)
   return AVAsset(url: url)
 }
+

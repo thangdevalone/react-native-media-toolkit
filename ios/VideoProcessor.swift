@@ -1316,12 +1316,13 @@ class VideoProcessor: NSObject {
     var firstVideoTransform: CGAffineTransform?
 
     for path in clipPaths {
-      let normalized = path.hasPrefix("file://") ? String(path.dropFirst(7)) : path
-      if !FileManager.default.fileExists(atPath: normalized) {
+      let fileUrl = MediaUtils.resolveURL(from: path)
+      let diskPath = MediaUtils.resolveFilePath(from: path)
+      if !FileManager.default.fileExists(atPath: diskPath) {
         completion(0, MediaToolkitError.invalidInput("concatVideos: file not found: \(path)"))
         return
       }
-      let asset = AVURLAsset(url: URL(fileURLWithPath: normalized))
+      let asset = AVURLAsset(url: fileUrl)
 
       guard let videoAssetTrack = asset.tracks(withMediaType: .video).first else {
         completion(0, MediaToolkitError.processingFailed("concatVideos: no video track in: \(path)"))
@@ -1408,15 +1409,7 @@ class VideoProcessor: NSObject {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   private static func loadAsset(_ uri: String) -> AVAsset? {
-    let path = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
-    let url: URL
-    if path.hasPrefix("/") {
-      url = URL(fileURLWithPath: path)
-    } else if let u = URL(string: uri) {
-      url = u
-    } else {
-      return nil
-    }
+    let url = MediaUtils.resolveURL(from: uri)
     let asset = AVAsset(url: url)
     return asset
   }

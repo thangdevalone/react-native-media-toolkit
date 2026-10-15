@@ -40,6 +40,8 @@ namespace margelo::nitro::mediatoolkit {
    */
   struct CompressVideoOptions final {
   public:
+    std::optional<double> startTime     SWIFT_PRIVATE;
+    std::optional<double> endTime     SWIFT_PRIVATE;
     std::optional<double> targetSizeInMB     SWIFT_PRIVATE;
     std::optional<double> minResolution     SWIFT_PRIVATE;
     std::optional<std::string> quality     SWIFT_PRIVATE;
@@ -50,7 +52,7 @@ namespace margelo::nitro::mediatoolkit {
 
   public:
     CompressVideoOptions() = default;
-    explicit CompressVideoOptions(std::optional<double> targetSizeInMB, std::optional<double> minResolution, std::optional<std::string> quality, std::optional<double> bitrate, std::optional<double> width, std::optional<bool> muteAudio, std::optional<std::string> outputPath): targetSizeInMB(targetSizeInMB), minResolution(minResolution), quality(quality), bitrate(bitrate), width(width), muteAudio(muteAudio), outputPath(outputPath) {}
+    explicit CompressVideoOptions(std::optional<double> startTime, std::optional<double> endTime, std::optional<double> targetSizeInMB, std::optional<double> minResolution, std::optional<std::string> quality, std::optional<double> bitrate, std::optional<double> width, std::optional<bool> muteAudio, std::optional<std::string> outputPath): startTime(startTime), endTime(endTime), targetSizeInMB(targetSizeInMB), minResolution(minResolution), quality(quality), bitrate(bitrate), width(width), muteAudio(muteAudio), outputPath(outputPath) {}
 
   public:
     friend bool operator==(const CompressVideoOptions& lhs, const CompressVideoOptions& rhs) = default;
@@ -66,6 +68,8 @@ namespace margelo::nitro {
     static inline margelo::nitro::mediatoolkit::CompressVideoOptions fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::mediatoolkit::CompressVideoOptions(
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "startTime"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "endTime"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "targetSizeInMB"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "minResolution"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "quality"))),
@@ -77,6 +81,8 @@ namespace margelo::nitro {
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::mediatoolkit::CompressVideoOptions& arg) {
       jsi::Object obj(runtime);
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "startTime"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.startTime));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "endTime"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.endTime));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "targetSizeInMB"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.targetSizeInMB));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "minResolution"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.minResolution));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "quality"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.quality));
@@ -94,6 +100,8 @@ namespace margelo::nitro {
       if (!nitro::isPlainObject(runtime, obj)) {
         return false;
       }
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "startTime")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "endTime")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "targetSizeInMB")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "minResolution")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "quality")))) return false;

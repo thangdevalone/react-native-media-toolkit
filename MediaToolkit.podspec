@@ -22,6 +22,8 @@ Pod::Spec.new do |s|
     "ios/HybridMediaToolkit.swift",
     "ios/ImageProcessor.swift",
     "ios/VideoProcessor.swift",
+    "ios/VideoTrimRange.swift",
+    "ios/VideoCompressionFallback.swift",
     "ios/MediaToolkitErrors.swift",
     "ios/MediaFilters.swift",
   ]

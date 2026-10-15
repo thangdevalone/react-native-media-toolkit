@@ -122,6 +122,11 @@ jobs:
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
+      - name: Test video compression range and fallback contracts
+        run: |
+          swiftc ios/VideoTrimRange.swift ios/VideoCompressionFallback.swift tests/native/swift/main.swift -o "$RUNNER_TEMP/video-compression-tests"
+          "$RUNNER_TEMP/video-compression-tests" tests/fixtures/video-trim-ranges.tsv
+
       # Prebuild must run BEFORE setup-ruby because expo prebuild creates example/ios/
       - name: Prebuild expo app for iOS
         if: env.turbo_cache_hit != 1

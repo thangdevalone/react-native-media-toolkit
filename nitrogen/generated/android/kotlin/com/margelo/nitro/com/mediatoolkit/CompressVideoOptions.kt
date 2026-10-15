@@ -20,6 +20,12 @@ import java.util.Objects
 data class CompressVideoOptions(
   @DoNotStrip
   @Keep
+  val startTime: Double?,
+  @DoNotStrip
+  @Keep
+  val endTime: Double?,
+  @DoNotStrip
+  @Keep
   val targetSizeInMB: Double?,
   @DoNotStrip
   @Keep
@@ -45,7 +51,9 @@ data class CompressVideoOptions(
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is CompressVideoOptions) return false
-    return Objects.deepEquals(this.targetSizeInMB, other.targetSizeInMB)
+    return Objects.deepEquals(this.startTime, other.startTime)
+      && Objects.deepEquals(this.endTime, other.endTime)
+      && Objects.deepEquals(this.targetSizeInMB, other.targetSizeInMB)
       && Objects.deepEquals(this.minResolution, other.minResolution)
       && Objects.deepEquals(this.quality, other.quality)
       && Objects.deepEquals(this.bitrate, other.bitrate)
@@ -56,6 +64,8 @@ data class CompressVideoOptions(
 
   override fun hashCode(): Int {
     return arrayOf(
+      startTime,
+      endTime,
       targetSizeInMB,
       minResolution,
       quality,
@@ -74,8 +84,8 @@ data class CompressVideoOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(targetSizeInMB: Double?, minResolution: Double?, quality: String?, bitrate: Double?, width: Double?, muteAudio: Boolean?, outputPath: String?): CompressVideoOptions {
-      return CompressVideoOptions(targetSizeInMB, minResolution, quality, bitrate, width, muteAudio, outputPath)
+    private fun fromCpp(startTime: Double?, endTime: Double?, targetSizeInMB: Double?, minResolution: Double?, quality: String?, bitrate: Double?, width: Double?, muteAudio: Boolean?, outputPath: String?): CompressVideoOptions {
+      return CompressVideoOptions(startTime, endTime, targetSizeInMB, minResolution, quality, bitrate, width, muteAudio, outputPath)
     }
   }
 }

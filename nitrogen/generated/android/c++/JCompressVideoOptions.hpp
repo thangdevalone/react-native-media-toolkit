@@ -32,6 +32,10 @@ namespace margelo::nitro::mediatoolkit {
     [[nodiscard]]
     CompressVideoOptions toCpp() const {
       static const auto clazz = javaClassStatic();
+      static const auto fieldStartTime = clazz->getField<jni::JDouble>("startTime");
+      jni::local_ref<jni::JDouble> startTime = this->getFieldValue(fieldStartTime);
+      static const auto fieldEndTime = clazz->getField<jni::JDouble>("endTime");
+      jni::local_ref<jni::JDouble> endTime = this->getFieldValue(fieldEndTime);
       static const auto fieldTargetSizeInMB = clazz->getField<jni::JDouble>("targetSizeInMB");
       jni::local_ref<jni::JDouble> targetSizeInMB = this->getFieldValue(fieldTargetSizeInMB);
       static const auto fieldMinResolution = clazz->getField<jni::JDouble>("minResolution");
@@ -47,6 +51,8 @@ namespace margelo::nitro::mediatoolkit {
       static const auto fieldOutputPath = clazz->getField<jni::JString>("outputPath");
       jni::local_ref<jni::JString> outputPath = this->getFieldValue(fieldOutputPath);
       return CompressVideoOptions(
+        startTime != nullptr ? std::make_optional(startTime->value()) : std::nullopt,
+        endTime != nullptr ? std::make_optional(endTime->value()) : std::nullopt,
         targetSizeInMB != nullptr ? std::make_optional(targetSizeInMB->value()) : std::nullopt,
         minResolution != nullptr ? std::make_optional(minResolution->value()) : std::nullopt,
         quality != nullptr ? std::make_optional(quality->toStdString()) : std::nullopt,
@@ -63,11 +69,13 @@ namespace margelo::nitro::mediatoolkit {
      */
     [[maybe_unused]]
     static jni::local_ref<JCompressVideoOptions::javaobject> fromCpp(const CompressVideoOptions& value) {
-      using JSignature = JCompressVideoOptions(jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JString>);
+      using JSignature = JCompressVideoOptions(jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
+        value.startTime.has_value() ? jni::JDouble::valueOf(value.startTime.value()) : nullptr,
+        value.endTime.has_value() ? jni::JDouble::valueOf(value.endTime.value()) : nullptr,
         value.targetSizeInMB.has_value() ? jni::JDouble::valueOf(value.targetSizeInMB.value()) : nullptr,
         value.minResolution.has_value() ? jni::JDouble::valueOf(value.minResolution.value()) : nullptr,
         value.quality.has_value() ? jni::make_jstring(value.quality.value()) : nullptr,

@@ -388,6 +388,8 @@ internal object VideoProcessor {
   fun compressVideo(
     context: Context,
     uri: String,
+    startMs: Double?,      // null = from the start
+    endMs: Double?,        // null = to the end
     quality: String,
     bitrate: Int,          // 0 = use quality preset (matches iOS behaviour)
     targetSizeInMB: Double,
@@ -399,8 +401,6 @@ internal object VideoProcessor {
   ): Map<String, Any> {
     val out = outputPath ?: tempPath()
     val mediaUri = toAndroidUri(uri)
-    val mediaItem = MediaItem.Builder().setUri(mediaUri).build()
-
     // Get duration and dimensions using MediaMetadataRetriever
     var durationMs = 0L
     var videoW = 0
@@ -456,6 +456,29 @@ internal object VideoProcessor {
         android.util.Log.e("VideoProcessor", "Metadata extraction failed", e)
     }
 
+    val trimRange = try {
+      VideoTrimRange.resolve(startMs, endMs, durationMs)
+    } catch (e: IllegalArgumentException) {
+      throw MediaToolkitException.InvalidInput(e.message ?: "Invalid trim range")
+    }
+    val trimRequested = trimRange != null
+    // Validate before creating Media3's clipping configuration so all invalid
+    // ranges reject as InvalidInput, including reversed and out-of-bounds ranges.
+    val mediaItemBuilder = MediaItem.Builder().setUri(mediaUri)
+    if (trimRange != null) {
+        mediaItemBuilder.setClippingConfiguration(
+          MediaItem.ClippingConfiguration.Builder()
+            .setStartPositionMs(trimRange.startMs)
+            .setEndPositionMs(trimRange.endMs)
+            .build()
+        )
+        val trimDurationMs = trimRange.endMs - trimRange.startMs
+        // Budget the trimmed range, not the whole source.
+        origSizeMB = origSizeMB * trimDurationMs / durationMs
+        durationMs = trimDurationMs
+    }
+    val mediaItem = mediaItemBuilder.build()
+
     var computedBitrate = 0
     var finalWidth = videoW
     var finalHeight = videoH
@@ -471,7 +494,8 @@ internal object VideoProcessor {
             val reqMBStr = String.format("%.1f", minRequiredMB)
             throw MediaToolkitException.InvalidInput("Target size (${targetSizeInMB}MB) is impossible for a ${durationSecs.toInt()}s video. Minimum required limit is ~${reqMBStr}MB to prevent corruption.")
         }
-        if (origSizeMB > 0 && targetSizeInMB >= origSizeMB) {
+        // A trimmed range's size is only an estimate; encode it rather than reject.
+        if (!trimRequested && origSizeMB > 0 && targetSizeInMB >= origSizeMB) {
             val reqMBStr = String.format("%.1f", origSizeMB)
             throw MediaToolkitException.InvalidInput("Target size (${targetSizeInMB}MB) must be smaller than the original video size (${reqMBStr}MB).")
         }
@@ -593,7 +617,7 @@ internal object VideoProcessor {
 
         // Fallback: If hardware encoder inflates the file beyond original size,
         // revert to original to prevent making it worse.
-        if (origSizeMB > 0 && !muteAudio && finalSizeMB > origSizeMB) {
+        if (!trimRequested && origSizeMB > 0 && !muteAudio && finalSizeMB > origSizeMB) {
             android.util.Log.w("VideoProcessor", "Hardware encoder inflated file from ${String.format("%.1f", origSizeMB)}MB to ${String.format("%.1f", finalSizeMB)}MB. Reverting to original file.")
             if (mediaUri.scheme == "content") {
                 context.contentResolver.openInputStream(mediaUri)?.use { input ->

@@ -18,8 +18,20 @@ public extension CompressVideoOptions {
   /**
    * Create a new instance of `CompressVideoOptions`.
    */
-  init(targetSizeInMB: Double?, minResolution: Double?, quality: String?, bitrate: Double?, width: Double?, muteAudio: Bool?, outputPath: String?) {
+  init(startTime: Double?, endTime: Double?, targetSizeInMB: Double?, minResolution: Double?, quality: String?, bitrate: Double?, width: Double?, muteAudio: Bool?, outputPath: String?) {
     self.init({ () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = startTime {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = endTime {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
       if let __unwrappedValue = targetSizeInMB {
         return bridge.create_std__optional_double_(__unwrappedValue)
       } else {
@@ -64,6 +76,30 @@ public extension CompressVideoOptions {
     }())
   }
 
+  @inline(__always)
+  var startTime: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__startTime) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__startTime)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var endTime: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__endTime) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__endTime)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
   @inline(__always)
   var targetSizeInMB: Double? {
     return { () -> Double? in

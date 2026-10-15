@@ -132,6 +132,10 @@ export interface VideoCropOptions {
 }
 
 export interface CompressVideoOptions {
+  /** Trim start in milliseconds; encodes only [startTime, endTime] in the same pass */
+  startTime?: number;
+  /** Trim end in milliseconds (defaults to the end of the video) */
+  endTime?: number;
   /** Target file size in Megabytes. Computes an optimal bitrate based on duration. */
   targetSizeInMB?: number;
   /** Minimum resolution (shortest side in px) to protect quality when target size is small. Auto-calculated if omitted. */

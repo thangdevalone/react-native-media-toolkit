@@ -175,6 +175,8 @@ class HybridMediaToolkit : HybridMediaToolkitSpec() {
       val raw = VideoProcessor.compressVideo(
         ctx,
         uri,
+        options.startTime,
+        options.endTime,
         options.quality ?: "medium",
         (options.bitrate ?: 0.0).toInt(),    // 0 = use quality preset (mirrors iOS behaviour)
         options.targetSizeInMB ?: 0.0,

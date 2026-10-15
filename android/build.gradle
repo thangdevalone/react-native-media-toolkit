@@ -111,6 +111,12 @@ android {
     jvmTarget = "17"
   }
 
+  testOptions {
+    unitTests.all {
+      systemProperty "mediatoolkit.testFixtures", file("../tests/fixtures").absolutePath
+    }
+  }
+
   externalNativeBuild {
     cmake {
       path "CMakeLists.txt"
@@ -120,6 +126,8 @@ android {
 }
 
 dependencies {
+  testImplementation "junit:junit:4.13.2"
+
   // react-android is compileOnly: needed by Kotlin to compile (ReactPackage, etc.)
   // but NOT included in the library's runtime DEX output.
   // The host app always provides react-android at runtime.

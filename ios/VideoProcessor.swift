@@ -1041,8 +1041,17 @@ class VideoProcessor: NSObject {
       reader.timeRange = timeRange
     }
 
+    // The output is 8-bit H.264, which can't carry HDR. Ask the decoder for BT.709
+    // frames so HDR (HLG/PQ) sources are converted to SDR instead of being
+    // squeezed into 8 bits with their BT.2020 tags (washed-out colours).
+    let sdrColorProperties: [String: Any] = [
+      AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+      AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+      AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+    ]
     let videoReaderOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [
-      kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+      kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+      AVVideoColorPropertiesKey: sdrColorProperties,
     ])
     videoReaderOutput.alwaysCopiesSampleData = false
     guard reader.canAdd(videoReaderOutput) else {
@@ -1075,6 +1084,7 @@ class VideoProcessor: NSObject {
       AVVideoCodecKey: AVVideoCodecType.h264,
       AVVideoWidthKey: outW,
       AVVideoHeightKey: outH,
+      AVVideoColorPropertiesKey: sdrColorProperties,
       AVVideoCompressionPropertiesKey: [
         AVVideoAverageBitRateKey: bitrate,
         AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
@@ -1133,7 +1143,9 @@ class VideoProcessor: NSObject {
     let videoQueue = DispatchQueue(label: "com.mediatoolkit.compress.video")
     let audioQueue = DispatchQueue(label: "com.mediatoolkit.compress.audio")
 
+    let rangeStart = timeRange?.start ?? .zero
     var lastReportedProgress: Float = -1.0
+    var videoError: Error?
     var videoFinished = false
     let finishVideo: () -> Void = {
       guard !videoFinished else { return }
@@ -1169,7 +1181,8 @@ class VideoProcessor: NSObject {
           }
 
           let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-          let progress = Float(pts.seconds / totalDuration)
+          // pts is in source time; the reader's timeRange may start later than 0.
+          let progress = Float(CMTimeSubtract(pts, rangeStart).seconds / totalDuration)
           if progress - lastReportedProgress >= 0.01 || lastReportedProgress < 0 {
             lastReportedProgress = progress
             let clamped = min(progress, 0.95)
@@ -1187,10 +1200,19 @@ class VideoProcessor: NSObject {
             let scaleY = CGFloat(outH) / CGFloat(CVPixelBufferGetHeight(srcBuffer))
             let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
 
-            guard let pool = adaptor.pixelBufferPool else { return true }
+            // Fail instead of dropping the frame: a skipped frame leaves a gap in
+            // an export that would still report success.
             var destBuffer: CVPixelBuffer?
-            CVPixelBufferPoolCreatePixelBuffer(nil, pool, &destBuffer)
-            guard let dest = destBuffer else { return true }
+            let status = adaptor.pixelBufferPool.map {
+              CVPixelBufferPoolCreatePixelBuffer(nil, $0, &destBuffer)
+            } ?? kCVReturnInvalidArgument
+            guard status == kCVReturnSuccess, let dest = destBuffer else {
+              NSLog("[MediaToolkit] compressWithBitrate: no pixel buffer for resize (CVReturn %d)", status)
+              videoError = MediaToolkitError.processingFailed("Cannot allocate pixel buffer for resize (CVReturn \(status))")
+              reader.cancelReading()
+              finishVideo()
+              return false
+            }
             ctx.render(scaled, to: dest)
             appendSuccess = adaptor.append(dest, withPresentationTime: pts)
           } else {
@@ -1227,27 +1249,32 @@ class VideoProcessor: NSObject {
       group.enter()
       audioInput.requestMediaDataWhenReady(on: audioQueue) {
         while audioInput.isReadyForMoreMediaData {
-          if writer.status != .writing {
-            reader.cancelReading()
-            finishAudio()
-            return
-          }
-          guard reader.status == .reading else {
-            finishAudio()
-            return
-          }
-          guard let sampleBuffer = audioOutput.copyNextSampleBuffer() else {
-            if reader.status == .failed {
+          // Drain per sample, same as the video loop.
+          let keepWriting = autoreleasepool { () -> Bool in
+            if writer.status != .writing {
               reader.cancelReading()
+              finishAudio()
+              return false
             }
-            finishAudio()
-            return
+            guard reader.status == .reading else {
+              finishAudio()
+              return false
+            }
+            guard let sampleBuffer = audioOutput.copyNextSampleBuffer() else {
+              if reader.status == .failed {
+                reader.cancelReading()
+              }
+              finishAudio()
+              return false
+            }
+            if !audioInput.append(sampleBuffer) {
+              reader.cancelReading()
+              finishAudio()
+              return false
+            }
+            return true
           }
-          if !audioInput.append(sampleBuffer) {
-            reader.cancelReading()
-            finishAudio()
-            return
-          }
+          if !keepWriting { return }
         }
 
         if writer.status != .writing {
@@ -1260,6 +1287,13 @@ class VideoProcessor: NSObject {
 
     // ── Finalize ──────────────────────────────────────────────────────────
     group.notify(queue: .global(qos: .userInitiated)) {
+      if let videoError = videoError {
+        writer.cancelWriting()
+        try? FileManager.default.removeItem(at: outputURL)
+        completion(nil, videoError)
+        return
+      }
+
       if reader.status == .failed {
         writer.cancelWriting()
         try? FileManager.default.removeItem(at: outputURL)
@@ -1295,7 +1329,7 @@ class VideoProcessor: NSObject {
             muteAudio: muteAudio
           )
 
-          let durationMs = asset.duration.seconds * 1000
+          let durationMs = (timeRange?.duration ?? asset.duration).seconds * 1000
           completion(videoResult(path: outPath, asset: asset, trimmed: durationMs), nil)
         } else {
           try? FileManager.default.removeItem(at: outputURL)

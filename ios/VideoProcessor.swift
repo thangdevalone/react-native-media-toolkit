@@ -1146,57 +1146,65 @@ class VideoProcessor: NSObject {
     group.enter()
     videoWriterInput.requestMediaDataWhenReady(on: videoQueue) {
       while videoWriterInput.isReadyForMoreMediaData {
-        if writer.status != .writing {
-          reader.cancelReading()
-          finishVideo()
-          return
-        }
-        guard reader.status == .reading else {
-          finishVideo()
-          return
-        }
-        guard let sampleBuffer = videoReaderOutput.copyNextSampleBuffer() else {
-          if reader.status == .failed {
+        // Drain per frame: this loop can run for hundreds of frames before the
+        // input stops being ready (e.g. 4K60 scaled down to 720p), and without
+        // a pool every decoded source frame stays alive until the block
+        // returns, exhausting memory.
+        let keepWriting = autoreleasepool { () -> Bool in
+          if writer.status != .writing {
             reader.cancelReading()
+            finishVideo()
+            return false
           }
-          finishVideo()
-          return
-        }
+          guard reader.status == .reading else {
+            finishVideo()
+            return false
+          }
+          guard let sampleBuffer = videoReaderOutput.copyNextSampleBuffer() else {
+            if reader.status == .failed {
+              reader.cancelReading()
+            }
+            finishVideo()
+            return false
+          }
 
-        let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-        let progress = Float(pts.seconds / totalDuration)
-        if progress - lastReportedProgress >= 0.01 || lastReportedProgress < 0 {
-          lastReportedProgress = progress
-          let clamped = min(progress, 0.95)
-          DispatchQueue.main.async { onProgress(clamped) }
-        }
+          let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+          let progress = Float(pts.seconds / totalDuration)
+          if progress - lastReportedProgress >= 0.01 || lastReportedProgress < 0 {
+            lastReportedProgress = progress
+            let clamped = min(progress, 0.95)
+            DispatchQueue.main.async { onProgress(clamped) }
+          }
 
-        let appendSuccess: Bool
-        if needsResize,
-           let adaptor = pixelBufferAdaptor,
-           let ctx = ciContext,
-           let srcBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-          // Scale via CIImage (GPU-accelerated)
-          let ciImage = CIImage(cvPixelBuffer: srcBuffer)
-          let scaleX = CGFloat(outW) / CGFloat(CVPixelBufferGetWidth(srcBuffer))
-          let scaleY = CGFloat(outH) / CGFloat(CVPixelBufferGetHeight(srcBuffer))
-          let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+          let appendSuccess: Bool
+          if needsResize,
+             let adaptor = pixelBufferAdaptor,
+             let ctx = ciContext,
+             let srcBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            // Scale via CIImage (GPU-accelerated)
+            let ciImage = CIImage(cvPixelBuffer: srcBuffer)
+            let scaleX = CGFloat(outW) / CGFloat(CVPixelBufferGetWidth(srcBuffer))
+            let scaleY = CGFloat(outH) / CGFloat(CVPixelBufferGetHeight(srcBuffer))
+            let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
 
-          guard let pool = adaptor.pixelBufferPool else { continue }
-          var destBuffer: CVPixelBuffer?
-          CVPixelBufferPoolCreatePixelBuffer(nil, pool, &destBuffer)
-          guard let dest = destBuffer else { continue }
-          ctx.render(scaled, to: dest)
-          appendSuccess = adaptor.append(dest, withPresentationTime: pts)
-        } else {
-          appendSuccess = videoWriterInput.append(sampleBuffer)
-        }
+            guard let pool = adaptor.pixelBufferPool else { return true }
+            var destBuffer: CVPixelBuffer?
+            CVPixelBufferPoolCreatePixelBuffer(nil, pool, &destBuffer)
+            guard let dest = destBuffer else { return true }
+            ctx.render(scaled, to: dest)
+            appendSuccess = adaptor.append(dest, withPresentationTime: pts)
+          } else {
+            appendSuccess = videoWriterInput.append(sampleBuffer)
+          }
 
-        if !appendSuccess {
-          reader.cancelReading()
-          finishVideo()
-          return
+          if !appendSuccess {
+            reader.cancelReading()
+            finishVideo()
+            return false
+          }
+          return true
         }
+        if !keepWriting { return }
       }
 
       if writer.status != .writing {

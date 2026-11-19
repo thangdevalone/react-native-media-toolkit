@@ -200,7 +200,7 @@ internal object VideoProcessor {
     // Media3 Transformer picks a very low default, causing severe blur.
     // 4 Mbps balances quality vs file size — locket clips are short (2-5s) so this
     // keeps video sharp enough while not inflating size before compressVideo.
-    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = 4_000_000)
+    return runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = 4_000_000, toneMapHdr = true)
   }
 
   // ─── ROTATE ──────────────────────────────────────────────────────────────
@@ -605,7 +605,7 @@ internal object VideoProcessor {
       Effects.EMPTY
     }
 
-    val result = runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = computedBitrate, removeAudio = muteAudio)
+    val result = runTransform(context, mediaItem, effects, out, onProgress, targetBitrate = computedBitrate, removeAudio = muteAudio, toneMapHdr = true)
 
     // Post-compression validation and fallback
     val outFile = File(out)
@@ -772,31 +772,45 @@ internal object VideoProcessor {
     onProgress: (Int) -> Unit,
     targetBitrate: Int = 0,        // 0 = let Media3 decide
     removeAudio: Boolean = false,  // true = strip audio track
-    removeVideo: Boolean = false   // true = strip video track
+    removeVideo: Boolean = false,  // true = strip video track
+    toneMapHdr: Boolean = false    // true = HDR input becomes SDR H.264 (see outputConfigsFor)
   ): Map<String, Any> {
     val outFile = File(outputPath)
     outFile.parentFile?.mkdirs()
 
     val failures = mutableListOf<String>()
-    for (attempt in EncoderAttempt.values()) {
-      if (outFile.exists()) outFile.delete()
-      try {
-        val encoderName = export(context, mediaItem, effects, outputPath, onProgress, targetBitrate, removeAudio, removeVideo, attempt)
-        val encoder = "${attempt.name.lowercase()}:${encoderName ?: "none"}"
-        if (failures.isEmpty()) {
-          Log.i(TAG, "Export used $encoder")
-        } else {
-          Log.w(TAG, "Export used $encoder after: ${failures.joinToString(" || ")}")
+    val configs = outputConfigsFor(toneMapHdr, targetBitrate)
+    configs@ for ((index, config) in configs.withIndex()) {
+      for (attempt in EncoderAttempt.values()) {
+        if (outFile.exists()) outFile.delete()
+        val label = "${attempt.name.lowercase()}/${config.label}"
+        try {
+          val encoderName = export(context, mediaItem, effects, outputPath, onProgress, targetBitrate, removeAudio, removeVideo, attempt, config)
+          val encoder = "${attempt.name.lowercase()}:${encoderName ?: "none"}"
+          if (failures.isEmpty()) {
+            Log.i(TAG, "Export used $encoder (${config.label})")
+          } else {
+            Log.w(TAG, "Export used $encoder (${config.label}) after: ${failures.joinToString(" || ")}")
+          }
+          return buildResult(outputPath, 0) + ("encoder" to encoder)
+        } catch (e: ExportException) {
+          failures += "$label: ${describe(e)}"
+          if (isVideoEncoderFailure(e)) {
+            Log.w(TAG, "Video encoder failed, trying the next encoder: ${failures.last()}")
+            continue
+          }
+          if (index < configs.lastIndex && isOutputConfigFailure(e)) {
+            Log.w(TAG, "Output configuration failed, trying the next one: ${failures.last()}")
+            continue@configs
+          }
+          break@configs
+        } catch (e: Exception) {
+          failures += "$label: ${e.javaClass.simpleName}: ${e.message}"
+          break@configs
         }
-        return buildResult(outputPath, 0) + ("encoder" to encoder)
-      } catch (e: ExportException) {
-        failures += "${attempt.name.lowercase()}: ${describe(e)}"
-        if (!isVideoEncoderFailure(e)) break
-        Log.w(TAG, "Video encoder failed, trying the next configuration: ${failures.last()}")
-      } catch (e: Exception) {
-        failures += "${attempt.name.lowercase()}: ${e.javaClass.simpleName}: ${e.message}"
-        break
       }
+      // Every encoder failed: a different HDR mode won't help.
+      break
     }
     if (outFile.exists()) outFile.delete()
     throw MediaToolkitException.ProcessingFailed("Transform failed: ${failures.joinToString(" || ")}")
@@ -812,7 +826,8 @@ internal object VideoProcessor {
     targetBitrate: Int,
     removeAudio: Boolean,
     removeVideo: Boolean,
-    attempt: EncoderAttempt
+    attempt: EncoderAttempt,
+    config: OutputConfig
   ): String? {
     val latch = CountDownLatch(1)
     var exportError: Exception? = null
@@ -828,7 +843,7 @@ internal object VideoProcessor {
     }
     val editedItem = editedItemBuilder.build()
     val composition = Composition.Builder(EditedMediaItemSequence.Builder(editedItem).build())
-      .setHdrMode(hdrModeFor(targetBitrate))
+      .setHdrMode(config.hdrMode)
       .build()
 
     val transformerBuilder = Transformer.Builder(context)
@@ -844,7 +859,7 @@ internal object VideoProcessor {
       })
       // Use H.264: more mature encoders on Android, better bitrate compliance than HEVC.
       .setVideoMimeType(MimeTypes.VIDEO_H264)
-      .setEncoderFactory(buildEncoderFactory(context, targetBitrate, attempt))
+      .setEncoderFactory(buildEncoderFactory(context, targetBitrate, attempt, config.cbr))
     val transformer = transformerBuilder.build()
 
     // Run on main thread (Media3 requirement), then wait
@@ -881,30 +896,69 @@ internal object VideoProcessor {
     return videoEncoderName
   }
 
+  /** HDR mode and bitrate mode for one export; tried in order until one works. */
+  private data class OutputConfig(val hdrMode: Int, val cbr: Boolean, val label: String)
+
   // Kept as HDR, the output can't be H.264, so Media3 picks a 10-bit HEVC encoder instead, and
   // some of those ignore the bitrate (c2.exynos.hevc.encoder: ~49 Mbps for a 4.2 Mbps request).
-  // Tone-mapping keeps the output H.264. Media3 supports OpenGL tone-mapping from API 29.
-  private fun hdrModeFor(targetBitrate: Int): Int =
-    if (targetBitrate > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL
-    } else {
-      Composition.HDR_MODE_KEEP_HDR
+  // Tone-mapping keeps the output H.264. Media3 can tone-map with OpenGL from API 29 and in the
+  // decoder from API 31; below API 29 HDR input stays HDR. Not every device can run either path,
+  // so the last configuration is the pre-tone-mapping behaviour: keep HDR, VBR.
+  //
+  // In VBR, Android asks encoders that support it for a minimum quality, which overrides the
+  // bitrate (c2.exynos.h264.encoder: ~5.6 Mbps for any lower request on a 4K60 source), so
+  // bitrate-targeted exports ask for CBR.
+  private fun outputConfigsFor(toneMapHdr: Boolean, targetBitrate: Int): List<OutputConfig> {
+    val keepHdrVbr = OutputConfig(Composition.HDR_MODE_KEEP_HDR, cbr = false, label = "keep-hdr")
+    if (!toneMapHdr) return listOf(keepHdrVbr.copy(cbr = targetBitrate > 0))
+    val configs = mutableListOf<OutputConfig>()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      configs += OutputConfig(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL, cbr = true, label = "tone-map-gl")
     }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      configs += OutputConfig(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_MEDIACODEC, cbr = true, label = "tone-map-codec")
+    }
+    if (configs.isEmpty()) {
+      configs += keepHdrVbr.copy(cbr = true, label = "keep-hdr-cbr")
+    }
+    configs += keepHdrVbr
+    return configs
+  }
 
-  private fun buildEncoderFactory(context: Context, targetBitrate: Int, attempt: EncoderAttempt): DefaultEncoderFactory {
+  // Failures a different OutputConfig can avoid: OpenGL tone-mapping (frame processing), decoder
+  // tone-mapping or 10-bit decoder output (decoder init / format), and no encoder left after
+  // Media3 drops those without CBR support (encoding format).
+  private fun isOutputConfigFailure(e: ExportException): Boolean = e.errorCode in setOf(
+    ExportException.ERROR_CODE_VIDEO_FRAME_PROCESSING_FAILED,
+    ExportException.ERROR_CODE_DECODER_INIT_FAILED,
+    ExportException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
+    ExportException.ERROR_CODE_ENCODING_FORMAT_UNSUPPORTED,
+  )
+
+  private fun buildEncoderFactory(context: Context, targetBitrate: Int, attempt: EncoderAttempt, cbr: Boolean): DefaultEncoderFactory {
+    val selector = if (attempt == EncoderAttempt.SOFTWARE_ENCODER) softwareVideoEncoderSelector else EncoderSelector.DEFAULT
     val settings = VideoEncoderSettings.Builder()
     if (targetBitrate > 0) {
-      // In VBR, Android asks encoders that support it for a minimum quality, which overrides the
-      // bitrate (c2.exynos.h264.encoder: ~5.6 Mbps for any lower request on a 4K60 source).
       settings.setBitrate(targetBitrate)
-        .setBitrateMode(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
+      // DefaultEncoderFactory drops every encoder that doesn't support the requested mode, so only
+      // ask for CBR when the encoder it would otherwise pick supports it.
+      if (cbr && preferredEncoderSupportsCbr(selector)) {
+        settings.setBitrateMode(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
+      }
     }
-    val builder = DefaultEncoderFactory.Builder(context)
+    return DefaultEncoderFactory.Builder(context)
       .setRequestedVideoEncoderSettings(settings.build())
-    if (attempt == EncoderAttempt.SOFTWARE_ENCODER) {
-      builder.setVideoEncoderSelector(softwareVideoEncoderSelector)
-    }
-    return builder.build()
+      .setVideoEncoderSelector(selector)
+      .build()
+  }
+
+  private fun preferredEncoderSupportsCbr(selector: EncoderSelector): Boolean {
+    val encoder = selector.selectEncoderInfos(MimeTypes.VIDEO_H264).firstOrNull() ?: return false
+    val supported = EncoderUtil.isBitrateModeSupported(
+      encoder, MimeTypes.VIDEO_H264, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR
+    )
+    if (!supported) Log.i(TAG, "${encoder.name} doesn't support CBR, using VBR")
+    return supported
   }
 
   private val softwareVideoEncoderSelector = EncoderSelector { mimeType ->

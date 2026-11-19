@@ -2,7 +2,9 @@ package com.margelo.nitro.com.mediatoolkit
 
 import android.content.Context
 import android.media.MediaCodec
+import android.media.MediaCodecInfo
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
@@ -825,6 +827,9 @@ internal object VideoProcessor {
       editedItemBuilder.setRemoveVideo(true)
     }
     val editedItem = editedItemBuilder.build()
+    val composition = Composition.Builder(EditedMediaItemSequence.Builder(editedItem).build())
+      .setHdrMode(hdrModeFor(targetBitrate))
+      .build()
 
     val transformerBuilder = Transformer.Builder(context)
       .addListener(object : Transformer.Listener {
@@ -862,7 +867,7 @@ internal object VideoProcessor {
 
     mainHandler.post {
       try {
-        transformer.start(editedItem, outputPath)
+        transformer.start(composition, outputPath)
         mainHandler.postDelayed(progressRunnable, 150)
       } catch (e: Exception) {
         exportError = e
@@ -876,10 +881,23 @@ internal object VideoProcessor {
     return videoEncoderName
   }
 
+  // Kept as HDR, the output can't be H.264, so Media3 picks a 10-bit HEVC encoder instead, and
+  // some of those ignore the bitrate (c2.exynos.hevc.encoder: ~49 Mbps for a 4.2 Mbps request).
+  // Tone-mapping keeps the output H.264. Media3 supports OpenGL tone-mapping from API 29.
+  private fun hdrModeFor(targetBitrate: Int): Int =
+    if (targetBitrate > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL
+    } else {
+      Composition.HDR_MODE_KEEP_HDR
+    }
+
   private fun buildEncoderFactory(context: Context, targetBitrate: Int, attempt: EncoderAttempt): DefaultEncoderFactory {
     val settings = VideoEncoderSettings.Builder()
     if (targetBitrate > 0) {
+      // In VBR, Android asks encoders that support it for a minimum quality, which overrides the
+      // bitrate (c2.exynos.h264.encoder: ~5.6 Mbps for any lower request on a 4K60 source).
       settings.setBitrate(targetBitrate)
+        .setBitrateMode(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
     }
     val builder = DefaultEncoderFactory.Builder(context)
       .setRequestedVideoEncoderSettings(settings.build())
